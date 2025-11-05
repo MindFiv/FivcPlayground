@@ -26,6 +26,10 @@ def _load_config():
 
 config = create_lazy_value(_load_config)
 
+default_framework = create_lazy_value(
+    lambda: config.get("default_framework") or "strands"
+)
+
 default_embedder_config = create_lazy_value(
     lambda: create_default_kwargs(
         config.get("default_embedder") or {},

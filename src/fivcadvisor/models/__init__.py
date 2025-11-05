@@ -5,14 +5,14 @@ __all__ = [
     "create_coding_model",
 ]
 
-from typing import Callable
-
-from langchain_core.language_models import BaseChatModel
 from fivcadvisor import settings, utils
-from fivcadvisor.models.providers import default_providers
+from fivcadvisor.models.backends import (
+    create_model,
+    Model,
+)
 
 
-def create_default_model(**kwargs) -> BaseChatModel:
+def create_default_model(**kwargs) -> Model:
     """
     Factory function to create a LangChain LLM instance.
 
@@ -31,14 +31,11 @@ def create_default_model(**kwargs) -> BaseChatModel:
 
     kwargs = utils.create_default_kwargs(kwargs, settings.default_llm_config)
 
-    model_provider = default_providers.get(kwargs.get("provider"))
-    if not isinstance(model_provider, Callable):
-        raise ValueError(f"Unsupported model provider: {kwargs.get('provider')}")
-
-    return model_provider(**kwargs)
+    # Call create_model on the backend module
+    return create_model(**kwargs)
 
 
-def create_chat_model(**kwargs) -> BaseChatModel:
+def create_chat_model(**kwargs) -> Model:
     """
     Factory function to create a LangChain LLM instance for chat.
 
@@ -56,7 +53,7 @@ def create_chat_model(**kwargs) -> BaseChatModel:
     )
 
 
-def create_reasoning_model(**kwargs) -> BaseChatModel:
+def create_reasoning_model(**kwargs) -> Model:
     """
     Factory function to create a LangChain LLM instance for reasoning tasks.
 
@@ -75,7 +72,7 @@ def create_reasoning_model(**kwargs) -> BaseChatModel:
     )
 
 
-def create_coding_model(**kwargs) -> BaseChatModel:
+def create_coding_model(**kwargs) -> Model:
     """
     Factory function to create a LangChain LLM instance for coding tasks.
 

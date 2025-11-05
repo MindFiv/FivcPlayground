@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Callable, Any
 
 
-class AgentsCreatorBase(ABC):
+class BaseAgentsCreator(ABC):
     """
     Base class for agents creators.
 
@@ -35,7 +35,7 @@ class AgentsCreatorBase(ABC):
         raise NotImplementedError()
 
 
-class FunctionAgentCreator(AgentsCreatorBase):
+class FunctionAgentsCreator(BaseAgentsCreator):
     """
     Agent creator that wraps a function.
 
@@ -69,37 +69,37 @@ class AgentsRetriever(object):
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        self.agent_creators: dict[str, AgentsCreatorBase] = {}
+        self.agent_creators: dict[str, BaseAgentsCreator] = {}
 
     def cleanup(self):
         self.agent_creators.clear()
 
-    def add(self, creator: AgentsCreatorBase):
+    def add(self, creator: BaseAgentsCreator):
         if creator.name in self.agent_creators:
             raise RuntimeError(f"Agent creator {creator.name} already exists")
 
         self.agent_creators[creator.name] = creator
 
-    def add_batch(self, creators: List[AgentsCreatorBase]):
+    def add_batch(self, creators: List[BaseAgentsCreator]):
         for creator in creators:
             self.add(creator)
 
-    def get(self, name: str) -> Optional[AgentsCreatorBase]:
+    def get(self, name: str) -> Optional[BaseAgentsCreator]:
         return self.agent_creators.get(name)
 
-    def get_batch(self, names: List[str]) -> List[AgentsCreatorBase]:
+    def get_batch(self, names: List[str]) -> List[BaseAgentsCreator]:
         return [self.get(name) for name in names]
 
-    def get_all(self) -> List[AgentsCreatorBase]:
+    def get_all(self) -> List[BaseAgentsCreator]:
         return list(self.agent_creators.values())
 
-    def retrieve(self, query: str) -> List[AgentsCreatorBase]:
+    def retrieve(self, query: str) -> List[BaseAgentsCreator]:
         raise NotImplementedError()
 
 
-def agent_creator(name: str) -> Callable:
+def agents_creator(name: str) -> Callable:
     """
-    Decorator to convert a function into an AgentsCreatorBase.
+    Decorator to convert a function into an BaseAgentsCreator.
 
     Args:
         name: Name of the agent creator
@@ -114,11 +114,8 @@ def agent_creator(name: str) -> Callable:
         retriever.add(create_my_agent)
     """
 
-    def decorator(func: Callable) -> AgentsCreatorBase:
+    def _wrapper(func: Callable) -> BaseAgentsCreator:
         # Create the agent creator instance
-        creator = FunctionAgentCreator(name or func.__name__, func)
+        return FunctionAgentsCreator(name or func.__name__, func)
 
-        # Return the creator instance (not the original function)
-        return creator
-
-    return decorator
+    return _wrapper

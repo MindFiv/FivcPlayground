@@ -1,104 +1,130 @@
 #!/usr/bin/env python3
 """
 Tests for the ToolsBundle class.
+
+ToolsBundle is an MCP (Model Context Protocol) tools bundle that wraps
+MCP server connections and provides async loading of tools.
 """
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from fivcadvisor.tools.types.bundles import ToolsBundle
+from fivcadvisor import __backend__
+from fivcadvisor.tools.types.backends import ToolsBundle, get_tool_name
 
 
-class TestToolsBundle:
-    """Test the ToolsBundle class."""
+class TestToolsBundleInit:
+    """Test ToolsBundle initialization."""
 
-    def test_init_with_single_tool(self):
-        """Test ToolsBundle initialization with a single tool."""
-        tool = Mock()
-        tool.name = "test_tool"
-        tool.description = "A test tool"
+    def test_init_with_command_config(self):
+        """Test ToolsBundle initialization with command-based MCP config."""
+        conn = {
+            "command": "python",
+            "args": ["-m", "mcp_server"],
+        }
+        bundle = ToolsBundle("test_bundle", conn)
 
-        bundle = ToolsBundle("test_bundle", [tool])
+        # Use backend-agnostic function to get tool name
+        assert get_tool_name(bundle) == "test_bundle"
+        # Check that connection is stored (implementation-specific)
+        if __backend__ == "strands":
+            assert bundle._conn == conn
+        else:  # langchain
+            # In LangChain, _conn is set via object.__setattr__
+            assert hasattr(bundle, "_conn")
 
-        assert bundle.name == "test_bundle"
-        assert bundle.description is not None
-        assert "A test tool" in bundle.description
-        assert "Available Tools:" in bundle.description
+    def test_init_with_url_config(self):
+        """Test ToolsBundle initialization with URL-based MCP config."""
+        conn = {
+            "url": "http://localhost:8000/sse",
+        }
+        bundle = ToolsBundle("test_bundle", conn)
 
-    def test_init_with_multiple_tools(self):
-        """Test ToolsBundle initialization with multiple tools."""
-        tool1 = Mock()
-        tool1.name = "tool1"
-        tool1.description = "Tool 1 description"
+        # Use backend-agnostic function to get tool name
+        assert get_tool_name(bundle) == "test_bundle"
+        # Check that connection is stored (implementation-specific)
+        if __backend__ == "strands":
+            assert bundle._conn == conn
+        else:  # langchain
+            # In LangChain, _conn is set via object.__setattr__
+            assert hasattr(bundle, "_conn")
 
-        tool2 = Mock()
-        tool2.name = "tool2"
-        tool2.description = "Tool 2 description"
+    def test_bundle_has_tool_name_attribute(self):
+        """Test that ToolsBundle has a tool_name attribute (or name for LangChain)."""
+        conn = {"command": "python"}
+        bundle = ToolsBundle("my_bundle", conn)
 
-        bundle = ToolsBundle("test_bundle", [tool1, tool2])
+        # Check for backend-specific attributes
+        if __backend__ == "strands":
+            assert hasattr(bundle, "tool_name")
+            assert bundle.tool_name == "my_bundle"
+        else:  # langchain
+            assert hasattr(bundle, "name")
+            assert bundle.name == "my_bundle"
 
-        assert bundle.name == "test_bundle"
-        assert "Tool 1 description" in bundle.description
-        assert "Tool 2 description" in bundle.description
+        # Also verify using backend-agnostic function
+        assert get_tool_name(bundle) == "my_bundle"
 
-    def test_get_all_returns_tools(self):
-        """Test that get_all() returns the tools in the bundle."""
-        tool1 = Mock()
-        tool1.name = "tool1"
-        tool1.description = "Tool 1"
 
-        tool2 = Mock()
-        tool2.name = "tool2"
-        tool2.description = "Tool 2"
+class TestToolsBundleAsync:
+    """Test ToolsBundle async loading."""
 
-        bundle = ToolsBundle("test_bundle", [tool1, tool2])
+    @pytest.mark.skipif(
+        __backend__ != "strands", reason="Only test with Strands backend"
+    )
+    @pytest.mark.asyncio
+    async def test_load_async_with_command_config(self):
+        """Test async loading with command-based config."""
+        conn = {
+            "command": "python",
+            "args": ["-m", "mcp_server"],
+        }
+        bundle = ToolsBundle("test_bundle", conn)
 
-        tools = bundle.get_all()
+        # Mock the MCPClient and tools
+        mock_tool = Mock()
+        mock_tool.tool_name = "test_tool"
 
-        assert len(tools) == 2
-        assert tool1 in tools
-        assert tool2 in tools
+        with patch(
+            "fivcadvisor.tools.types.backends.strands.MCPClient"
+        ) as mock_client_class:
+            mock_client = Mock()
+            mock_client.list_tools_sync.return_value = [mock_tool]
+            mock_client.__enter__ = Mock(return_value=mock_client)
+            mock_client.__exit__ = Mock(return_value=None)
+            mock_client_class.return_value = mock_client
 
-    def test_bundle_is_baseTool(self):
-        """Test that ToolsBundle is a BaseTool."""
-        from langchain_core.tools import BaseTool
+            async with bundle.load_async() as tools:
+                assert len(tools) == 1
+                assert tools[0] == mock_tool
 
-        tool = Mock()
-        tool.name = "test_tool"
-        tool.description = "A test tool"
+    @pytest.mark.skipif(
+        __backend__ != "strands", reason="Only test with Strands backend"
+    )
+    @pytest.mark.asyncio
+    async def test_load_async_with_url_config(self):
+        """Test async loading with URL-based config."""
+        conn = {
+            "url": "http://localhost:8000/sse",
+        }
+        bundle = ToolsBundle("test_bundle", conn)
 
-        bundle = ToolsBundle("test_bundle", [tool])
+        # Mock the MCPClient and tools
+        mock_tool = Mock()
+        mock_tool.tool_name = "test_tool"
 
-        assert isinstance(bundle, BaseTool)
+        with patch(
+            "fivcadvisor.tools.types.backends.strands.MCPClient"
+        ) as mock_client_class:
+            mock_client = Mock()
+            mock_client.list_tools_sync.return_value = [mock_tool]
+            mock_client.__enter__ = Mock(return_value=mock_client)
+            mock_client.__exit__ = Mock(return_value=None)
+            mock_client_class.return_value = mock_client
 
-    def test_bundle_has_name_attribute(self):
-        """Test that ToolsBundle has a name attribute."""
-        tool = Mock()
-        tool.name = "test_tool"
-        tool.description = "A test tool"
-
-        bundle = ToolsBundle("my_bundle", [tool])
-
-        assert hasattr(bundle, "name")
-        assert bundle.name == "my_bundle"
-
-    def test_bundle_description_format(self):
-        """Test that bundle description has correct format."""
-        tool1 = Mock()
-        tool1.name = "tool1"
-        tool1.description = "First tool"
-
-        tool2 = Mock()
-        tool2.name = "tool2"
-        tool2.description = "Second tool"
-
-        bundle = ToolsBundle("test_bundle", [tool1, tool2])
-
-        # Description should start with "Available Tools:"
-        assert bundle.description.startswith("Available Tools:")
-        # Description should contain both tool descriptions
-        assert "First tool" in bundle.description
-        assert "Second tool" in bundle.description
+            async with bundle.load_async() as tools:
+                assert len(tools) == 1
+                assert tools[0] == mock_tool
 
 
 if __name__ == "__main__":

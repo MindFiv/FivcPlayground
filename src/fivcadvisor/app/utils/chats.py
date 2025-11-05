@@ -37,7 +37,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 
 from fivcadvisor import agents, tools
@@ -389,43 +389,31 @@ class Chat(object):
 
             # Load agent metadata if exists
             if self.runtime_meta:
-                agent_messages = []
                 agent_runtimes = self.runtime_repo.list_agent_runtimes(
                     self.runtime_meta.agent_id
                 )
-                for runtime in agent_runtimes:
-                    if runtime.is_completed and runtime.reply:
-                        agent_messages.append(HumanMessage(content=runtime.query))
-                        agent_messages.append(runtime.reply)
                 agent_kwargs = {
                     "agent_id": self.runtime_meta.agent_id,
                     "name": self.runtime_meta.agent_name,
                     "system_prompt": self.runtime_meta.system_prompt,
-                    "messages": agent_messages,
+                    "messages": agent_runtimes,
                 }
-                print(f"Agent Messages: {len(agent_messages)}")
             else:
                 agent_kwargs = {}
 
             # Filter out None values
             agent_kwargs = {k: v for k, v in agent_kwargs.items() if v}
             agent_creator = agents.default_retriever.get("Companion")
-            agent_tools = self.tools_retriever.retrieve(query, expand=True)
-            print(
-                f"Agent Tools: {[tool.name for tool in agent_tools]} for query: {query}"
-            )
-
-            # get tools
+            agent_tools = self.tools_retriever.retrieve(query)
+            agent_monitor = self.monitor_manager.create_agent_runtime(on_event=on_event)
             agent = agent_creator(
-                callback_handler=self.monitor_manager.create_agent_runtime(
-                    on_event=on_event
-                ),
+                callback_handler=agent_monitor,
                 tools=agent_tools,
                 **agent_kwargs,
             )
-
             # Execute agent
             agent_result = await agent.run_async(query)
+
             # Save agent metadata on first query
             if not self.runtime_meta:
                 agent_query = f"{query}\n{str(agent_result)}"

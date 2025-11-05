@@ -1,11 +1,11 @@
 import re
 
 import streamlit as st
-from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 from streamlit.delta_generator import DeltaGenerator
 
 from fivcadvisor.agents.types import (
+    AgentsContent,
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
@@ -158,7 +158,13 @@ class ChatMessage(object):
 
         if self.runtime.query:
             chat_user = placeholder.chat_message("user")
-            chat_user.text(self.runtime.query)
+            # Extract text from AgentsContent
+            query_text = (
+                self.runtime.query.text
+                if hasattr(self.runtime.query, "text")
+                else str(self.runtime.query)
+            )
+            chat_user.text(query_text)
 
         chat_ai = placeholder.chat_message("assistant")
 
@@ -175,11 +181,11 @@ class ChatMessage(object):
 
     @staticmethod
     def render_message(
-        message: BaseMessage | BaseModel,
+        message: AgentsContent | BaseModel,
         placeholder: DeltaGenerator,
     ):
         # Wrap message in adapter for dict-like access
-        if isinstance(message, BaseMessage):
+        if isinstance(message, AgentsContent):
             msg_text = message.text
         elif isinstance(message, BaseModel):
             msg_text = message.model_dump_json()

@@ -13,8 +13,22 @@ Regression: https://github.com/FivcAdvisor/fivcadvisor/issues/XXX
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+from fivcadvisor import __backend__
 from fivcadvisor.tools import _load_retriever
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
+from fivcadvisor.tools.types.backends import get_tool_name
+
+
+def create_mock_tool(name: str, description: str):
+    """Create a mock tool with correct attributes based on the current backend."""
+    tool = Mock()
+    if __backend__ == "langchain":
+        tool.name = name
+        tool.description = description
+    else:  # strands
+        tool.tool_name = name
+        tool.tool_spec = {"description": description}
+    return tool
 
 
 class TestToolsInitRegression:
@@ -22,28 +36,25 @@ class TestToolsInitRegression:
 
     def test_load_retriever_uses_correct_tool_attribute(self):
         """
-        Regression test: Ensure _load_retriever uses tool.name, not tool.tool_name.
+        Regression test: Ensure _load_retriever uses correct tool attributes.
 
         This test prevents the AttributeError that occurred when trying to access
-        'tool_name' attribute on LangChain StructuredTool objects.
-
-        The correct attribute for LangChain tools is 'name', not 'tool_name'.
+        tool attributes. The correct attributes depend on the backend:
+        - LangChain: 'name' and 'description'
+        - Strands: 'tool_name' and 'tool_spec'
         """
         with patch("fivcadvisor.tools.ToolsLoader") as mock_loader_class:
             with patch("fivcadvisor.tools.ToolsRetriever") as mock_retriever_class:
                 # Setup mock retriever
                 mock_retriever = MagicMock(spec=ToolsRetriever)
 
-                # Create mock tools with 'name' attribute (correct LangChain attribute)
-                mock_tool1 = Mock()
-                mock_tool1.name = "calculator"
-                mock_tool1.description = "Calculate math expressions"
+                # Create mock tools with correct attributes for current backend
+                mock_tool1 = create_mock_tool(
+                    "calculator", "Calculate math expressions"
+                )
+                mock_tool2 = create_mock_tool("search", "Search the web")
 
-                mock_tool2 = Mock()
-                mock_tool2.name = "search"
-                mock_tool2.description = "Search the web"
-
-                # Setup get_all to return tools with 'name' attribute
+                # Setup get_all to return tools
                 mock_retriever.get_all.return_value = [mock_tool1, mock_tool2]
 
                 mock_retriever_class.return_value = mock_retriever
@@ -60,10 +71,10 @@ class TestToolsInitRegression:
 
     def test_get_all_returns_tools_with_name_attribute(self):
         """
-        Test that ToolsRetriever.get_all() returns tools with 'name' attribute.
+        Test that ToolsRetriever.get_all() returns tools with correct attributes.
 
         This ensures that tools returned from get_all() have the correct
-        LangChain Tool interface with 'name' attribute.
+        attributes for the current backend (name for LangChain, tool_name for Strands).
         """
         from fivcadvisor.tools.types.retrievers import ToolsRetriever
         from unittest.mock import Mock
@@ -75,14 +86,9 @@ class TestToolsInitRegression:
 
         retriever = ToolsRetriever(db=mock_db)
 
-        # Create tools with 'name' attribute (LangChain standard)
-        tool1 = Mock()
-        tool1.name = "tool1"
-        tool1.description = "Tool 1 description"
-
-        tool2 = Mock()
-        tool2.name = "tool2"
-        tool2.description = "Tool 2 description"
+        # Create tools with correct attributes for current backend
+        tool1 = create_mock_tool("tool1", "Tool 1 description")
+        tool2 = create_mock_tool("tool2", "Tool 2 description")
 
         # Add tools to retriever
         retriever.add(tool1)
@@ -91,30 +97,27 @@ class TestToolsInitRegression:
         # Get all tools
         all_tools = retriever.get_all()
 
-        # Verify all tools have 'name' attribute
+        # Verify all tools can be accessed with get_tool_name
         assert len(all_tools) == 2
-        for tool in all_tools:
-            assert hasattr(tool, "name"), f"Tool {tool} missing 'name' attribute"
-            assert tool.name in ["tool1", "tool2"]
+        tool_names = [get_tool_name(tool) for tool in all_tools]
+        assert "tool1" in tool_names
+        assert "tool2" in tool_names
 
     def test_print_statement_uses_tool_name_attribute(self, capsys):
         """
-        Test that the print statement in _load_retriever uses tool.name correctly.
+        Test that the print statement in _load_retriever uses correct tool names.
 
         This test captures the print output and verifies that tool names are
-        correctly extracted using the 'name' attribute.
+        correctly extracted using the backend-agnostic get_tool_name function.
         """
         with patch("fivcadvisor.tools.ToolsLoader") as mock_loader_class:
             with patch("fivcadvisor.tools.ToolsRetriever") as mock_retriever_class:
                 # Setup mock retriever
                 mock_retriever = MagicMock(spec=ToolsRetriever)
 
-                # Create mock tools
-                mock_tool1 = Mock()
-                mock_tool1.name = "calculator"
-
-                mock_tool2 = Mock()
-                mock_tool2.name = "search"
+                # Create mock tools with correct attributes for current backend
+                mock_tool1 = create_mock_tool("calculator", "Calculate math")
+                mock_tool2 = create_mock_tool("search", "Search the web")
 
                 mock_retriever.get_all.return_value = [mock_tool1, mock_tool2]
                 mock_retriever_class.return_value = mock_retriever
@@ -131,11 +134,15 @@ class TestToolsInitRegression:
                 assert "calculator" in captured.out
                 assert "search" in captured.out
 
+    @pytest.mark.skipif(
+        __backend__ != "langchain", reason="Only test with LangChain backend"
+    )
     def test_tools_retriever_get_all_with_langchain_tools(self):
         """
         Test that ToolsRetriever.get_all() works with actual LangChain Tool objects.
 
         This test uses real LangChain tools to ensure compatibility.
+        Only runs when backend is set to "langchain".
         """
         from langchain_core.tools import tool as make_tool
         from fivcadvisor.tools.types.retrievers import ToolsRetriever
@@ -166,15 +173,15 @@ class TestToolsInitRegression:
         # Get all tools
         all_tools = retriever.get_all()
 
-        # Verify tools have 'name' attribute (not 'tool_name')
+        # Verify tools have 'name' attribute (LangChain standard)
         assert len(all_tools) == 2
-        tool_names = [t.name for t in all_tools]
+        tool_names = [get_tool_name(t) for t in all_tools]
         assert "calculator" in tool_names
         assert "search" in tool_names
 
         # Verify we can access the name attribute without AttributeError
         for tool in all_tools:
-            name = tool.name  # This should not raise AttributeError
+            name = get_tool_name(tool)  # This should not raise AttributeError
             assert isinstance(name, str)
             assert len(name) > 0
 

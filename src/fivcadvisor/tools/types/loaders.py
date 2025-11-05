@@ -2,9 +2,12 @@ import asyncio
 import os
 from typing import Optional
 
-from langchain_mcp_adapters.client import MultiServerMCPClient
-
-from fivcadvisor.tools.types.bundles import ToolsBundle
+from fivcadvisor.tools.types.backends import (
+    ToolsBundle,
+    get_tool_name,
+    get_tool_description,
+    set_tool_description,
+)
 from fivcadvisor.tools.types.configs import ToolsConfig
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
 
@@ -70,8 +73,6 @@ class ToolsLoader(object):
         self.tools_retriever = tools_retriever
         # Track tools by bundle for incremental updates
         self.tools_bundles: dict[str, set[str]] = {}
-        # Persistent MCP client and sessions
-        self.client: Optional[MultiServerMCPClient] = None
 
     async def load_async(self):
         """Load tools from configured MCP servers and register them asynchronously.
@@ -108,13 +109,11 @@ class ToolsLoader(object):
             return
 
         # Create persistent client (kept alive during app runtime)
-        self.client = MultiServerMCPClient(
-            {
-                server_name: self.config.get(server_name).connection
-                for server_name in self.config.list()
-            }
-        )
-        bundle_names_target = set(self.client.connections.keys())
+        connections = {
+            server_name: self.config.get(server_name).value
+            for server_name in self.config.list()
+        }
+        bundle_names_target = set(connections.keys())
         bundle_names_now = set(self.tools_bundles.keys())
 
         bundle_names_to_remove = bundle_names_now - bundle_names_target
@@ -126,16 +125,17 @@ class ToolsLoader(object):
             self.tools_retriever.remove(bundle_name)
 
         # Load tools for new bundles using proper async context management
-
         for bundle_name in bundle_names_to_add:
             try:
                 # Use async with for proper session lifecycle management
-                tools = await self.client.get_tools(server_name=bundle_name)
-                if not tools:
-                    continue
+                bundle = ToolsBundle(bundle_name, connections[bundle_name])
+                async with bundle.load_async() as tools:
+                    tool_names = {get_tool_name(t) for t in tools}
+                    tool_descriptions = [get_tool_description(t) for t in tools]
+                    set_tool_description(bundle, "\n\n".join(tool_descriptions))
 
-                self.tools_retriever.add(ToolsBundle(bundle_name, tools))
-                self.tools_bundles.setdefault(bundle_name, {t.name for t in tools})
+                self.tools_retriever.add(bundle)
+                self.tools_bundles.setdefault(bundle_name, tool_names)
 
             except Exception as e:
                 print(f"Error loading tools from {bundle_name}: {e}")
@@ -172,7 +172,6 @@ class ToolsLoader(object):
 
         # Clear the bundle tracking and client reference
         self.tools_bundles.clear()
-        self.client = None
 
     def cleanup(self):
         """Synchronous cleanup wrapper for cleanup_async.

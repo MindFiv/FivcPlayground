@@ -39,16 +39,32 @@ Example:
 """
 
 import asyncio
+from contextlib import asynccontextmanager, AsyncExitStack
+from datetime import datetime
 from typing import Any, List, Type, Union, Callable
 from uuid import uuid4
 
 from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, AnyMessage, BaseMessage
+from langchain_core.messages import (
+    HumanMessage,
+    BaseMessage,
+    AIMessage,
+    AIMessageChunk,
+    ToolMessage,
+)
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseChatModel
 from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
+from fivcadvisor.agents.types.base import (
+    AgentsContent,
+    AgentsStatus,
+    AgentsEvent,
+    AgentsRuntime,
+    AgentsRuntimeToolCall,
+)
+from fivcadvisor.tools.types.backends import ToolsBundle
 from fivcadvisor.utils import Runnable
 
 
@@ -126,14 +142,14 @@ class AgentsRunnable(Runnable):
 
     def __init__(
         self,
-        model: BaseChatModel,
-        tools: List[BaseTool],
+        model: BaseChatModel | None = None,
+        tools: List[BaseTool] | None = None,
         agent_id: str | None = None,
         agent_name: str = "Default",
         system_prompt: str | None = None,
-        messages: List[AnyMessage] | None = None,
+        messages: List[AgentsRuntime] | None = None,
         response_model: Type[BaseModel] | None = None,
-        callback_handler: Callable[[str, Any], None] | None = None,
+        callback_handler: Callable[[AgentsEvent, AgentsRuntime], None] | None = None,
         **kwargs,
     ):
         """
@@ -172,14 +188,54 @@ class AgentsRunnable(Runnable):
         self._name = agent_name
         self._system_prompt = system_prompt
         self._callback_handler = callback_handler
-        self._messages = messages or []
-        self._agent = create_agent(
-            model,
-            tools,
-            name=agent_name,
-            system_prompt=system_prompt,
-            response_format=response_model,
-        )
+        self._response_model = response_model
+        self._model = model
+        self._tools = []
+        self._tools_bundles = []
+        self._messages = []
+
+        # Separate tools and tool bundles
+        for t in tools:
+            if isinstance(t, ToolsBundle):
+                self._tools_bundles.append(t)
+            else:
+                self._tools.append(t)
+
+        # Convert messages to LangChain format
+        for m in messages or []:
+            if not m.is_completed:
+                continue
+
+            if m.query and m.query.text:
+                self._messages.append(HumanMessage(content=m.query.text))
+
+            if m.reply and m.reply.text:
+                self._messages.append(AIMessage(content=m.reply.text))
+
+        # self._agent = create_agent(
+        #     model,
+        #     tools,
+        #     name=agent_name,
+        #     system_prompt=system_prompt,
+        #     response_format=response_model,
+        # )
+
+    @asynccontextmanager
+    async def create_agent_async(self):
+        """Create agent with tools loaded asynchronously."""
+        async with AsyncExitStack() as stack:
+            tools_expanded = [*self._tools]
+            for bundle in self._tools_bundles:
+                tools = await stack.enter_async_context(bundle.load_async())
+                tools_expanded.extend(tools)
+
+            yield create_agent(
+                self._model,
+                tools_expanded,
+                name=self._name,
+                system_prompt=self._system_prompt,
+                response_format=self._response_model,
+            )
 
     @property
     def id(self) -> str:
@@ -221,166 +277,105 @@ class AgentsRunnable(Runnable):
 
     def run(
         self,
-        query: str | BaseMessage = "",
+        query: str | AgentsContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, BaseMessage]:
-        """
-        Execute the agent synchronously.
-
-        Invokes the agent with the provided query and returns the response.
-        If a callback handler is configured, it will be called with the result.
-
-        The return type depends on whether a response_model was provided during
-        initialization:
-        - If response_model is set: Returns an instance of that Pydantic model
-        - If response_model is None: Returns the response as a BaseMessage
-
-        Args:
-            query: The user query to process. Can be either:
-                   - A string: Will be converted to a HumanMessage
-                   - A list of AnyMessage: Will be used directly as the message history
-                   (default: empty string)
-            **kwargs: Additional keyword arguments passed to the agent
-
-        Returns:
-            Union[BaseModel, BaseMessage]: The agent's response, either as a Pydantic model
-                                           instance (if response_model was provided) or as a BaseMessage
-
-        Raises:
-            AssertionError: If no messages are found in outputs
-
-        Example:
-            >>> agent = AgentsRunnable(model=model, tools=[])
-            >>> result = agent.run("What is 2+2?")
-            >>> print(result)
-            '4'
-
-            >>> # With message history
-            >>> from langchain_core.messages import HumanMessage, AIMessage
-            >>> messages = [
-            ...     HumanMessage(content="What is 2+2?"),
-            ...     AIMessage(content="2+2 equals 4"),
-            ...     HumanMessage(content="What about 3+3?")
-            ... ]
-            >>> result = agent.run(messages)
-            >>> print(result)
-            '3+3 equals 6'
-
-            >>> # With response_model
-            >>> from pydantic import BaseModel
-            >>> class Answer(BaseModel):
-            ...     value: int
-            >>> agent = AgentsRunnable(model=model, tools=[], response_model=Answer)
-            >>> result = agent.run("What is 2+2?")
-            >>> print(result.value)
-            4
-        """
+    ) -> Union[BaseModel, AgentsContent]:
         return asyncio.run(self.run_async(query, **kwargs))
 
     async def run_async(
         self,
-        query: str | BaseMessage = "",
+        query: str | AgentsContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, BaseMessage]:
-        """
-        Execute the agent asynchronously.
-
-        Asynchronously invokes the agent with the provided query and returns the response.
-        If a callback handler is configured, it will be called with the result.
-
-        The return type depends on whether a response_model was provided during
-        initialization:
-        - If response_model is set: Returns an instance of that Pydantic model
-        - If response_model is None: Returns the response as a BaseMessage
-
-        Args:
-            query: The user query to process. Can be either:
-                   - A string: Will be converted to a HumanMessage
-                   - A list of AnyMessage: Will be used directly as the message history
-                   (default: empty string)
-            **kwargs: Additional keyword arguments passed to the agent
-
-        Returns:
-            Union[BaseModel, BaseMessage]: The agent's response, either as a Pydantic model
-                                           instance (if response_model was provided) or as a BaseMessage
-
-        Raises:
-            AssertionError: If no messages are found in outputs
-
-        Example:
-            >>> import asyncio
-            >>> agent = AgentsRunnable(model=model, tools=[])
-            >>> result = asyncio.run(agent.run_async("What is 2+2?"))
-            >>> print(result)
-            '4'
-
-            >>> # With message history
-            >>> from langchain_core.messages import HumanMessage, AIMessage
-            >>> messages = [
-            ...     HumanMessage(content="What is 2+2?"),
-            ...     AIMessage(content="2+2 equals 4"),
-            ...     HumanMessage(content="What about 3+3?")
-            ... ]
-            >>> result = asyncio.run(agent.run_async(messages))
-            >>> print(result)
-            '3+3 equals 6'
-
-            >>> # With response_model
-            >>> from pydantic import BaseModel
-            >>> class Answer(BaseModel):
-            ...     value: int
-            >>> agent = AgentsRunnable(model=model, tools=[], response_model=Answer)
-            >>> result = asyncio.run(agent.run_async("What is 2+2?"))
-            >>> print(result.value)
-            4
-        """
-
+    ) -> Union[BaseModel, AgentsContent]:
         if query:
-            query = HumanMessage(content=query) if isinstance(query, str) else query
-            self._messages.append(query)
+            if isinstance(query, str):
+                query = AgentsContent(text=query)
 
-        outputs = {}
-        if self._callback_handler:
-            self._callback_handler("start", (self, query))
+            if isinstance(query, AgentsContent):
+                self._messages.append(HumanMessage(content=query.text))
 
-        try:
-            async for mode, event in self._agent.astream(
-                self._agent.InputType(messages=self._messages),
-                stream_mode=["messages", "values", "updates"],
-            ):
-                if mode == "values":
-                    outputs = event
-
-                if self._callback_handler:
-                    self._callback_handler(mode, event)
-
-        except GraphRecursionError as e:
-            error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
-            outputs = await self._agent.ainvoke(
-                self._agent.InputType(messages=[HumanMessage(content=error_msg)])
+        async with self.create_agent_async() as agent:
+            runtime = AgentsRuntime(
+                agent_id=self._id,
+                agent_name=self._name,
+                status=AgentsStatus.EXECUTING,
+                query=query or None,
+                started_at=datetime.now(),
             )
+            outputs = {}
             if self._callback_handler:
-                self._callback_handler("values", outputs)
+                self._callback_handler(AgentsEvent.START, runtime)
 
-        if "messages" not in outputs:
-            raise ValueError(f"Expected messages in outputs, got {outputs}")
+            try:
+                async for mode, event_data in agent.astream(
+                    agent.InputType(messages=self._messages),
+                    stream_mode=["messages", "values", "updates"],
+                ):
+                    event = AgentsEvent.START
 
-        output = outputs["messages"][-1]
-        if not isinstance(output, BaseMessage):
-            raise ValueError(
-                f"Expected structured_response to be BaseMessage, got {type(output)}"
-            )
+                    if mode == "values":
+                        outputs = event_data
 
-        self._messages.append(output)
+                    elif mode == "updates":
+                        event = AgentsEvent.UPDATE
+                        runtime.streaming_text = ""
 
-        if self._callback_handler:
-            self._callback_handler("finish", (self, output))
+                    elif mode == "messages":
+                        msg, _ = event_data
 
-        if "structured_response" in outputs:
-            output = outputs["structured_response"]
-            if not isinstance(output, BaseModel):
+                        if isinstance(msg, AIMessageChunk):
+                            event = AgentsEvent.STREAM
+                            runtime.streaming_text += msg.text
+
+                        elif isinstance(msg, ToolMessage):
+                            event = AgentsEvent.TOOL
+                            tool_call = AgentsRuntimeToolCall(
+                                tool_use_id=msg.tool_call_id,
+                                tool_name=msg.name,
+                                # tool_input=msg.input,
+                                tool_result=msg.content,
+                                started_at=datetime.now(),
+                                completed_at=datetime.now(),
+                                status=msg.status,
+                            )
+                            runtime.tool_calls[tool_call.tool_use_id] = tool_call
+
+                    if self._callback_handler and event != AgentsEvent.START:
+                        self._callback_handler(event, runtime)
+
+                runtime.status = AgentsStatus.COMPLETED
+
+            except GraphRecursionError as e:
+                error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
+                outputs = await agent.ainvoke(
+                    agent.InputType(messages=[HumanMessage(content=error_msg)])
+                )
+                runtime.status = AgentsStatus.FAILED
+            finally:
+                runtime.completed_at = datetime.now()
+
+            if "messages" not in outputs:
+                raise ValueError(f"Expected messages in outputs, got {outputs}")
+
+            output = outputs["messages"][-1]
+            if not isinstance(output, BaseMessage):
                 raise ValueError(
-                    f"Expected structured_response to be BaseModel, got {type(output)}"
+                    f"Expected structured_response to be BaseMessage, got {type(output)}"
                 )
 
-        return output
+            self._messages.append(output)
+
+            output = AgentsContent(text=output.text)
+            runtime.reply = output
+
+            if self._callback_handler:
+                self._callback_handler(AgentsEvent.FINISH, runtime)
+
+            if "structured_response" in outputs:
+                output = outputs["structured_response"]
+                if not isinstance(output, BaseModel):
+                    raise ValueError(
+                        f"Expected structured_response to be BaseModel, got {type(output)}"
+                    )
+
+            return output

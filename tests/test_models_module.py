@@ -19,11 +19,16 @@ from fivcadvisor.models import (
     create_reasoning_model,
     create_coding_model,
 )
-from fivcadvisor.models.providers import (
+from fivcadvisor.models.backends.langchain import (
     _openai_model,
     _ollama_model,
-    default_providers,
 )
+
+# Default providers registry
+default_providers = {
+    "openai": _openai_model,
+    "ollama": _ollama_model,
+}
 
 
 class TestModuleStructure:
@@ -50,13 +55,13 @@ class TestModuleStructure:
         ]
         assert set(__all__) == set(expected)
 
-    def test_providers_module_exists(self):
-        """Test that providers module is accessible."""
-        from fivcadvisor.models import providers
+    def test_backends_module_exists(self):
+        """Test that backends module is accessible."""
+        from fivcadvisor.models.backends import langchain
 
-        assert hasattr(providers, "default_providers")
-        assert hasattr(providers, "_openai_model")
-        assert hasattr(providers, "_ollama_model")
+        assert hasattr(langchain, "_openai_model")
+        assert hasattr(langchain, "_ollama_model")
+        assert hasattr(langchain, "create_model")
 
 
 class TestDefaultProviders:
@@ -170,43 +175,53 @@ class TestOllamaProvider:
 class TestCreateDefaultModel:
     """Test create_default_model factory function."""
 
-    @patch("fivcadvisor.models.default_providers")
     @patch("fivcadvisor.models.utils.create_default_kwargs")
-    def test_create_default_model_with_openai(self, mock_create_kwargs, mock_providers):
+    @patch("fivcadvisor.models.create_model")
+    def test_create_default_model_with_openai(
+        self, mock_create_model, mock_create_kwargs
+    ):
         """Test create_default_model with OpenAI provider."""
         mock_model = MagicMock(spec=BaseChatModel)
-        mock_provider = MagicMock(return_value=mock_model)
-        mock_providers.get.return_value = mock_provider
-        mock_create_kwargs.return_value = {"provider": "openai", "model": "gpt-4"}
+        mock_create_model.return_value = mock_model
+        mock_create_kwargs.return_value = {
+            "provider": "openai",
+            "model": "gpt-4",
+            "framework": "langchain",
+        }
 
         result = create_default_model(provider="openai")
 
         assert result == mock_model
-        mock_providers.get.assert_called_once_with("openai")
-        mock_provider.assert_called_once()
+        mock_create_model.assert_called_once()
 
-    @patch("fivcadvisor.models.default_providers")
     @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcadvisor.models.create_model")
     def test_create_default_model_unsupported_provider(
-        self, mock_create_kwargs, mock_providers
+        self, mock_create_model, mock_create_kwargs
     ):
         """Test create_default_model raises error for unsupported provider."""
-        mock_providers.get.return_value = None
-        mock_create_kwargs.return_value = {"provider": "unsupported"}
+        mock_create_model.side_effect = ValueError("Unsupported model provider")
+        mock_create_kwargs.return_value = {
+            "provider": "unsupported",
+            "framework": "langchain",
+        }
 
         with pytest.raises(ValueError, match="Unsupported model provider"):
             create_default_model(provider="unsupported")
 
-    @patch("fivcadvisor.models.default_providers")
     @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcadvisor.models.backends.create_model")
     def test_create_default_model_merges_settings(
-        self, mock_create_kwargs, mock_providers
+        self, mock_create_model, mock_create_kwargs
     ):
         """Test create_default_model merges with settings."""
         mock_model = MagicMock(spec=BaseChatModel)
-        mock_provider = MagicMock(return_value=mock_model)
-        mock_providers.get.return_value = mock_provider
-        mock_create_kwargs.return_value = {"provider": "openai", "temperature": 0.5}
+        mock_create_model.return_value = mock_model
+        mock_create_kwargs.return_value = {
+            "provider": "openai",
+            "temperature": 0.5,
+            "framework": "langchain",
+        }
 
         create_default_model(temperature=0.7)
 
@@ -225,7 +240,10 @@ class TestCreateChatModel:
         """Test create_chat_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"provider": "openai"}
+        mock_create_kwargs.return_value = {
+            "provider": "openai",
+            "framework": "langchain",
+        }
 
         result = create_chat_model()
 
@@ -240,7 +258,7 @@ class TestCreateChatModel:
         """Test create_chat_model uses chat_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {}
+        mock_create_kwargs.return_value = {"framework": "langchain"}
 
         create_chat_model(temperature=0.8)
 
@@ -259,7 +277,7 @@ class TestCreateReasoningModel:
         """Test create_reasoning_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {}
+        mock_create_kwargs.return_value = {"framework": "langchain"}
 
         result = create_reasoning_model()
 
@@ -274,7 +292,7 @@ class TestCreateReasoningModel:
         """Test create_reasoning_model uses reasoning_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {}
+        mock_create_kwargs.return_value = {"framework": "langchain"}
 
         create_reasoning_model()
 
@@ -292,7 +310,7 @@ class TestCreateCodingModel:
         """Test create_coding_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {}
+        mock_create_kwargs.return_value = {"framework": "langchain"}
 
         result = create_coding_model()
 
@@ -307,7 +325,7 @@ class TestCreateCodingModel:
         """Test create_coding_model uses coding_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {}
+        mock_create_kwargs.return_value = {"framework": "langchain"}
 
         create_coding_model()
 

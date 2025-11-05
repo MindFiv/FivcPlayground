@@ -1,3 +1,5 @@
+default_framework: 'langchain'
+
 default_embedder:
   provider: "openai"
   model: "text-embedding-v3"

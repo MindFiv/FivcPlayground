@@ -24,7 +24,7 @@ from fivcadvisor.app.utils import (
     # default_running_config,
 )
 from fivcadvisor.app.components import ChatMessage
-from fivcadvisor.agents.types import AgentsRuntime
+from fivcadvisor.agents.types import AgentsRuntime, AgentsContent
 
 # from fivcadvisor.tasks import create_assessing_task
 from .base import ViewBase, ViewNavigation
@@ -144,7 +144,8 @@ class ChatView(ViewBase):
 
             ChatMessage(
                 AgentsRuntime(
-                    query=user_query,
+                    query=AgentsContent(text=user_query),
+                    # agent_id=self.chat.id,
                 )
             ).render(msg_new_placeholder)
 

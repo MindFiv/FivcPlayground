@@ -19,10 +19,10 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, available_timezones
 from typing import Literal
 
-from langchain_core.tools import tool
+from fivcadvisor.tools.types.backends import make_tool
 
 
-@tool
+@make_tool
 def clock(
     mode: Literal[
         "time", "date", "datetime", "timezone", "time_in_tz", "unix", "info"

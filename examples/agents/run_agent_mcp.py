@@ -3,7 +3,7 @@ Agent Example - MCP Tools Integration
 
 This example demonstrates how to use FivcAdvisor agents with MCP (Model Context Protocol) tools.
 It shows:
-1. Loading MCP tools (chrome-devtools) from configured servers
+1. Loading MCP tools (chrome-devtools) from configured servers using ToolsLoader
 2. Creating an agent with MCP tools
 3. Invoking the agent with a query that requires tool usage
 4. Handling agent responses with tool calls
@@ -23,14 +23,18 @@ Expected Output:
     - Creates a companion agent with these tools
     - Invokes the agent with a Chinese query: "在百度上查询携程股价" (Search for Ctrip stock price on Baidu)
     - Agent attempts to use chrome-devtools to navigate and search
+
+Note:
+    This example uses ToolsLoader for framework-agnostic tool loading, ensuring compatibility
+    with both Strands and LangChain frameworks.
 """
 
 import asyncio
 import dotenv
-import os
 
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from fivcadvisor.tools.types.configs import ToolsConfig
+from fivcadvisor.tools.types.loaders import ToolsLoader
+from fivcadvisor.tools.types.retrievers import ToolsRetriever
+from fivcadvisor.tools.types.backends import get_tool_name, get_tool_description
 from fivcadvisor import agents
 from fivcadvisor.agents.types import AgentsMonitor
 
@@ -39,55 +43,52 @@ dotenv.load_dotenv()
 
 async def main():
     """
-    Run agent example demonstrating MCP tools integration.
+    Run agent example demonstrating MCP tools integration using ToolsLoader.
+
+    This example demonstrates framework-agnostic tool loading that works with both
+    Strands and LangChain frameworks.
     """
 
     print("FivcAdvisor - Agent with MCP Tools Example")
     print("\n" + "=" * 70)
 
-    # Step 1: Load MCP configuration and tools
+    # Step 1: Load MCP tools using ToolsLoader
     print("Step 1: Loading MCP tools from configured servers...")
     print("-" * 70)
 
     try:
-        # Load MCP configuration from configs/mcp.yaml
-        # This file contains the configuration for MCP servers like chrome-devtools
-        config = ToolsConfig(config_file="configs/mcp.yaml", load=True)
-        errors = config.get_errors()
-        if errors:
-            print(f"⚠ Config errors: {errors}")
+        # Create a ToolsRetriever to manage tools
+        # This retriever is framework-agnostic and works with both Strands and LangChain
+        tools_retriever = ToolsRetriever()
+
+        # Create a ToolsLoader with the retriever
+        # ToolsLoader handles loading tools from MCP servers configured in mcp.yaml
+        loader = ToolsLoader(
+            tools_retriever=tools_retriever,
+            config_file="configs/mcp.yaml"
+        )
+
+        # Load all configured MCP tools asynchronously
+        # This loads tools from all servers defined in configs/mcp.yaml
+        await loader.load_async()
+
+        # Get all loaded tools from the retriever
+        # These tools are now available for use by the agent
+        all_tools = tools_retriever.get_all()
+
+        print(f"✓ Successfully loaded {len(all_tools)} tools total")
+
+        if not all_tools:
+            print("✗ No tools loaded. Please check your MCP configuration.")
             return
-
-        # Create MCP client with configured servers
-        # Each server is configured with a command and arguments to start the MCP server
-        connections = {
-            server_name: config.get(server_name).connection
-            for server_name in config.list()
-        }
-
-        print(f"Configured servers: {list(connections.keys())}")
-
-        # Create MultiServerMCPClient to manage connections to all MCP servers
-        # This client handles the communication with each MCP server
-        client = MultiServerMCPClient(connections)
-
-        # Load tools from all configured servers
-        # Each MCP server exposes a set of tools that can be used by the agent
-        all_tools = []
-        for server_name in client.connections.keys():
-            try:
-                # Get all tools from this MCP server
-                tools = await client.get_tools(server_name=server_name)
-                all_tools.extend(tools)
-                print(f"✓ Loaded {len(tools)} tools from {server_name}")
-            except Exception as e:
-                print(f"⚠ Error loading tools from {server_name}: {e}")
-
-        print(f"\n✓ Successfully loaded {len(all_tools)} tools total")
+        
         print("\nAvailable tools:")
         for tool in all_tools:
-            desc = tool.description[:60] if tool.description else "No description"
-            print(f"  - {tool.name}: {desc}...")
+            # Use framework-agnostic functions to get tool name and description
+            tool_name = get_tool_name(tool)
+            tool_desc = get_tool_description(tool)
+            desc = tool_desc[:60] if tool_desc else "No description"
+            print(f"  - {tool_name}: {desc}...")
         print()
 
         # Step 2: Create a companion agent with loaded MCP tools
@@ -142,13 +143,20 @@ async def main():
             import traceback
             traceback.print_exc()
 
+        finally:
+            # Clean up resources
+            print("\nCleaning up resources...")
+            await loader.cleanup_async()
+            print("✓ Resources cleaned up successfully")
+
         print("\n" + "=" * 70)
         print("Example completed!")
         print("\nKey Takeaways:")
-        print("1. MCP tools were successfully loaded from configured servers")
-        print("2. Agent was created with access to these tools")
-        print("3. Agent attempted to use the tools to fulfill the user's request")
-        print("4. Tool execution can be monitored and debugged using AgentsMonitor")
+        print("1. MCP tools were successfully loaded using ToolsLoader")
+        print("2. ToolsLoader provides framework-agnostic tool loading (Strands & LangChain)")
+        print("3. Agent was created with access to these tools")
+        print("4. Agent attempted to use the tools to fulfill the user's request")
+        print("5. Tool execution can be monitored and debugged using AgentsMonitor")
 
     except Exception as e:
         print(f"✗ Error: {e}")

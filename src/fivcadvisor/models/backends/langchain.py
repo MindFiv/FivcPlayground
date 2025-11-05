@@ -1,4 +1,6 @@
-from langchain_core.language_models import BaseChatModel
+from typing import Any
+
+from langchain_core.language_models import BaseChatModel as Model
 
 
 def _openai_model(
@@ -8,7 +10,7 @@ def _openai_model(
     temperature: float = 0.5,
     max_tokens: int = 4096,
     **kwargs,
-) -> BaseChatModel:
+) -> Model:
     """
     Create a ChatOpenAI model instance.
 
@@ -40,7 +42,7 @@ def _ollama_model(
     temperature: float = 0.5,
     reasoning: bool = False,
     **kwargs,
-) -> BaseChatModel:
+) -> Model:
     """
     Create an Ollama model instance.
 
@@ -63,7 +65,10 @@ def _ollama_model(
     )
 
 
-default_providers = {
-    "openai": _openai_model,
-    "ollama": _ollama_model,
-}
+def create_model(provider: str = "openai", **kwargs: Any) -> Any:
+    if provider == "openai":
+        return _openai_model(**kwargs)
+    elif provider == "ollama":
+        return _ollama_model(**kwargs)
+    else:
+        raise ValueError(f"Unsupported model provider: {provider}")

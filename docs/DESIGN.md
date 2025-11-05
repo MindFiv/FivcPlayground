@@ -242,7 +242,7 @@ servers = config.list()
 server_config = config.get("my_server")
 
 # Get connection object for a server
-connection = server_config.connection
+connection = server_config.value
 ```
 
 **Configuration Value Validation:**
@@ -250,21 +250,23 @@ connection = server_config.connection
 Each MCP server configuration is a `ToolsConfigValue` that supports two types:
 
 1. **Command-based** (stdio):
+
 ```python
 config = ToolsConfigValue({
     "command": "python",
     "args": ["server.py"],
     "env": {"VAR": "value"}  # optional
 })
-connection = config.connection  # Returns StdioConnection
+connection = config.value  # Returns StdioConnection
 ```
 
 2. **URL-based** (SSE):
+
 ```python
 config = ToolsConfigValue({
     "url": "http://localhost:8000"
 })
-connection = config.connection  # Returns SSEConnection
+connection = config.value  # Returns SSEConnection
 ```
 
 **API Details:**

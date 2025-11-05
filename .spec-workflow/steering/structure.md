@@ -140,6 +140,7 @@ FivcAdvisor/
 4. **Relative imports** (e.g., `from .types import AgentsRetriever`)
 
 ### Module Organization
+
 ```python
 # Example from agents/__init__.py
 __all__ = [
@@ -160,7 +161,7 @@ from fivcadvisor import models, tools, utils
 
 # Relative imports
 from fivcadvisor.agents.types import (
-    agent_creator,
+    agents_creator,
     AgentsRetriever,
     ToolFilteringConversationManager,
 )

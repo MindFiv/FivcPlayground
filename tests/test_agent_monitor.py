@@ -51,44 +51,44 @@ class TestAgentsMonitorStreaming:
     """Test streaming message tracking."""
 
     def test_handle_stream_event_single_chunk(self):
-        """Test handling a single streaming chunk."""
-        from langchain_core.messages import AIMessageChunk
+        """Test handling a single streaming chunk with UPDATE event."""
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Create mock message chunk
-        msg_chunk = AIMessageChunk(content="Hello")
-        event = (msg_chunk, {})
+        # Simulate streaming text accumulation
+        runtime.streaming_text = "Hello"
 
-        monitor("messages", event)
+        # Call monitor with UPDATE event
+        monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "Hello"
 
     def test_handle_stream_event_multiple_chunks(self):
         """Test accumulating multiple streaming chunks."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         chunks = ["Hello", " ", "world", "!"]
         for chunk in chunks:
-            msg_chunk = AIMessageChunk(content=chunk)
-            event = (msg_chunk, {})
-            monitor("messages", event)
+            runtime.streaming_text += chunk
+            monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "Hello world!"
 
     def test_stream_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime after streaming."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
-        msg_chunk = AIMessageChunk(content="test")
-        event = (msg_chunk, {})
-
-        monitor("messages", event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         on_event.assert_called_once()
         # Verify the callback received the runtime
@@ -98,7 +98,7 @@ class TestAgentsMonitorStreaming:
 
     def test_stream_callback_multiple_invocations(self):
         """Test callback is invoked for each chunk with updated runtime."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         captured_texts = []
 
@@ -107,12 +107,12 @@ class TestAgentsMonitorStreaming:
             captured_texts.append(runtime.streaming_text)
 
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
         chunks = ["a", "b", "c"]
         for chunk in chunks:
-            msg_chunk = AIMessageChunk(content=chunk)
-            event = (msg_chunk, {})
-            monitor("messages", event)
+            runtime.streaming_text += chunk
+            monitor(AgentsEvent.UPDATE, runtime)
 
         # Verify callback was invoked 3 times with accumulated text
         assert len(captured_texts) == 3
@@ -121,31 +121,32 @@ class TestAgentsMonitorStreaming:
         assert captured_texts[2] == "abc"
 
     def test_content_block_start_clears_streaming_text(self):
-        """Test that updates mode clears streaming text."""
+        """Test that START event initializes fresh runtime."""
+        from fivcadvisor.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         # Add some streaming text
-        from langchain_core.messages import AIMessageChunk
-
-        msg_chunk = AIMessageChunk(content="old text")
-        event = (msg_chunk, {})
-        monitor("messages", event)
+        runtime.streaming_text = "old text"
+        monitor(AgentsEvent.UPDATE, runtime)
         assert monitor._runtime.streaming_text == "old text"
 
-        # updates mode should clear it
-        monitor("updates", {})
+        # START event should initialize fresh runtime
+        new_runtime = AgentsRuntime()
+        monitor(AgentsEvent.START, new_runtime)
         assert monitor._runtime.streaming_text == ""
 
     def test_malformed_stream_event(self):
         """Test handling malformed streaming events."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Valid message chunk
-        msg_chunk = AIMessageChunk(content="test")
-        event = (msg_chunk, {})
-        monitor("messages", event)
+        # Valid update
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
         assert monitor._runtime.streaming_text == "test"
 
 
@@ -154,126 +155,119 @@ class TestAgentsMonitorToolEvents:
 
     def test_handle_tool_use_event(self):
         """Test capturing tool use events."""
-        from langchain_core.messages import AIMessage
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Create a message with tool use
-        message = AIMessage(
-            content=[
-                {
-                    "type": "tool_use",
-                    "id": "123",
-                    "name": "calculator",
-                    "input": {"expression": "2+2"},
-                }
-            ]
+        # Add a tool call to the runtime
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={"expression": "2+2"},
         )
-        event = (message, {})
+        runtime.tool_calls["123"] = tool_call
 
-        monitor("messages", event)
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        _ = monitor.tool_calls
-        # Note: The new API doesn't parse tool calls from messages in the same way
-        # This test verifies the monitor accepts the message without error
+        # Verify tool call was tracked
+        assert len(monitor.tool_calls) == 1
+        assert monitor.tool_calls[0].tool_use_id == "123"
         assert isinstance(monitor._runtime, AgentsRuntime)
 
     def test_handle_tool_result_event(self):
         """Test capturing tool result events."""
-        from langchain_core.messages import AIMessage
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # First add tool use message
-        message1 = AIMessage(
-            content=[
-                {
-                    "type": "tool_use",
-                    "id": "123",
-                    "name": "calculator",
-                    "input": {},
-                }
-            ]
+        # Add tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
         )
-        event1 = (message1, {})
-        monitor("messages", event1)
+        runtime.tool_calls["123"] = tool_call
 
-        # Then add tool result via finish mode (since on_values is intentionally removed)
-        message2 = AIMessage(content="Result: 4")
-        # Create a mock runnable for the finish event
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent"
-        mock_runnable.name = "TestAgent"
-        event2 = (mock_runnable, message2)
-        monitor("finish", event2)
+        monitor(AgentsEvent.UPDATE, runtime)
+
+        # Then finish with result
+        runtime.reply = "Result: 4"
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Verify runtime was updated
-        assert monitor._runtime.reply is not None
+        assert monitor._runtime.reply == "Result: 4"
 
     def test_handle_tool_result_failure(self):
         """Test capturing failed tool result."""
-        from langchain_core.messages import AIMessage
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Add tool use message
-        message1 = AIMessage(
-            content=[
-                {
-                    "type": "tool_use",
-                    "id": "123",
-                    "name": "calculator",
-                    "input": {},
-                }
-            ]
+        # Add tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
         )
-        event1 = (message1, {})
-        monitor("messages", event1)
+        runtime.tool_calls["123"] = tool_call
 
-        # Add error message via finish mode (since on_values is intentionally removed)
-        message2 = AIMessage(content="Error occurred")
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent"
-        mock_runnable.name = "TestAgent"
-        event2 = (mock_runnable, message2)
-        monitor("finish", event2)
+        monitor(AgentsEvent.UPDATE, runtime)
+
+        # Finish with error message
+        runtime.reply = "Error occurred"
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Verify runtime was updated
-        assert monitor._runtime.reply is not None
+        assert monitor._runtime.reply == "Error occurred"
 
     def test_tool_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
-        # Use AIMessageChunk with text content
-        message = AIMessageChunk(content="Tool result: success")
-        event = (message, {})
+        # Add tool call and update
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        monitor("messages", event)
+        monitor(AgentsEvent.UPDATE, runtime)
 
         on_event.assert_called_once()
         # Verify the callback received the runtime
         call_args = on_event.call_args[0][0]
         assert isinstance(call_args, AgentsRuntime)
-        assert call_args.streaming_text == "Tool result: success"
+        assert len(call_args.tool_calls) == 1
 
     def test_message_with_text_and_tool(self):
         """Test message containing both text and tool events."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Use AIMessageChunk with text content
-        message = AIMessageChunk(content="Let me calculate that")
-        event = (message, {})
+        # Add streaming text and tool call
+        runtime.streaming_text = "Let me calculate that"
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        monitor("messages", event)
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Verify message was processed
         assert monitor._runtime.streaming_text == "Let me calculate that"
+        assert len(monitor.tool_calls) == 1
 
 
 class TestAgentsMonitorErrorHandling:
@@ -281,42 +275,39 @@ class TestAgentsMonitorErrorHandling:
 
     def test_stream_callback_exception_handled(self):
         """Test that event callback exceptions don't crash monitor during streaming."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
 
         monitor = AgentsMonitor(on_event=failing_callback)
+        runtime = monitor._runtime
 
-        msg_chunk = AIMessageChunk(content="test")
-        event = (msg_chunk, {})
+        runtime.streaming_text = "test"
 
         # Should not raise exception
-        monitor("messages", event)
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Message should still be accumulated
         assert monitor._runtime.streaming_text == "test"
 
     def test_tool_callback_exception_handled(self):
         """Test that event callback exceptions don't crash monitor during finish events."""
-        from langchain_core.messages import AIMessage
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
 
         monitor = AgentsMonitor(on_event=failing_callback)
+        runtime = monitor._runtime
 
-        message = AIMessage(content="test response")
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent"
-        mock_runnable.name = "TestAgent"
-        event = (mock_runnable, message)
+        runtime.reply = "test response"
 
-        # Should not raise exception (finish mode is used since on_values is intentionally removed)
-        monitor("finish", event)
+        # Should not raise exception
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Event should still be captured
-        assert monitor._runtime.reply is not None
+        assert monitor._runtime.reply == "test response"
 
 
 class TestAgentsMonitorStateAccess:
@@ -332,14 +323,13 @@ class TestAgentsMonitorStateAccess:
 
     def test_runtime_access(self):
         """Test direct access to runtime for streaming text."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        msg_chunk = AIMessageChunk(content="test message")
-        event = (msg_chunk, {})
-
-        monitor("messages", event)
+        runtime.streaming_text = "test message"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "test message"
         assert isinstance(monitor._runtime, AgentsRuntime)
@@ -350,14 +340,13 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_clears_message(self):
         """Test that cleanup clears accumulated message."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        msg_chunk = AIMessageChunk(content="test")
-        event = (msg_chunk, {})
-
-        monitor("messages", event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
         assert monitor._runtime.streaming_text == "test"
 
         monitor.cleanup()
@@ -394,14 +383,14 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_with_custom_runtime(self):
         """Test that cleanup can use a custom runtime."""
-        from langchain_core.messages import AIMessageChunk
+        from fivcadvisor.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         # Add some data
-        msg_chunk = AIMessageChunk(content="test")
-        event = (msg_chunk, {})
-        monitor("messages", event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Cleanup with custom runtime
         custom_runtime = AgentsRuntime(agent_id="new-agent", streaming_text="new")

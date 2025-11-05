@@ -227,12 +227,11 @@ class TestModelMigrationBackwardCompatibility:
         assert callable(create_reasoning_model)
         assert callable(create_coding_model)
 
-    def test_providers_accessible(self):
-        """Test providers module is accessible."""
-        from fivcadvisor.models.providers import default_providers
+    def test_backends_accessible(self):
+        """Test backends module is accessible."""
+        from fivcadvisor.models.backends.langchain import create_model
 
-        assert isinstance(default_providers, dict)
-        assert len(default_providers) > 0
+        assert callable(create_model)
 
     def test_no_old_models_py_file(self):
         """Test old models.py file doesn't exist."""

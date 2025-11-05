@@ -556,7 +556,7 @@ class MCPSettingView(ViewBase):
 
             # Check if connection can be created
             try:
-                connection = config_value.connection
+                connection = config_value.value
                 if connection is None:
                     st.error(f"❌ {server_name}: Failed to create connection")
                     continue

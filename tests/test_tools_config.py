@@ -57,7 +57,7 @@ test_server:
             assert config_value is not None
 
             # Should have a connection property
-            connection = config_value.connection
+            connection = config_value.value
             assert connection is not None
 
     def test_load_yaml_file_method(self):
@@ -347,7 +347,7 @@ class TestToolsConfigValue:
     def test_connection_command_based(self):
         """Test connection property returns StdioConnection for command-based config."""
         config = ToolsConfigValue({"command": "python", "args": ["test.py"]})
-        connection = config.connection
+        connection = config.value
         assert connection is not None
         assert isinstance(connection, dict)
         assert connection.get("transport") == "stdio"
@@ -357,7 +357,7 @@ class TestToolsConfigValue:
     def test_connection_url_based(self):
         """Test connection property returns SSEConnection for URL-based config."""
         config = ToolsConfigValue({"url": "http://localhost:8000"})
-        connection = config.connection
+        connection = config.value
         assert connection is not None
         assert isinstance(connection, dict)
         assert connection.get("transport") == "sse"
@@ -372,7 +372,7 @@ class TestToolsConfigValue:
                 "env": {"CUSTOM_VAR": "custom_value"},
             }
         )
-        connection = config.connection
+        connection = config.value
         assert connection is not None
         assert isinstance(connection, dict)
         assert "CUSTOM_VAR" in connection.get("env", {})

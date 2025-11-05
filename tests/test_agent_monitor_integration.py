@@ -109,6 +109,8 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test that monitor captures streaming events during execution."""
+        from fivcadvisor.agents.types.base import AgentsEvent
+
         _ = Chat(agent_runtime_repo=mock_repo, tools_retriever=mock_tools_retriever)
 
         captured_runtimes = []
@@ -126,27 +128,20 @@ class TestMonitorWithMockAgent:
         monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate streaming events through the monitor
-        from langchain_core.messages import AIMessageChunk
+        runtime = monitor._runtime
 
         # Simulate start event
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent-id"
-        mock_runnable.name = "TestAgent"
-        from langchain_core.messages import HumanMessage
-
-        monitor("start", (mock_runnable, HumanMessage(content="test")))
+        monitor(AgentsEvent.START, runtime)
 
         # Simulate streaming messages
-        msg1 = AIMessageChunk(content="Hello")
-        monitor("messages", (msg1, {}))
+        runtime.streaming_text = "Hello"
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        msg2 = AIMessageChunk(content=" world")
-        monitor("messages", (msg2, {}))
+        runtime.streaming_text = "Hello world"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Simulate finish event
-        from langchain_core.messages import AIMessage
-
-        monitor("finish", (mock_runnable, AIMessage(content="Hello world")))
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Verify streaming was captured
         assert len(captured_runtimes) >= 2
@@ -158,6 +153,8 @@ class TestMonitorWithMockAgent:
     @pytest.mark.asyncio
     async def test_monitor_captures_tool_events(self, mock_tools_retriever, mock_repo):
         """Test that monitor captures tool events during execution."""
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         captured_runtimes = []
 
         def on_event(runtime: AgentsRuntime):
@@ -170,30 +167,26 @@ class TestMonitorWithMockAgent:
             )
 
         # Create a real monitor with the callback
-        # Create a real monitor with the callback
         monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate tool events through the monitor
-        from langchain_core.messages import ToolMessage
+        runtime = monitor._runtime
 
         # Simulate start event
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent-id"
-        mock_runnable.name = "TestAgent"
-        from langchain_core.messages import HumanMessage
+        monitor(AgentsEvent.START, runtime)
 
-        monitor("start", (mock_runnable, HumanMessage(content="test")))
-
-        # Simulate tool message (tool result)
-        tool_msg = ToolMessage(
-            tool_call_id="123", name="calculator", content="4", status="success"
+        # Simulate tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
         )
-        monitor("messages", (tool_msg, {}))
+        runtime.tool_calls["123"] = tool_call
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Simulate finish event
-        from langchain_core.messages import AIMessage
-
-        monitor("finish", (mock_runnable, AIMessage(content="The answer is 4")))
+        runtime.reply = "The answer is 4"
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Verify tool events were captured
         assert len(captured_runtimes) >= 2
@@ -205,6 +198,8 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test monitor handling both streaming and tool events."""
+        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         captured_runtimes = []
 
         def on_event(runtime: AgentsRuntime):
@@ -219,41 +214,31 @@ class TestMonitorWithMockAgent:
         monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate both streaming and tool events through the monitor
-        from langchain_core.messages import (
-            AIMessageChunk,
-            ToolMessage,
-            HumanMessage,
-            AIMessage,
-        )
+        runtime = monitor._runtime
 
         # Simulate start event
-        mock_runnable = Mock()
-        mock_runnable.id = "test-agent-id"
-        mock_runnable.name = "TestAgent"
-        monitor("start", (mock_runnable, HumanMessage(content="test")))
+        monitor(AgentsEvent.START, runtime)
 
         # Simulate streaming text
-        msg1 = AIMessageChunk(content="Let me calculate that. ")
-        monitor("messages", (msg1, {}))
+        runtime.streaming_text = "Let me calculate that. "
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        # Simulate tool message (tool result)
-        tool_msg = ToolMessage(
-            tool_call_id="123", name="calculator", content="42", status="success"
+        # Simulate tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
         )
-        monitor("messages", (tool_msg, {}))
+        runtime.tool_calls["123"] = tool_call
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Simulate more streaming text
-        msg2 = AIMessageChunk(content="The answer is 42.")
-        monitor("messages", (msg2, {}))
+        runtime.streaming_text = "Let me calculate that. The answer is 42."
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Simulate finish event
-        monitor(
-            "finish",
-            (
-                mock_runnable,
-                AIMessage(content="Let me calculate that. The answer is 42."),
-            ),
-        )
+        runtime.reply = "Let me calculate that. The answer is 42."
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Verify both types of events were captured
         assert len(captured_runtimes) >= 3
@@ -261,9 +246,9 @@ class TestMonitorWithMockAgent:
         assert any(rt.get("streaming_text") for rt in captured_runtimes)
         assert any(rt.get("tool_call_count", 0) > 0 for rt in captured_runtimes)
 
-        # Second streaming event
+        # Last streaming event should have full text
         assert (
-            captured_runtimes[3]["streaming_text"]
+            captured_runtimes[-2]["streaming_text"]
             == "Let me calculate that. The answer is 42."
         )
 
@@ -327,6 +312,8 @@ class TestMonitorStateManagement:
     @pytest.mark.asyncio
     async def test_state_isolated_between_runs(self, mock_tools_retriever, mock_repo):
         """Test that state is properly isolated between runs."""
+        from fivcadvisor.agents.types.base import AgentsEvent
+
         captured_first = []
         captured_second = []
 
@@ -340,28 +327,22 @@ class TestMonitorStateManagement:
         monitor_2 = AgentsMonitor(on_event=on_event_second, runtime_repo=mock_repo)
 
         # Simulate events for first monitor
-        from langchain_core.messages import AIMessageChunk, HumanMessage, AIMessage
+        runtime_1 = monitor_1._runtime
+        monitor_1(AgentsEvent.START, runtime_1)
 
-        mock_runnable_1 = Mock()
-        mock_runnable_1.id = "test-agent-id-1"
-        mock_runnable_1.name = "TestAgent1"
-        monitor_1("start", (mock_runnable_1, HumanMessage(content="query 1")))
+        runtime_1.streaming_text = "First response"
+        monitor_1(AgentsEvent.UPDATE, runtime_1)
 
-        msg1 = AIMessageChunk(content="First response")
-        monitor_1("messages", (msg1, {}))
-
-        monitor_1("finish", (mock_runnable_1, AIMessage(content="First response")))
+        monitor_1(AgentsEvent.FINISH, runtime_1)
 
         # Simulate events for second monitor
-        mock_runnable_2 = Mock()
-        mock_runnable_2.id = "test-agent-id-2"
-        mock_runnable_2.name = "TestAgent2"
-        monitor_2("start", (mock_runnable_2, HumanMessage(content="query 2")))
+        runtime_2 = monitor_2._runtime
+        monitor_2(AgentsEvent.START, runtime_2)
 
-        msg2 = AIMessageChunk(content="Second response")
-        monitor_2("messages", (msg2, {}))
+        runtime_2.streaming_text = "Second response"
+        monitor_2(AgentsEvent.UPDATE, runtime_2)
 
-        monitor_2("finish", (mock_runnable_2, AIMessage(content="Second response")))
+        monitor_2(AgentsEvent.FINISH, runtime_2)
 
         # State should be isolated between runs
         assert len(captured_first) > 0

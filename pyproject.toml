@@ -27,8 +27,11 @@ dependencies = [
     "langgraph>=1.0.0",
     "langchain-mcp-adapters>=0.1.11",
     "langchain-ollama>=1.0.0",
-    "langchain-text-splitters>=0.3.11",
     "nest-asyncio>=1.6.0",
+    # Strands framework dependencies (optional)
+    "strands-agents>=1.14.0",
+    # Text splitters for document loading
+    "langchain-text-splitters>=0.3.11",
     # Transitive dependencies (required by other packages)
     "httpx>=0.28.1", # Required by: chromadb, langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
     "openai>=1.109.1", # Required by: langchain-openai

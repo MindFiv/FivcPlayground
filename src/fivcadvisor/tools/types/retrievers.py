@@ -1,9 +1,13 @@
 from typing import List, Optional, Dict
 
 from pydantic import BaseModel, Field
-from langchain_core.tools import BaseTool, tool as make_tool
 from fivcadvisor import embeddings
-from fivcadvisor.tools.types.bundles import ToolsBundle
+from fivcadvisor.tools.types.backends import (
+    Tool,
+    make_tool,
+    get_tool_name,
+    get_tool_description,
+)
 
 
 class ToolsRetriever(object):
@@ -45,7 +49,7 @@ class ToolsRetriever(object):
     ):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
-        self.tools: dict[str, BaseTool] = {}
+        self.tools: dict[str, Tool] = {}
         db = db or embeddings.default_embedding_db
         self.collection = db.get_collection("tools")
         self.collection.clear()  # clean up any old data
@@ -59,34 +63,12 @@ class ToolsRetriever(object):
         self.tools.clear()
         self.collection.clear()
 
-    def add(self, tool: BaseTool, **kwargs):
-        """Add a tool to the retriever.
-
-        Adds a tool (or ToolsBundle) to the retriever's collection. The tool's description
-        is indexed in the embedding collection for semantic search. Enables error handling
-        on the tool if not already enabled.
-
-        Args:
-            tool: The BaseTool or ToolsBundle instance to add
-            **kwargs: Additional keyword arguments (ignored)
-
-        Raises:
-            ValueError: If tool name is duplicate or description is empty
-
-        Note:
-            - Automatically enables handle_tool_error on the tool
-            - Prints the total document count after adding
-            - Works with both individual tools and ToolsBundle objects
-        """
-
-        if not tool.handle_tool_error:
-            tool.handle_tool_error = True
-
-        tool_name = tool.name
+    def add(self, tool: Tool, **kwargs):
+        tool_name = get_tool_name(tool)
         if tool_name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool_name}")
 
-        tool_desc = tool.description
+        tool_desc = get_tool_description(tool)
         if not tool_desc:
             raise ValueError(f"Tool description is empty: {tool_name}")
 
@@ -98,7 +80,7 @@ class ToolsRetriever(object):
 
         print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
-    def add_batch(self, tools: List[BaseTool], **kwargs):
+    def add_batch(self, tools: List[Tool], **kwargs):
         """Add multiple tools to the retriever.
 
         Convenience method that adds multiple tools by calling add() for each tool.
@@ -114,13 +96,13 @@ class ToolsRetriever(object):
         for tool in tools:
             self.add(tool)
 
-    def get(self, name: str) -> Optional[BaseTool]:
+    def get(self, name: str) -> Optional[Tool]:
         return self.tools.get(name)
 
-    def get_batch(self, names: List[str]) -> List[BaseTool]:
+    def get_batch(self, names: List[str]) -> List[Tool]:
         return [self.get(name) for name in names]
 
-    def get_all(self) -> List[BaseTool]:
+    def get_all(self) -> List[Tool]:
         return list(self.tools.values())
 
     def remove(self, name: str):
@@ -178,9 +160,8 @@ class ToolsRetriever(object):
     def retrieve(
         self,
         query: str,
-        expand: bool = False,
         **kwargs,
-    ) -> List[BaseTool]:
+    ) -> List[Tool]:
         """Retrieve tools for a query using semantic search.
 
         Performs semantic search on tool descriptions using embeddings to find the most
@@ -224,23 +205,14 @@ class ToolsRetriever(object):
             if src["score"] >= self.retrieve_min_score
         )
 
-        if not expand:
-            return [self.get(name) for name in tool_names]
-
-        # expand bundles if need be
-        tools = []
-        for name in tool_names:
-            tool = self.get(name)
-            if isinstance(tool, ToolsBundle):
-                tools.extend(tool.get_all())
-            else:
-                tools.append(tool)
-
-        return tools
+        return [self.get(name) for name in tool_names]
 
     def __call__(self, *args, **kwargs) -> List[Dict]:
         tools = self.retrieve(*args, **kwargs)
-        return [{"name": t.name, "description": t.description} for t in tools]
+        return [
+            {"name": get_tool_name(t), "description": get_tool_description(t)}
+            for t in tools
+        ]
 
     class _ToolSchema(BaseModel):
         query: str = Field(description="The task to find the best tool for")

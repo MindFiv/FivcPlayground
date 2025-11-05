@@ -1,12 +1,11 @@
 import os
 from typing import Optional, List, Dict
 
-from langchain_mcp_adapters.sessions import (
-    Connection,
-    StdioConnection,
-    # StreamableHttpConnection,
-    SSEConnection,
-)
+# from langchain_mcp_adapters.sessions import (
+#     Connection,
+#     StdioConnection,
+#     SSEConnection,
+# )
 
 
 class ToolsConfigValue(dict):
@@ -95,7 +94,7 @@ class ToolsConfigValue(dict):
         return True
 
     @property
-    def connection(self) -> Optional[Connection]:
+    def value(self) -> Optional[dict]:
         if not self.validate():
             return None
 
@@ -108,7 +107,7 @@ class ToolsConfigValue(dict):
             # Merge with environment variables
             env.update(os.environ)
 
-            return StdioConnection(
+            return dict(
                 transport="stdio",
                 command=command,
                 args=args,
@@ -118,7 +117,7 @@ class ToolsConfigValue(dict):
         elif "url" in self:
             # URL-based configuration
             url = self["url"]
-            return SSEConnection(
+            return dict(
                 transport="sse",
                 url=url,
             )

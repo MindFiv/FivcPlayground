@@ -38,23 +38,13 @@ Key Features:
     - Automatic agent creation with monitoring integration
 """
 
-from datetime import datetime
-from typing import Any, Optional, List, Callable, Tuple
-
-from langchain_core.messages import (
-    BaseMessageChunk,
-    AIMessageChunk,
-    ToolMessage,
-    BaseMessage,
-)
+from typing import Optional, List, Callable
 
 from fivcadvisor.agents.types.base import (
     AgentsStatus,
+    AgentsEvent,
     AgentsRuntime,
     AgentsRuntimeToolCall,
-)
-from fivcadvisor.agents.types.runnables import (
-    AgentsRunnable,
 )
 from fivcadvisor.agents.types.repositories import (
     AgentsRuntimeRepository,
@@ -69,8 +59,8 @@ class AgentsMonitor(object):
     chunks and execution state in an AgentsRuntime object. Provides real-time
     callbacks for UI updates while maintaining framework-agnostic design.
 
-    Integration with AgentsRunnable:
-    The monitor is passed as callback_handler to AgentsRunnable and receives
+    Integration with Runnable:
+    The monitor is passed as callback_handler to Runnable and receives
     execution events through the __call__ method with different modes:
     - "start": Execution started
     - "messages": Streaming message chunks
@@ -181,87 +171,47 @@ class AgentsMonitor(object):
         if self._on_event:
             self._on_event(self._runtime)
 
-    def on_start(self, event: Tuple[AgentsRunnable, BaseMessage]):
-        runnable, query = event
-
-        self._runtime.agent_id = runnable.id
-        self._runtime.agent_name = runnable.name
-        self._runtime.query = query.text
-        self._runtime.reply = None
-        self._runtime.status = AgentsStatus.EXECUTING
-        self._runtime.started_at = datetime.now()
-
+    def on_start(self, runtime: AgentsRuntime):
+        self._runtime = runtime
         self._update_agent_runtime()
         self._fire_event()
 
-    def on_finish(self, event: Tuple[AgentsRunnable, BaseMessage]):
-        runnable, reply = event
-        if (
-            self._runtime.agent_id != runnable.id
-            or self._runtime.agent_name != runnable.name
-        ):
+    def on_finish(self, runtime: AgentsRuntime):
+        if self._runtime is not runtime:
             import warnings
 
             warnings.warn(
-                f"Agent ID or name mismatch: "
-                f"{self._runtime.agent_id} != {runnable.id} or "
-                f"{self._runtime.agent_name} != {runnable.name}"
+                f"Agent mismatch: "
+                f"{self._runtime.agent_run_id} != {runtime.agent_run_id}"
             )
-
-        self._runtime.status = AgentsStatus.COMPLETED
-        self._runtime.reply = reply
-        self._runtime.completed_at = datetime.now()
 
         self._update_agent_runtime()
-        self._fire_event()
-
-    def on_updates(self, event: dict[str, Any]):
-        # print(f"on_updates {event}")
-        self._runtime.streaming_text = ""
-
-    # def on_values(self, event: dict[str, Any]):
-    #     self._update_agent_runtime()
-    #     self._fire_event()
-
-    def on_messages(self, event: Tuple[BaseMessageChunk, dict]):
-        msg, _ = event
-
-        if isinstance(msg, AIMessageChunk):
-            self._runtime.streaming_text += msg.text
-
-        elif isinstance(msg, ToolMessage):
-            tool_call = AgentsRuntimeToolCall(
-                tool_use_id=msg.tool_call_id,
-                tool_name=msg.name,
-                # tool_input=msg.input,
-                tool_result=msg.content,
-                started_at=datetime.now(),
-                completed_at=datetime.now(),
-                status=msg.status,
-            )
-            # print(msg.model_dump_json())
-            self._runtime.tool_calls[tool_call.tool_use_id] = tool_call
+        for tool_call in self._runtime.tool_calls.values():
             self._update_agent_runtime_tool_call(tool_call)
-
-        # self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
         self._fire_event()
 
-    def __call__(self, mode: str, event: Any) -> None:
+    def on_update(self, runtime: AgentsRuntime):
+        if self._runtime is not runtime:
+            import warnings
+
+            warnings.warn(
+                f"Agent mismatch: "
+                f"{self._runtime.agent_run_id} != {runtime.agent_run_id}"
+            )
+
+        # self._update_agent_runtime()
+        self._fire_event()
+
+    def __call__(self, event: AgentsEvent, runtime: AgentsRuntime) -> None:
         try:
-            if mode == "messages":
-                self.on_messages(event)
+            if event == AgentsEvent.START:
+                self.on_start(runtime)
 
-            # elif mode == "values":
-            #     self.on_values(event)
+            elif event == AgentsEvent.FINISH:
+                self.on_finish(runtime)
 
-            elif mode == "updates":
-                self.on_updates(event)
-
-            elif mode == "start":
-                self.on_start(event)
-
-            elif mode == "finish":
-                self.on_finish(event)
+            else:
+                self.on_update(runtime)
 
         except Exception as e:
             # Gracefully handle callback exceptions

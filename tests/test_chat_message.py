@@ -13,7 +13,7 @@ import pytest
 from unittest.mock import Mock
 from langchain_core.messages import AIMessage
 from fivcadvisor.app.components import ChatMessage
-from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
+from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall, AgentsContent
 
 
 class TestChatMessageClass:
@@ -30,7 +30,7 @@ class TestChatMessageClass:
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="What is the weather?",
+            query=AgentsContent(text="What is the weather?"),
             streaming_text="",
         )
 
@@ -59,11 +59,11 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = AIMessage(content="The weather is sunny.")
+        message = AgentsContent(text="The weather is sunny.")
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="What is the weather?",
+            query=AgentsContent(text="What is the weather?"),
             reply=message,
             completed_at=datetime.now(),
         )
@@ -87,7 +87,7 @@ class TestChatMessageClass:
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="Tell me a story",
+            query=AgentsContent(text="Tell me a story"),
             streaming_text="Once upon a time...",
         )
 
@@ -313,7 +313,7 @@ class TestIntegration:
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="Calculate 2+2",
+            query=AgentsContent(text="Calculate 2+2"),
             streaming_text="The answer is 4",
         )
 
@@ -340,11 +340,11 @@ class TestIntegration:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = AIMessage(content="Here is your answer.")
+        message = AgentsContent(text="Here is your answer.")
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="Help me",
+            query=AgentsContent(text="Help me"),
             reply=message,
             completed_at=datetime.now(),
         )
@@ -390,9 +390,9 @@ class TestIntegration:
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
-            query="Test query",
+            query=AgentsContent(text="Test query"),
             tool_calls={"1": tool_call1, "2": tool_call2},
-            reply=AIMessage(content="Done"),
+            reply=AgentsContent(text="Done"),
             completed_at=datetime.now(),
         )
 

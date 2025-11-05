@@ -15,6 +15,7 @@ from fivcadvisor.tools.types import (
     ToolsConfig,
     ToolsLoader,
 )
+from fivcadvisor.tools.types.backends import get_tool_name
 from fivcadvisor.tools.clock import clock
 
 
@@ -53,7 +54,7 @@ def _load_retriever() -> ToolsRetriever:
     # loader = ToolsLoader(tools_retriever=retriever)
     # loader.load()
 
-    print(f"Registered Tools: {[t.name for t in retriever.get_all()]}")
+    print(f"Registered Tools: {[get_tool_name(t) for t in retriever.get_all()]}")
     return retriever
 
 

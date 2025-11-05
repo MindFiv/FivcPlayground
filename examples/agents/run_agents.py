@@ -10,10 +10,12 @@ It shows:
 
 import asyncio
 import dotenv
+import nest_asyncio
 
 from fivcadvisor import agents
 
 dotenv.load_dotenv()
+nest_asyncio.apply()
 
 
 async def main():
