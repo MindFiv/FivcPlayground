@@ -3,6 +3,7 @@ __all__ = [
     "AgentsRuntimeToolCall",
     "AgentsRuntimeRepository",
     "FileAgentsRuntimeRepository",
+    "SqliteAgentsRuntimeRepository",
 ]
 
 from fivcadvisor.agents.types import (
@@ -14,4 +15,7 @@ from fivcadvisor.agents.types.repositories.base import (
 )
 from fivcadvisor.agents.types.repositories.files import (
     FileAgentsRuntimeRepository,
+)
+from fivcadvisor.agents.types.repositories.sqlite import (
+    SqliteAgentsRuntimeRepository,
 )

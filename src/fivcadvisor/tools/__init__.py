@@ -17,13 +17,14 @@ from fivcadvisor.tools.types import (
 )
 from fivcadvisor.tools.types.backends import get_tool_name
 from fivcadvisor.tools.clock import clock
+from fivcadvisor.tools.calculator import calculator
 
 
 def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
     """
     Register default tools with the tools retriever.
 
-    Registers built-in tools like clock tools. Additional tools are loaded
+    Registers built-in tools like clock and calculator tools. Additional tools are loaded
     from MCP servers using ToolsLoader.
 
     Args:
@@ -35,8 +36,8 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
     """
     assert tools_retriever is not None
 
-    # Register clock tool
-    tools = [clock]
+    # Register built-in tools
+    tools = [clock, calculator]
     tools_retriever.add_batch(tools)
 
     return tools

@@ -49,7 +49,7 @@ from fivcadvisor.agents.types import (
 )
 from fivcadvisor.agents.types.repositories import (
     AgentsRuntimeRepository,
-    FileAgentsRuntimeRepository,
+    SqliteAgentsRuntimeRepository,
 )
 from fivcadvisor.utils import OutputDir
 
@@ -181,12 +181,7 @@ class Chat(object):
             - If agent_runtime_meta is None, metadata is auto-created on first query
         """
         assert tools_retriever is not None, "tools_retriever is required"
-
-        # Use default repository if not provided
-        if agent_runtime_repo is None:
-            agent_runtime_repo = FileAgentsRuntimeRepository(
-                output_dir=OutputDir().subdir("agents")
-            )
+        assert agent_runtime_repo is not None, "agent_runtime_repo is required"
 
         self.tools_retriever = tools_retriever
         self.runtime_meta = agent_runtime_meta
@@ -562,8 +557,8 @@ class ChatManager(object):
             ...     tools_retriever=tools.default_retriever
             ... )
         """
-        self.runtime_repo = agent_runtime_repo or FileAgentsRuntimeRepository(
-            output_dir=OutputDir().subdir("agents")
+        self.runtime_repo = agent_runtime_repo or SqliteAgentsRuntimeRepository(
+            str(OutputDir().subdir("agents"))
         )
         self.tools_retriever = tools_retriever or tools.default_retriever
 

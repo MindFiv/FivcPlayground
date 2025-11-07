@@ -6,7 +6,11 @@ from uuid import uuid4
 from warnings import warn
 
 from pydantic import BaseModel
-from strands.agent import Agent, AgentResult
+from strands.agent import (
+    Agent,
+    AgentResult,
+    SlidingWindowConversationManager,
+)
 from strands.models import Model
 from strands.types.content import Message, ContentBlock
 from strands.types.tools import AgentTool, ToolUse, ToolResult
@@ -82,17 +86,13 @@ class AgentsRunnable(Runnable):
                 tools = await stack.enter_async_context(bundle.load_async())
                 tools_expanded.extend(tools)
 
-            # from fivcadvisor.tools import get_tool_name
-            # print('**********************************************')
-            # print([get_tool_name(t) for t in tools_expanded])
-            # print([type(t) for t in tools_expanded])
-
             yield Agent(
                 agent_id=self._id,
                 model=self._model,
                 tools=tools_expanded,
                 name=self._name,
                 system_prompt=self._system_prompt,
+                conversation_manager=SlidingWindowConversationManager(window_size=10),
             )
 
     @property

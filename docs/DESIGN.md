@@ -86,7 +86,9 @@ FivcAdvisor includes a comprehensive runtime tracking system for agent execution
 **Repository Pattern:**
 - `AgentsRuntimeRepository`: Abstract interface for persistence
 - `FileAgentsRuntimeRepository`: File-based JSON storage implementation
-- Hierarchical directory structure for organized data storage
+- `SqliteAgentsRuntimeRepository`: SQLite database-backed implementation
+- Hierarchical directory structure for organized data storage (file-based)
+- Relational database schema with foreign keys and indexes (SQLite)
 - Automatic persistence of all agent interactions
 
 **Storage Structure:**

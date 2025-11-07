@@ -13,7 +13,10 @@ import streamlit as st
 import nest_asyncio
 
 from fivcadvisor.tools import default_retriever
-from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
+from fivcadvisor.agents.types.repositories import (
+    # FileAgentsRuntimeRepository,
+    SqliteAgentsRuntimeRepository,
+)
 from fivcadvisor.app.utils import ChatManager, default_mcp_loader
 from fivcadvisor.app.views import (
     ViewNavigation,
@@ -38,7 +41,8 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    agent_runtime_repo = FileAgentsRuntimeRepository()
+    agent_runtime_repo = SqliteAgentsRuntimeRepository()
+    # agent_runtime_repo = FileAgentsRuntimeRepository()
     chat_manager = ChatManager(
         agent_runtime_repo=agent_runtime_repo,
         tools_retriever=default_retriever,
