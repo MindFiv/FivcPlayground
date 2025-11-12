@@ -180,8 +180,16 @@ class Chat(object):
             - The agent_runtime_repo defaults to a file-based repository if not provided
             - If agent_runtime_meta is None, metadata is auto-created on first query
         """
+        from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
+        from fivcadvisor.utils import OutputDir
+
         assert tools_retriever is not None, "tools_retriever is required"
-        assert agent_runtime_repo is not None, "agent_runtime_repo is required"
+
+        # Create default repository if not provided
+        if agent_runtime_repo is None:
+            agent_runtime_repo = FileAgentsRuntimeRepository(
+                output_dir=OutputDir().subdir("agents")
+            )
 
         self.tools_retriever = tools_retriever
         self.runtime_meta = agent_runtime_meta

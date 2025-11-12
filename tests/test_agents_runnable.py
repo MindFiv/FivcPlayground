@@ -116,7 +116,6 @@ class TestAgentsRunnableToolHandling:
         agent = AgentsRunnable(model=mock_model, tools=[], agent_name="TestAgent")
 
         assert agent._tools == []
-        assert agent._tools_bundles == []
 
     def test_init_with_tools(self):
         """Test initialization with tools."""
@@ -128,7 +127,7 @@ class TestAgentsRunnableToolHandling:
         )
 
         # Verify tools are stored
-        assert len(agent._tools) > 0 or len(agent._tools_bundles) > 0
+        assert len(agent._tools) > 0
 
 
 class TestAgentsRunnableStructuredResponse:

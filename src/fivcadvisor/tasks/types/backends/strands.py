@@ -39,7 +39,8 @@ class TaskRunnable(Runnable):
 
     @asynccontextmanager
     async def create_swarm_async(self):
-        Swarm()
+        swarm = Swarm()
+        return swarm
 
     @property
     def id(self) -> str:

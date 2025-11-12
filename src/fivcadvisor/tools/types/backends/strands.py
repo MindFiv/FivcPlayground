@@ -13,7 +13,7 @@ from typing import List, Any, AsyncGenerator
 from uuid import uuid4
 
 from mcp import stdio_client, StdioServerParameters
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.sse import sse_client
 from strands.tools.mcp import MCPClient
 
 from strands.types.tools import (
@@ -51,7 +51,8 @@ class ToolsBundle(FuncTool):
         if "command" in self._conn:
             c = stdio_client(StdioServerParameters(**self._conn))
         else:
-            c = streamablehttp_client(**self._conn)
+            self._conn.pop("transport", None)  # remove transport
+            c = sse_client(**self._conn)
 
         with MCPClient(lambda: c) as client:
             tools = client.list_tools_sync()

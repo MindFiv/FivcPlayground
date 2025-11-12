@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import asynccontextmanager, AsyncExitStack
 from datetime import datetime
 from typing import Any, List, Type, Union, Callable, cast
 from uuid import uuid4
@@ -13,7 +12,7 @@ from strands.agent import (
 )
 from strands.models import Model
 from strands.types.content import Message, ContentBlock
-from strands.types.tools import AgentTool, ToolUse, ToolResult
+from strands.types.tools import ToolUse, ToolResult
 
 from fivcadvisor.agents.types import (
     AgentsEvent,
@@ -22,7 +21,7 @@ from fivcadvisor.agents.types import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
-from fivcadvisor.tools.types.backends import ToolsBundle
+from fivcadvisor.tools import setup_tools, Tool
 from fivcadvisor.utils import Runnable
 
 
@@ -30,7 +29,7 @@ class AgentsRunnable(Runnable):
     def __init__(
         self,
         model: Model | None = None,
-        tools: List[AgentTool] | None = None,
+        tools: List[Tool] | None = None,
         agent_id: str | None = None,
         agent_name: str = "Default",
         system_prompt: str | None = None,
@@ -45,16 +44,8 @@ class AgentsRunnable(Runnable):
         self._callback_handler = callback_handler
         self._response_model = response_model
         self._model = model
-        self._tools = []
-        self._tools_bundles = []
+        self._tools = tools or []
         self._messages = []
-
-        # Separate tools and tool bundles
-        for t in tools or []:
-            if isinstance(t, ToolsBundle):
-                self._tools_bundles.append(t)
-            else:
-                self._tools.append(t)
 
         # Convert messages to Strands format
         for m in messages or []:
@@ -76,24 +67,6 @@ class AgentsRunnable(Runnable):
                         content=[ContentBlock(text=m.reply.text)],
                     )
                 )
-
-    @asynccontextmanager
-    async def create_agent_async(self):
-        """Create agent with tools loaded asynchronously."""
-        async with AsyncExitStack() as stack:
-            tools_expanded = [*self._tools]
-            for bundle in self._tools_bundles:
-                tools = await stack.enter_async_context(bundle.load_async())
-                tools_expanded.extend(tools)
-
-            yield Agent(
-                agent_id=self._id,
-                model=self._model,
-                tools=tools_expanded,
-                name=self._name,
-                system_prompt=self._system_prompt,
-                conversation_manager=SlidingWindowConversationManager(window_size=10),
-            )
 
     @property
     def id(self) -> str:
@@ -154,7 +127,15 @@ class AgentsRunnable(Runnable):
                     Message(role="user", content=[ContentBlock(text=query.text)])
                 )
 
-        async with self.create_agent_async() as agent:
+        async with setup_tools(self._tools) as tools_expanded:
+            agent = Agent(
+                agent_id=self._id,
+                model=self._model,
+                tools=tools_expanded,
+                name=self._name,
+                system_prompt=self._system_prompt,
+                conversation_manager=SlidingWindowConversationManager(window_size=10),
+            )
             runtime = AgentsRuntime(
                 agent_id=self._id,
                 agent_name=self._name,

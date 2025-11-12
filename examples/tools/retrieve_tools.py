@@ -14,8 +14,9 @@ from fivcadvisor.utils import OutputDir
 from fivcadvisor.tools import (
     ToolsRetriever,
     ToolsLoader,
-    register_default_tools,
 )
+from fivcadvisor.tools.clock import clock
+from fivcadvisor.tools.calculator import calculator
 
 dotenv.load_dotenv()
 
@@ -33,8 +34,8 @@ async def main():
 
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
-        # Register default tools (currently empty, tools come from MCP servers)
-        register_default_tools(tools_retriever=retriever)
+        # Add default tools to retriever
+        retriever.add_batch([clock, calculator])
 
         # Load MCP tools using ToolsLoader
         print("Loading MCP tools...")
