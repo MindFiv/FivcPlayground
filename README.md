@@ -1,12 +1,12 @@
-# FivcAdvisor
+# FivcPlayground
 
 An intelligent agent ecosystem built on **LangChain** for autonomous tool generation, task assessment, and dynamic agent orchestration.
 
-> **🎉 Recently Migrated**: FivcAdvisor has been successfully migrated from Strands to LangChain with 100% backward compatibility. See [LangChain Migration Guide](docs/LANGCHAIN_MIGRATION_GUIDE.md) for details.
+> **🎉 Recently Migrated**: FivcPlayground has been successfully migrated from Strands to LangChain with 100% backward compatibility. See [LangChain Migration Guide](docs/LANGCHAIN_MIGRATION_GUIDE.md) for details.
 
 ## 🎯 Overview
 
-FivcAdvisor provides a flexible multi-agent system that can:
+FivcPlayground provides a flexible multi-agent system that can:
 - **Assess tasks** intelligently to determine the best approach
 - **Retrieve and use tools** dynamically based on task requirements
 - **Plan and execute** complex workflows with specialized agents
@@ -56,16 +56,16 @@ OLLAMA_BASE_URL=http://localhost:11434
 make serve
 
 # Or run an agent from CLI
-uv run fivcadvisor run Generic --query "What is machine learning?"
+uv run fivcplayground run Generic --query "What is machine learning?"
 
 # Show available commands
-uv run fivcadvisor --help
+uv run fivcplayground --help
 ```
 
 ## 📁 Project Structure
 
 ```
-src/fivcadvisor/
+src/fivcplayground/
 ├── agents/          # Agent creation and management
 │   └── types/       # Agent retriever and creator types
 ├── app/             # Streamlit web interface
@@ -95,23 +95,23 @@ docs/                # Documentation
 
 ```bash
 # Show all available commands
-fivcadvisor --help
+fivcplayground --help
 
 # Run an agent interactively
-fivcadvisor run Generic
+fivcplayground run Generic
 
 # Run an agent with a specific query
-fivcadvisor run Generic --query "What is machine learning?"
+fivcplayground run Generic --query "What is machine learning?"
 
 # Run different agent types
-fivcadvisor run Companion --query "Tell me a joke"
-fivcadvisor run Consultant --query "How should I approach this task?"
+fivcplayground run Companion --query "Tell me a joke"
+fivcplayground run Consultant --query "How should I approach this task?"
 
 # Clean temporary files
-fivcadvisor clean
+fivcplayground clean
 
 # Show system information
-fivcadvisor info
+fivcplayground info
 ```
 
 ### Available Agents
@@ -127,11 +127,11 @@ fivcadvisor info
 
 ### Web Interface
 
-FivcAdvisor includes a modern web interface built with Streamlit:
+FivcPlayground includes a modern web interface built with Streamlit:
 
 ```bash
 # Launch web interface (default: localhost:8501)
-fivcadvisor web
+fivcplayground web
 
 # Or using Make
 make serve
@@ -140,7 +140,7 @@ make serve
 make serve-dev
 
 # Custom port and host
-fivcadvisor web --port 8080 --host 0.0.0.0
+fivcplayground web --port 8080 --host 0.0.0.0
 ```
 
 **Features:**
@@ -154,7 +154,7 @@ See [Web Interface Documentation](docs/WEB_INTERFACE.md) for detailed usage inst
 
 ## 🧰 Available Tools
 
-FivcAdvisor includes built-in tools and supports MCP (Model Context Protocol) tools:
+FivcPlayground includes built-in tools and supports MCP (Model Context Protocol) tools:
 
 **Built-in Tools:**
 - `calculator` - Mathematical calculations

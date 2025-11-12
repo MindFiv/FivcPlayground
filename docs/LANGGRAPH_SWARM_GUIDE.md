@@ -2,7 +2,7 @@
 
 ## Overview
 
-FivcAdvisor now uses **LangGraph Swarm** for multi-agent orchestration, replacing the previous Strands Swarm implementation. This guide explains how to use the swarm system in your applications.
+FivcPlayground now uses **LangGraph Swarm** for multi-agent orchestration, replacing the previous Strands Swarm implementation. This guide explains how to use the swarm system in your applications.
 
 ## Key Features
 
@@ -14,7 +14,7 @@ FivcAdvisor now uses **LangGraph Swarm** for multi-agent orchestration, replacin
 
 ## Installation
 
-The swarm system is included in FivcAdvisor. Ensure you have the required dependencies:
+The swarm system is included in FivcPlayground. Ensure you have the required dependencies:
 
 ```bash
 pip install -e .
@@ -33,8 +33,8 @@ This installs:
 ### Creating a Swarm
 
 ```python
-from fivcadvisor.adapters import create_langchain_swarm
-from fivcadvisor.agents import create_default_agent
+from fivcplayground.adapters import create_langchain_swarm
+from fivcplayground.agents import create_default_agent
 from langchain_openai import ChatOpenAI
 
 # Initialize LLM
@@ -151,7 +151,7 @@ Creates a LangGraphSwarmAdapter instance.
 Use `create_default_agent` to create agents for the swarm:
 
 ```python
-from fivcadvisor.agents import create_default_agent
+from fivcplayground.agents import create_default_agent
 
 agent = create_default_agent(
     model=llm,
@@ -166,9 +166,9 @@ agent = create_default_agent(
 For automatic swarm creation from a TaskTeam, use the `create_langchain_swarm` adapter:
 
 ```python
-from fivcadvisor.adapters import create_langchain_swarm
-from fivcadvisor.tasks.types import TaskTeam
-from fivcadvisor.tools import ToolsRetriever
+from fivcplayground.adapters import create_langchain_swarm
+from fivcplayground.tasks.types import TaskTeam
+from fivcplayground.tools import ToolsRetriever
 
 team = TaskTeam(specialists=[...])
 retriever = ToolsRetriever()
@@ -217,7 +217,7 @@ from strands.multiagent import Swarm
 swarm = Swarm(agents=[...])
 
 # New LangGraph code (same API)
-from fivcadvisor.adapters import create_langchain_swarm
+from fivcplayground.adapters import create_langchain_swarm
 swarm = create_langchain_swarm(agents=[...])
 ```
 

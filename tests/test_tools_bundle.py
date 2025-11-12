@@ -9,8 +9,8 @@ MCP server connections and provides async loading of tools.
 import pytest
 from unittest.mock import Mock, patch
 
-from fivcadvisor import __backend__
-from fivcadvisor.tools.types.backends import ToolsBundle, get_tool_name
+from fivcplayground import __backend__
+from fivcplayground.tools.types.backends import ToolsBundle, get_tool_name
 
 
 class TestToolsBundleInit:
@@ -86,7 +86,7 @@ class TestToolsBundleAsync:
         mock_tool.tool_name = "test_tool"
 
         with patch(
-            "fivcadvisor.tools.types.backends.strands.MCPClient"
+            "fivcplayground.tools.types.backends.strands.MCPClient"
         ) as mock_client_class:
             mock_client = Mock()
             mock_client.list_tools_sync.return_value = [mock_tool]
@@ -114,7 +114,7 @@ class TestToolsBundleAsync:
         mock_tool.tool_name = "test_tool"
 
         with patch(
-            "fivcadvisor.tools.types.backends.strands.MCPClient"
+            "fivcplayground.tools.types.backends.strands.MCPClient"
         ) as mock_client_class:
             mock_client = Mock()
             mock_client.list_tools_sync.return_value = [mock_tool]

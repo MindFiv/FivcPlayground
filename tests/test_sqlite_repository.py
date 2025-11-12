@@ -10,21 +10,21 @@ import tempfile
 import pytest
 from datetime import datetime
 
-from fivcadvisor.agents.types import (
+from fivcplayground.agents.types import (
     AgentsRuntimeMeta,
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
     AgentsContent,
 )
-from fivcadvisor.agents.types.repositories import SqliteAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories import SqliteAgentsRuntimeRepository
 
 
 @pytest.fixture
 def temp_db():
     """Create a temporary database for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        from fivcadvisor.utils import OutputDir
+        from fivcplayground.utils import OutputDir
 
         output_dir = OutputDir(tmpdir)
         repo = SqliteAgentsRuntimeRepository(output_dir=output_dir)
@@ -304,7 +304,7 @@ class TestDataPersistence:
     def test_data_persists_across_connections(self):
         """Test that data persists when reopening the database."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            from fivcadvisor.utils import OutputDir
+            from fivcplayground.utils import OutputDir
 
             output_dir = OutputDir(tmpdir)
 

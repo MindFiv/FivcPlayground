@@ -2,7 +2,7 @@
 
 ## 🚀 Performance Optimization
 
-This guide provides strategies for optimizing FivcAdvisor performance with LangChain.
+This guide provides strategies for optimizing FivcPlayground performance with LangChain.
 
 ---
 
@@ -85,7 +85,7 @@ results = await process_batch(queries)
 **Solution**: Cache converted tools.
 
 ```python
-from fivcadvisor.adapters.tools import convert_strands_tools_to_langchain
+from fivcplayground.adapters.tools import convert_strands_tools_to_langchain
 
 class ToolCache:
     def __init__(self):
@@ -118,7 +118,7 @@ tools = cache.get_tools(["calculator", "weather"])
 
 ```python
 # Fast models (good for real-time)
-from fivcadvisor.adapters.models import create_openai_model
+from fivcplayground.adapters.models import create_openai_model
 
 fast_model = create_openai_model(model="gpt-3.5-turbo")
 
@@ -316,7 +316,7 @@ results = await asyncio.gather(
 ```python
 import time
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def monitor_performance():
     agent = create_companion_agent()

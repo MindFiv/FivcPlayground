@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762357414.019982",
+  "agent_id": "e2768aa3-de06-4dab-b847-347143b0c74c",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-05T23:43:34.019949",
+  "completed_at": "2025-11-05T23:44:16.431704",
+  "query": {
+    "text": "在百度上查询携程股价"
+  },
+  "reply": {
+    "text": "根据百度搜索结果，携程（股票代码：TCOM）的股价信息如下：\n\n- **当前股价**：70.050美元\n- **涨跌额**：+0.025美元\n- **涨跌幅**：+0.04%\n- **交易状态**：交易中\n- **最新更新时间**：美东时间11月5日10:44:00\n\n此外，其他相关信息包括：\n- 今开：69.420美元\n- 最高：70.230美元\n- 最低：69.420美元\n- 昨收：70.025美元\n- 成交量：13.30万股\n- 市盈率(TTM)：18.27\n- 总市值：457.85亿美元\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762357414.019982",
+  "duration": 42.411755,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 4,
+  "successful_tool_calls": 4,
+  "failed_tool_calls": 0
+}

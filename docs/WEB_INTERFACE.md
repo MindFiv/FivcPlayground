@@ -1,6 +1,6 @@
-# FivcAdvisor Web Interface
+# FivcPlayground Web Interface
 
-FivcAdvisor includes a modern, interactive web interface built with **Streamlit**, providing an intuitive multi-page application to interact with the intelligent agent ecosystem.
+FivcPlayground includes a modern, interactive web interface built with **Streamlit**, providing an intuitive multi-page application to interact with the intelligent agent ecosystem.
 
 ## 🚀 Quick Start
 
@@ -11,13 +11,13 @@ FivcAdvisor includes a modern, interactive web interface built with **Streamlit*
 make serve
 
 # Using CLI directly
-uv run fivcadvisor web
+uv run fivcplayground web
 
 # Development mode with auto-reload
 make serve-dev
 
 # With custom options
-uv run fivcadvisor web --port 8080 --host 0.0.0.0
+uv run fivcplayground web --port 8080 --host 0.0.0.0
 ```
 
 ### Access the Interface
@@ -56,7 +56,7 @@ Once started, open your browser and navigate to:
 - **Auto-Refresh**: Page automatically updates when new chats are created
 
 ### 🔄 Persistence & State Management
-- **File-Based Storage**: All data persisted in `.fivcadvisor/agents/` directory
+- **File-Based Storage**: All data persisted in `.fivcplayground/agents/` directory
 - **Agent Runtime Tracking**: Complete execution history with timestamps
 - **Tool Call Persistence**: All tool invocations saved with inputs and results
 - **Hierarchical Storage**: Organized directory structure for easy access
@@ -65,7 +65,7 @@ Once started, open your browser and navigate to:
 
 ## 💡 Example Queries
 
-Try these sample queries to explore FivcAdvisor's capabilities:
+Try these sample queries to explore FivcPlayground's capabilities:
 
 ### General Questions
 - "What is machine learning?"
@@ -101,7 +101,7 @@ The web interface features a modern multi-page layout with dynamic navigation:
 ### Page Layouts
 
 #### Chat Pages
-- **Page Title**: "💬 Chat with FivcAdvisor"
+- **Page Title**: "💬 Chat with FivcPlayground"
 - **Conversation History**: Scrollable list of all messages in chronological order
 - **Message Display**:
   - User messages with "user" avatar
@@ -126,7 +126,7 @@ The web interface features a modern multi-page layout with dynamic navigation:
 make serve-dev
 
 # Or directly with Streamlit
-uv run streamlit run src/fivcadvisor/app/__init__.py --server.port 8501
+uv run streamlit run src/fivcplayground/app/__init__.py --server.port 8501
 ```
 
 ### Architecture
@@ -135,7 +135,7 @@ The web interface uses a modular, component-based architecture:
 
 #### Directory Structure
 ```
-src/fivcadvisor/app/
+src/fivcplayground/app/
 ├── __init__.py              # Main app with ViewNavigation setup
 ├── utils/                   # Utility classes and state management
 │   ├── chats.py            # Chat and ChatManager classes
@@ -188,10 +188,10 @@ src/fivcadvisor/app/
 
 **5. Persistence Layer**
 - `FileAgentsRuntimeRepository`: File-based storage
-- Storage location: `.fivcadvisor/agents/`
+- Storage location: `.fivcplayground/agents/`
 - Structure:
   ```
-  .fivcadvisor/agents/
+  .fivcplayground/agents/
   └── agent_<agent_id>/
       ├── agent.json                    # Agent metadata
       └── run_<timestamp>/
@@ -241,7 +241,7 @@ You can customize the interface by modifying:
 #### Port Already in Use
 ```bash
 # Change to a different port
-uv run fivcadvisor web --port 8080
+uv run fivcplayground web --port 8080
 ```
 
 #### Dependencies Not Installed
@@ -279,20 +279,20 @@ cp .env.example .env
 
 #### Navigation Issues
 - If new chats don't appear in sidebar, check:
-  - Agent metadata was saved (check `.fivcadvisor/agents/`)
+  - Agent metadata was saved (check `.fivcplayground/agents/`)
   - Page refresh occurred (st.rerun() was called)
   - No errors in terminal output
 
 #### Storage Issues
 ```bash
 # Clear all agent data
-rm -rf .fivcadvisor/agents/*
+rm -rf .fivcplayground/agents/*
 
 # Or clean all temporary files
 make clean
 
 # Check storage location
-ls -la .fivcadvisor/agents/
+ls -la .fivcplayground/agents/
 ```
 
 #### Streaming Not Working
@@ -304,7 +304,7 @@ ls -la .fivcadvisor/agents/
 ### Getting Help
 
 - **Terminal Output**: Check for detailed error messages and stack traces
-- **Storage Inspection**: Review agent data in `.fivcadvisor/agents/`
+- **Storage Inspection**: Review agent data in `.fivcplayground/agents/`
 - **Documentation**: Refer to [README.md](../README.md) and [DESIGN.md](DESIGN.md)
 - **Issues**: Report bugs on the project repository
 
@@ -315,7 +315,7 @@ The web interface integrates seamlessly with:
 ### CLI Integration
 ```bash
 # Launch from CLI
-fivcadvisor web
+fivcplayground web
 
 # Or with Make
 make serve
@@ -341,7 +341,7 @@ make serve
 - Shared tool execution environment
 
 ### Data Persistence
-- All chats stored in `.fivcadvisor/agents/`
+- All chats stored in `.fivcplayground/agents/`
 - Compatible with CLI agent execution
 - Can resume chats created via CLI
 - Shared runtime history

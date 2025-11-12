@@ -13,7 +13,7 @@ Usage:
     python examples/tools/calculator_example.py
 """
 
-from fivcadvisor.tools.calculator import calculator
+from fivcplayground.tools.calculator import calculator
 
 
 def main():

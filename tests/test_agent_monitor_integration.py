@@ -13,9 +13,9 @@ import pytest
 import dotenv
 from unittest.mock import Mock, AsyncMock, patch
 from langchain_core.messages import AIMessage
-from fivcadvisor.app.utils.chats import Chat
-from fivcadvisor.agents.types import AgentsMonitor, AgentsRuntime
-from fivcadvisor import tools
+from fivcplayground.app.utils.chats import Chat
+from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
+from fivcplayground import tools
 
 dotenv.load_dotenv()
 
@@ -35,7 +35,7 @@ def mock_tools_retriever():
 @pytest.fixture
 def mock_repo():
     """Create a mock repository."""
-    from fivcadvisor.agents.types.repositories import AgentsRuntimeRepository
+    from fivcplayground.agents.types.repositories import AgentsRuntimeRepository
 
     repo = Mock(spec=AgentsRuntimeRepository)
     repo.list_agent_runtimes.return_value = []
@@ -53,7 +53,7 @@ class TestChatMonitorIntegration:
         manager = Chat(tools_retriever=mock_tools_retriever)
 
         assert hasattr(manager, "monitor_manager")
-        from fivcadvisor.agents.types import AgentsMonitorManager
+        from fivcplayground.agents.types import AgentsMonitorManager
 
         assert isinstance(manager.monitor_manager, AgentsMonitorManager)
 
@@ -78,9 +78,9 @@ class TestChatMonitorIntegration:
         ):
             # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.create_briefing_task"
+                "fivcplayground.app.utils.chats.create_briefing_task"
             ) as mock_briefing_task, patch(
-                "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+                "fivcplayground.app.utils.chats.agents.default_retriever.get"
             ) as mock_agent_creator_getter:
                 # Mock the task to return a mock with run_async method that returns BaseMessage
                 mock_task = Mock()
@@ -109,7 +109,7 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test that monitor captures streaming events during execution."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         _ = Chat(agent_runtime_repo=mock_repo, tools_retriever=mock_tools_retriever)
 
@@ -153,7 +153,7 @@ class TestMonitorWithMockAgent:
     @pytest.mark.asyncio
     async def test_monitor_captures_tool_events(self, mock_tools_retriever, mock_repo):
         """Test that monitor captures tool events during execution."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         captured_runtimes = []
 
@@ -198,7 +198,7 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test monitor handling both streaming and tool events."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         captured_runtimes = []
 
@@ -285,9 +285,9 @@ class TestMonitorErrorHandling:
         ):
             # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.create_briefing_task"
+                "fivcplayground.app.utils.chats.create_briefing_task"
             ) as mock_briefing_task, patch(
-                "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+                "fivcplayground.app.utils.chats.agents.default_retriever.get"
             ) as mock_agent_creator_getter:
                 # Mock the task to return a mock with run_async method that returns BaseMessage
                 mock_task = Mock()
@@ -312,7 +312,7 @@ class TestMonitorStateManagement:
     @pytest.mark.asyncio
     async def test_state_isolated_between_runs(self, mock_tools_retriever, mock_repo):
         """Test that state is properly isolated between runs."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         captured_first = []
         captured_second = []

@@ -12,7 +12,7 @@ Tests the agent execution monitoring functionality including:
 """
 
 from unittest.mock import Mock
-from fivcadvisor.agents.types import AgentsMonitor, AgentsRuntime
+from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
 
 
 class TestAgentsMonitorInitialization:
@@ -52,7 +52,7 @@ class TestAgentsMonitorStreaming:
 
     def test_handle_stream_event_single_chunk(self):
         """Test handling a single streaming chunk with UPDATE event."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -67,7 +67,7 @@ class TestAgentsMonitorStreaming:
 
     def test_handle_stream_event_multiple_chunks(self):
         """Test accumulating multiple streaming chunks."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -81,7 +81,7 @@ class TestAgentsMonitorStreaming:
 
     def test_stream_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime after streaming."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
@@ -98,7 +98,7 @@ class TestAgentsMonitorStreaming:
 
     def test_stream_callback_multiple_invocations(self):
         """Test callback is invoked for each chunk with updated runtime."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         captured_texts = []
 
@@ -122,7 +122,7 @@ class TestAgentsMonitorStreaming:
 
     def test_content_block_start_clears_streaming_text(self):
         """Test that START event initializes fresh runtime."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -139,7 +139,7 @@ class TestAgentsMonitorStreaming:
 
     def test_malformed_stream_event(self):
         """Test handling malformed streaming events."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -155,7 +155,7 @@ class TestAgentsMonitorToolEvents:
 
     def test_handle_tool_use_event(self):
         """Test capturing tool use events."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -177,7 +177,7 @@ class TestAgentsMonitorToolEvents:
 
     def test_handle_tool_result_event(self):
         """Test capturing tool result events."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -201,7 +201,7 @@ class TestAgentsMonitorToolEvents:
 
     def test_handle_tool_result_failure(self):
         """Test capturing failed tool result."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -225,7 +225,7 @@ class TestAgentsMonitorToolEvents:
 
     def test_tool_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
@@ -249,7 +249,7 @@ class TestAgentsMonitorToolEvents:
 
     def test_message_with_text_and_tool(self):
         """Test message containing both text and tool events."""
-        from fivcadvisor.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -275,7 +275,7 @@ class TestAgentsMonitorErrorHandling:
 
     def test_stream_callback_exception_handled(self):
         """Test that event callback exceptions don't crash monitor during streaming."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
@@ -293,7 +293,7 @@ class TestAgentsMonitorErrorHandling:
 
     def test_tool_callback_exception_handled(self):
         """Test that event callback exceptions don't crash monitor during finish events."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
@@ -323,7 +323,7 @@ class TestAgentsMonitorStateAccess:
 
     def test_runtime_access(self):
         """Test direct access to runtime for streaming text."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -340,7 +340,7 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_clears_message(self):
         """Test that cleanup clears accumulated message."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime
@@ -383,7 +383,7 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_with_custom_runtime(self):
         """Test that cleanup can use a custom runtime."""
-        from fivcadvisor.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentsEvent
 
         monitor = AgentsMonitor()
         runtime = monitor._runtime

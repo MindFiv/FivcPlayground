@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-FivcAdvisor has been successfully migrated from the Strands framework to LangChain. This guide explains the changes and how to work with the new system.
+FivcPlayground has been successfully migrated from the Strands framework to LangChain. This guide explains the changes and how to work with the new system.
 
 **Migration Status**: ✅ **COMPLETE** (95% of codebase migrated)
 - **Phases Completed**: 5 of 5
@@ -39,7 +39,7 @@ FivcAdvisor has been successfully migrated from the Strands framework to LangCha
 
 **Before (Strands)**:
 ```python
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 agent = create_companion_agent()
 result = await agent.invoke_async("Hello!")
@@ -47,7 +47,7 @@ result = await agent.invoke_async("Hello!")
 
 **After (LangChain)** - No changes needed!
 ```python
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 agent = create_companion_agent()
 result = await agent.invoke_async("Hello!")
@@ -67,7 +67,7 @@ result = await swarm.invoke_async("Query")
 
 **After (LangChain)**:
 ```python
-from fivcadvisor.adapters import create_langchain_swarm
+from fivcplayground.adapters import create_langchain_swarm
 
 swarm = create_langchain_swarm(agents=[agent1, agent2])
 result = await swarm.invoke_async("Query")
@@ -100,7 +100,7 @@ LangChain Implementation
 ### File Structure
 
 ```
-src/fivcadvisor/adapters/
+src/fivcplayground/adapters/
 ├── __init__.py              # Exports all adapters
 ├── agents.py                # LangChainAgentAdapter
 ├── models.py                # Model factory functions

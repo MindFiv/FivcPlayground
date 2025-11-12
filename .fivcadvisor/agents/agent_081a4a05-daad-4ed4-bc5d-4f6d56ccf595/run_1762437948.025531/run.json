@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762437948.025531",
+  "agent_id": "081a4a05-daad-4ed4-bc5d-4f6d56ccf595",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-06T22:05:48.025494",
+  "completed_at": "2025-11-06T22:05:49.202850",
+  "query": {
+    "text": "你好"
+  },
+  "reply": {
+    "text": "你好！有什么我可以帮你的吗？😊\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762437948.025531",
+  "duration": 1.177356,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 0,
+  "successful_tool_calls": 0,
+  "failed_tool_calls": 0
+}

@@ -12,7 +12,7 @@ import asyncio
 import dotenv
 import nest_asyncio
 
-from fivcadvisor import agents
+from fivcplayground import agents
 
 dotenv.load_dotenv()
 nest_asyncio.apply()
@@ -27,7 +27,7 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a companion agent
-    from fivcadvisor.agents.types import AgentsMonitor
+    from fivcplayground.agents.types import AgentsMonitor
     agent_monitor = AgentsMonitor()
     agent = agents.create_companion_agent(
         callback_handler=agent_monitor)

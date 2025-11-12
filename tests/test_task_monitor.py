@@ -7,9 +7,9 @@ import tempfile
 from unittest.mock import Mock
 from datetime import datetime
 
-from fivcadvisor.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
-from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
+from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 
 class TestTaskTrace:

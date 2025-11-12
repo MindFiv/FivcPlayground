@@ -7,14 +7,14 @@ import os
 import tempfile
 from unittest.mock import Mock
 
-from fivcadvisor.agents.types import (
+from fivcplayground.agents.types import (
     AgentsMonitorManager,
     AgentsMonitor,
     AgentsRuntimeToolCall,
     AgentsStatus,
 )
-from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 
 class TestAgentsMonitorManager:

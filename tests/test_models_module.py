@@ -13,13 +13,13 @@ import pytest
 from unittest.mock import patch, MagicMock
 from langchain_core.language_models import BaseChatModel
 
-from fivcadvisor.models import (
+from fivcplayground.models import (
     create_default_model,
     create_chat_model,
     create_reasoning_model,
     create_coding_model,
 )
-from fivcadvisor.models.backends.langchain import (
+from fivcplayground.models.backends.langchain import (
     _openai_model,
     _ollama_model,
 )
@@ -36,7 +36,7 @@ class TestModuleStructure:
 
     def test_module_exports(self):
         """Test that all expected functions are exported."""
-        from fivcadvisor import models
+        from fivcplayground import models
 
         assert hasattr(models, "create_default_model")
         assert hasattr(models, "create_chat_model")
@@ -45,7 +45,7 @@ class TestModuleStructure:
 
     def test_all_exports(self):
         """Test __all__ contains expected exports."""
-        from fivcadvisor.models import __all__
+        from fivcplayground.models import __all__
 
         expected = [
             "create_default_model",
@@ -57,7 +57,7 @@ class TestModuleStructure:
 
     def test_backends_module_exists(self):
         """Test that backends module is accessible."""
-        from fivcadvisor.models.backends import langchain
+        from fivcplayground.models.backends import langchain
 
         assert hasattr(langchain, "_openai_model")
         assert hasattr(langchain, "_ollama_model")
@@ -175,8 +175,8 @@ class TestOllamaProvider:
 class TestCreateDefaultModel:
     """Test create_default_model factory function."""
 
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
-    @patch("fivcadvisor.models.create_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_model")
     def test_create_default_model_with_openai(
         self, mock_create_model, mock_create_kwargs
     ):
@@ -194,8 +194,8 @@ class TestCreateDefaultModel:
         assert result == mock_model
         mock_create_model.assert_called_once()
 
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
-    @patch("fivcadvisor.models.create_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_model")
     def test_create_default_model_unsupported_provider(
         self, mock_create_model, mock_create_kwargs
     ):
@@ -209,8 +209,8 @@ class TestCreateDefaultModel:
         with pytest.raises(ValueError, match="Unsupported model provider"):
             create_default_model(provider="unsupported")
 
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
-    @patch("fivcadvisor.models.backends.create_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.backends.create_model")
     def test_create_default_model_merges_settings(
         self, mock_create_model, mock_create_kwargs
     ):
@@ -232,8 +232,8 @@ class TestCreateDefaultModel:
 class TestCreateChatModel:
     """Test create_chat_model factory function."""
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_chat_model_calls_create_default_model(
         self, mock_create_kwargs, mock_create_default
     ):
@@ -250,8 +250,8 @@ class TestCreateChatModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_chat_model_uses_chat_config(
         self, mock_create_kwargs, mock_create_default
     ):
@@ -269,8 +269,8 @@ class TestCreateChatModel:
 class TestCreateReasoningModel:
     """Test create_reasoning_model factory function."""
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_reasoning_model_calls_create_default_model(
         self, mock_create_kwargs, mock_create_default
     ):
@@ -284,8 +284,8 @@ class TestCreateReasoningModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_reasoning_model_uses_reasoning_config(
         self, mock_create_kwargs, mock_create_default
     ):
@@ -302,8 +302,8 @@ class TestCreateReasoningModel:
 class TestCreateCodingModel:
     """Test create_coding_model factory function."""
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_coding_model_calls_create_default_model(
         self, mock_create_kwargs, mock_create_default
     ):
@@ -317,8 +317,8 @@ class TestCreateCodingModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcadvisor.models.create_default_model")
-    @patch("fivcadvisor.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.create_default_model")
+    @patch("fivcplayground.models.utils.create_default_kwargs")
     def test_create_coding_model_uses_coding_config(
         self, mock_create_kwargs, mock_create_default
     ):

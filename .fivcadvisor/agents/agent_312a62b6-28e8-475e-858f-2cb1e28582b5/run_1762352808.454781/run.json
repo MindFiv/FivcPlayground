@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762352808.454781",
+  "agent_id": "312a62b6-28e8-475e-858f-2cb1e28582b5",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-05T22:26:48.454747",
+  "completed_at": "2025-11-05T22:26:50.430909",
+  "query": {
+    "text": "现在几点了？"
+  },
+  "reply": {
+    "text": "现在是2025年11月5日晚上10点16分。时间在悄悄地走着，像小溪流水一样～你是在等什么特别的时刻吗？(•̀ᴗ•́)و\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762352808.454781",
+  "duration": 1.976162,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 0,
+  "successful_tool_calls": 0,
+  "failed_tool_calls": 0
+}

@@ -12,13 +12,13 @@ Tests verify:
 from unittest.mock import patch, MagicMock
 from langchain_core.language_models import BaseChatModel
 
-from fivcadvisor.agents import (
+from fivcplayground.agents import (
     create_default_agent,
     create_companion_agent,
     create_tooling_agent,
     create_consultant_agent,
 )
-from fivcadvisor.agents.types import AgentsRunnable
+from fivcplayground.agents.types import AgentsRunnable
 
 
 class TestAgentsModuleImports:
@@ -26,7 +26,7 @@ class TestAgentsModuleImports:
 
     def test_agents_imports_model_factories(self):
         """Test agents module imports model factory functions."""
-        from fivcadvisor import agents
+        from fivcplayground import agents
 
         # These should be available through the agents module's imports
         assert hasattr(agents, "create_default_model")
@@ -34,8 +34,8 @@ class TestAgentsModuleImports:
         assert hasattr(agents, "create_reasoning_model")
 
     def test_agents_init_imports_from_models(self):
-        """Test agents/__init__.py imports from fivcadvisor.models."""
-        import fivcadvisor.agents as agents_module
+        """Test agents/__init__.py imports from fivcplayground.models."""
+        import fivcplayground.agents as agents_module
 
         # Check that the module has the imported functions in its namespace
         assert "create_default_model" in dir(agents_module)
@@ -46,8 +46,8 @@ class TestAgentsModuleImports:
 class TestDefaultAgentModelUsage:
     """Test create_default_agent uses create_default_model and returns AgentsRunnable."""
 
-    @patch("fivcadvisor.agents.create_default_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_default_model")
+    @patch("fivcplayground.agents.tools")
     def test_default_agent_creates_default_model(self, mock_tools, mock_create_model):
         """Test create_default_agent calls create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -59,8 +59,8 @@ class TestDefaultAgentModelUsage:
         mock_create_model.assert_called_once()
         assert isinstance(agent, AgentsRunnable)
 
-    @patch("fivcadvisor.agents.create_default_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_default_model")
+    @patch("fivcplayground.agents.tools")
     def test_default_agent_returns_agents_runnable(self, mock_tools, mock_create_model):
         """Test create_default_agent returns AgentsRunnable instance."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -72,8 +72,8 @@ class TestDefaultAgentModelUsage:
         assert isinstance(agent, AgentsRunnable)
         assert agent._name == "Generic"
 
-    @patch("fivcadvisor.agents.create_default_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_default_model")
+    @patch("fivcplayground.agents.tools")
     def test_default_agent_respects_provided_model(self, mock_tools, mock_create_model):
         """Test create_default_agent doesn't override provided model."""
         custom_model = MagicMock(spec=BaseChatModel)
@@ -91,8 +91,8 @@ class TestDefaultAgentModelUsage:
 class TestCompanionAgentModelUsage:
     """Test create_companion_agent uses create_chat_model and returns AgentsRunnable."""
 
-    @patch("fivcadvisor.agents.create_chat_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_chat_model")
+    @patch("fivcplayground.agents.tools")
     def test_companion_agent_creates_chat_model(self, mock_tools, mock_create_chat):
         """Test create_companion_agent calls create_chat_model."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -104,8 +104,8 @@ class TestCompanionAgentModelUsage:
         mock_create_chat.assert_called_once()
         assert isinstance(agent, AgentsRunnable)
 
-    @patch("fivcadvisor.agents.create_chat_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_chat_model")
+    @patch("fivcplayground.agents.tools")
     def test_companion_agent_returns_agents_runnable(
         self, mock_tools, mock_create_chat
     ):
@@ -119,8 +119,8 @@ class TestCompanionAgentModelUsage:
         assert isinstance(agent, AgentsRunnable)
         assert agent._name == "Companion"
 
-    @patch("fivcadvisor.agents.create_chat_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_chat_model")
+    @patch("fivcplayground.agents.tools")
     def test_companion_agent_respects_provided_model(
         self, mock_tools, mock_create_chat
     ):
@@ -138,8 +138,8 @@ class TestCompanionAgentModelUsage:
 class TestToolingAgentModelUsage:
     """Test create_tooling_agent uses create_reasoning_model and returns AgentsRunnable."""
 
-    @patch("fivcadvisor.agents.create_reasoning_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_reasoning_model")
+    @patch("fivcplayground.agents.tools")
     def test_tooling_agent_creates_reasoning_model(
         self, mock_tools, mock_create_reasoning
     ):
@@ -153,8 +153,8 @@ class TestToolingAgentModelUsage:
         mock_create_reasoning.assert_called_once()
         assert isinstance(agent, AgentsRunnable)
 
-    @patch("fivcadvisor.agents.create_reasoning_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_reasoning_model")
+    @patch("fivcplayground.agents.tools")
     def test_tooling_agent_returns_agents_runnable(
         self, mock_tools, mock_create_reasoning
     ):
@@ -172,8 +172,8 @@ class TestToolingAgentModelUsage:
 class TestConsultantAgentModelUsage:
     """Test create_consultant_agent uses create_reasoning_model and returns AgentsRunnable."""
 
-    @patch("fivcadvisor.agents.create_reasoning_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_reasoning_model")
+    @patch("fivcplayground.agents.tools")
     def test_consultant_agent_creates_reasoning_model(
         self, mock_tools, mock_create_reasoning
     ):
@@ -187,8 +187,8 @@ class TestConsultantAgentModelUsage:
         mock_create_reasoning.assert_called_once()
         assert isinstance(agent, AgentsRunnable)
 
-    @patch("fivcadvisor.agents.create_reasoning_model")
-    @patch("fivcadvisor.agents.tools")
+    @patch("fivcplayground.agents.create_reasoning_model")
+    @patch("fivcplayground.agents.tools")
     def test_consultant_agent_returns_agents_runnable(
         self, mock_tools, mock_create_reasoning
     ):
@@ -208,14 +208,14 @@ class TestModelMigrationBackwardCompatibility:
 
     def test_models_module_is_package(self):
         """Test models is now a package, not a module."""
-        import fivcadvisor.models as models
+        import fivcplayground.models as models
 
         # Should have __path__ attribute (package indicator)
         assert hasattr(models, "__path__")
 
     def test_direct_imports_work(self):
         """Test direct imports from models work."""
-        from fivcadvisor.models import (
+        from fivcplayground.models import (
             create_default_model,
             create_chat_model,
             create_reasoning_model,
@@ -229,7 +229,7 @@ class TestModelMigrationBackwardCompatibility:
 
     def test_backends_accessible(self):
         """Test backends module is accessible."""
-        from fivcadvisor.models.backends.langchain import create_model
+        from fivcplayground.models.backends.langchain import create_model
 
         assert callable(create_model)
 

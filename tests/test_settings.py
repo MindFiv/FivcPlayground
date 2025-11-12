@@ -7,7 +7,7 @@ import os
 import tempfile
 import pytest
 
-from fivcadvisor.settings.types import SettingsConfig
+from fivcplayground.settings.types import SettingsConfig
 
 
 class TestSettingsConfig:
@@ -196,7 +196,7 @@ class TestSettingsModuleLazyValues:
 
     def test_config_lazy_loading(self):
         """Test that config is lazily loaded."""
-        from fivcadvisor import settings
+        from fivcplayground import settings
 
         # Accessing config should work
         config = settings.config()
@@ -204,7 +204,7 @@ class TestSettingsModuleLazyValues:
 
     def test_default_llm_config_lazy_loading(self):
         """Test that default_llm_config is lazily loaded."""
-        from fivcadvisor import settings
+        from fivcplayground import settings
 
         config = settings.default_llm_config()
         assert isinstance(config, dict)
@@ -212,7 +212,7 @@ class TestSettingsModuleLazyValues:
 
     def test_chat_llm_config_lazy_loading(self):
         """Test that chat_llm_config is lazily loaded."""
-        from fivcadvisor import settings
+        from fivcplayground import settings
 
         config = settings.chat_llm_config()
         assert isinstance(config, dict)
@@ -220,7 +220,7 @@ class TestSettingsModuleLazyValues:
 
     def test_reasoning_llm_config_lazy_loading(self):
         """Test that reasoning_llm_config is lazily loaded."""
-        from fivcadvisor import settings
+        from fivcplayground import settings
 
         config = settings.reasoning_llm_config()
         assert isinstance(config, dict)
@@ -228,7 +228,7 @@ class TestSettingsModuleLazyValues:
 
     def test_coding_llm_config_lazy_loading(self):
         """Test that coding_llm_config is lazily loaded."""
-        from fivcadvisor import settings
+        from fivcplayground import settings
 
         config = settings.coding_llm_config()
         assert isinstance(config, dict)

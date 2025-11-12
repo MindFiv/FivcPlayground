@@ -1,0 +1,20 @@
+{
+  "tool_use_id": "call_426ead3d567a48ceb36d2b",
+  "tool_name": "fill",
+  "tool_input": {
+    "uid": "1_23",
+    "value": "携程股价"
+  },
+  "tool_result": [
+    {
+      "text": "# fill response\nSuccessfully filled out the element\n## Page content\nuid=2_0 RootWebArea \"百度一下，你就知道\" url=\"https://www.baidu.com/\"\n  uid=2_1 link \"百度首页\" url=\"https://www.baidu.com/\"\n    uid=2_2 StaticText \"百度首页\"\n  uid=2_3 link \"设置\" url=\"javascript:;\"\n    uid=2_4 StaticText \"设置\"\n  uid=2_5 link \"登录\" url=\"https://passport.baidu.com/v2/?login&tpl=mn&u=http%3A%2F%2Fwww.baidu.com%2F&sms=5\"\n    uid=2_6 StaticText \"登录\"\n  uid=2_7 StaticText \"请按“回车”键发起检索\"\n  uid=2_8 link \"到百度首页\" url=\"https://www.baidu.com/\"\n    uid=2_9 image \"到百度首页\" description=\"到百度首页\" url=\"https://www.baidu.com/img/flexible/logo/pc/result@2.png\"\n  uid=2_10 textbox \"国台办谈或全球通缉台独分子\" focusable focused multiline value=\"携程股价\"\n  uid=2_11 button \"百度一下\"\n  uid=2_12 StaticText \"携程股价\"\n  uid=2_13 StaticText \"美股\"\n  uid=2_14 StaticText \"携程股价\"\n  uid=2_15 StaticText \"美股实时行情\"\n  uid=2_16 StaticText \"携程股价\"\n  uid=2_17 StaticText \"变化\"\n  uid=2_18 StaticText \"携程股价\"\n  uid=2_19 StaticText \"下跌3.47%\"\n  uid=2_20 StaticText \"携程股价\"\n  uid=2_21 StaticText \"下跌超9%\"\n  uid=2_22 StaticText \"携程股价\"\n  uid=2_23 StaticText \"走势\"\n  uid=2_24 StaticText \"携程股价\"\n  uid=2_25 StaticText \"历史最高\"\n  uid=2_26 StaticText \"携程股价\"\n  uid=2_27 StaticText \"代码\"\n  uid=2_28 StaticText \"携程股价\"\n  uid=2_29 StaticText \"港股\"\n  uid=2_30 StaticText \"携程股价\"\n  uid=2_31 StaticText \"新浪\"\n  uid=2_32 StaticText \"携程股价\"\n  uid=2_33 StaticText \"美股\"\n  uid=2_34 StaticText \"问\"\n  uid=2_35 link url=\"https://chat.baidu.com/search?pd=csaitab&setype=csaitab&extParamsJson=%7B%22enter_type%22%3A%22search_a_tab%22%2C%22sa%22%3A%22vs_tab%22%7D\"\n  uid=2_36 StaticText \"网页\"\n  uid=2_37 link \"图片\" url=\"http://image.baidu.com/i?tn=baiduimage&ps=1&ct=201326592&lm=-1&cl=2&nc=1&ie=utf-8\"\n    uid=2_38 StaticText \"图片\"\n  uid=2_39 link \"资讯\" url=\"https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8\"\n    uid=2_40 StaticText \"资讯\"\n  uid=2_41 link \"视频\" url=\"http://v.baidu.com/v?ct=301989888&rn=20&pn=0&db=0&s=25&ie=utf-8\"\n    uid=2_42 StaticText \"视频\"\n  uid=2_43 link \"笔记\" url=\"http://www.baidu.com/s?pd=note&rpf=pc\"\n    uid=2_44 StaticText \"笔记\"\n  uid=2_45 link \"地图\" url=\"https://map.baidu.com/?newmap=1&ie=utf-8&from=pstab&s=s\"\n    uid=2_46 StaticText \"地图\"\n  uid=2_47 link \"贴吧\" url=\"http://tieba.baidu.com/f?fr=wwwt&ie=utf-8\"\n    uid=2_48 StaticText \"贴吧\"\n  uid=2_49 link \"文库\" url=\"http://wenku.baidu.com/search?lm=0&od=0&ie=utf-8\"\n    uid=2_50 StaticText \"文库\"\n  uid=2_51 link \"更多\" url=\"http://www.baidu.com/more/\"\n    uid=2_52 StaticText \"更多\"\n"
+    }
+  ],
+  "status": "success",
+  "started_at": "2025-11-05T23:43:43.535452",
+  "completed_at": "2025-11-05T23:43:43.850103",
+  "error": null,
+  "id": "call_426ead3d567a48ceb36d2b",
+  "duration": 0.314651,
+  "is_completed": true
+}

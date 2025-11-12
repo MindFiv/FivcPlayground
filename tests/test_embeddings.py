@@ -6,7 +6,7 @@ Tests for the embeddings module.
 import pytest
 from unittest.mock import Mock, patch
 
-from fivcadvisor.embeddings.types.db import EmbeddingDB, EmbeddingCollection
+from fivcplayground.embeddings.types.db import EmbeddingDB, EmbeddingCollection
 
 
 class TestEmbeddingCollection:
@@ -113,7 +113,7 @@ class TestEmbeddingDB:
         mock_client.get_or_create_collection = Mock(return_value=mock_collection)
         return mock_client
 
-    @patch("fivcadvisor.embeddings.types.db.chromadb.PersistentClient")
+    @patch("fivcplayground.embeddings.types.db.chromadb.PersistentClient")
     def test_init(self, mock_chroma_class, mock_embedding_function):
         """Test EmbeddingDB initialization."""
         mock_client = Mock()
@@ -125,7 +125,7 @@ class TestEmbeddingDB:
         assert db.db == mock_client
         mock_chroma_class.assert_called_once()
 
-    @patch("fivcadvisor.embeddings.types.db.chromadb.PersistentClient")
+    @patch("fivcplayground.embeddings.types.db.chromadb.PersistentClient")
     def test_get_collection(self, mock_chroma_class, mock_embedding_function):
         """Test getting a collection."""
         mock_client = Mock()
@@ -145,14 +145,14 @@ class TestEmbeddingDB:
 class TestCreateEmbeddingFunction:
     """Test the create_embedding_function function."""
 
-    @patch("fivcadvisor.embeddings._openai_embedding_function")
-    @patch("fivcadvisor.embeddings.utils.create_default_kwargs")
-    @patch("fivcadvisor.embeddings.settings.default_embedder_config")
+    @patch("fivcplayground.embeddings._openai_embedding_function")
+    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
+    @patch("fivcplayground.embeddings.settings.default_embedder_config")
     def test_create_embedding_function_openai(
         self, mock_config, mock_create_kwargs, mock_openai
     ):
         """Test creating an OpenAI embedding function."""
-        from fivcadvisor.embeddings import create_embedding_function
+        from fivcplayground.embeddings import create_embedding_function
 
         mock_config.return_value = {
             "provider": "openai",
@@ -170,14 +170,14 @@ class TestCreateEmbeddingFunction:
         assert func == mock_func
         mock_openai.assert_called_once()
 
-    @patch("fivcadvisor.embeddings._ollama_embedding_function")
-    @patch("fivcadvisor.embeddings.utils.create_default_kwargs")
-    @patch("fivcadvisor.embeddings.settings.default_embedder_config")
+    @patch("fivcplayground.embeddings._ollama_embedding_function")
+    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
+    @patch("fivcplayground.embeddings.settings.default_embedder_config")
     def test_create_embedding_function_ollama(
         self, mock_config, mock_create_kwargs, mock_ollama
     ):
         """Test creating an Ollama embedding function."""
-        from fivcadvisor.embeddings import create_embedding_function
+        from fivcplayground.embeddings import create_embedding_function
 
         mock_config.return_value = {"provider": "ollama", "model": "llama2"}
         mock_create_kwargs.return_value = {"provider": "ollama", "model": "llama2"}
@@ -190,13 +190,13 @@ class TestCreateEmbeddingFunction:
         mock_ollama.assert_called_once()
 
     @patch("chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction")
-    @patch("fivcadvisor.embeddings.utils.create_default_kwargs")
-    @patch("fivcadvisor.embeddings.settings.default_embedder_config")
+    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
+    @patch("fivcplayground.embeddings.settings.default_embedder_config")
     def test_create_embedding_function_default(
         self, mock_config, mock_create_kwargs, mock_sentence
     ):
         """Test creating a default (sentence transformer) embedding function."""
-        from fivcadvisor.embeddings import create_embedding_function
+        from fivcplayground.embeddings import create_embedding_function
 
         mock_config.return_value = {"provider": "other"}
         mock_create_kwargs.return_value = {"provider": "other"}
@@ -208,13 +208,13 @@ class TestCreateEmbeddingFunction:
         assert func == mock_func
         mock_sentence.assert_called_once_with(model_name="all-MiniLM-L6-v2")
 
-    @patch("fivcadvisor.embeddings.utils.create_default_kwargs")
-    @patch("fivcadvisor.embeddings.settings.default_embedder_config")
+    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
+    @patch("fivcplayground.embeddings.settings.default_embedder_config")
     def test_create_embedding_function_no_provider(
         self, mock_config, mock_create_kwargs
     ):
         """Test that create_embedding_function raises error without provider."""
-        from fivcadvisor.embeddings import create_embedding_function
+        from fivcplayground.embeddings import create_embedding_function
 
         mock_config.return_value = {}
         mock_create_kwargs.return_value = {"provider": None}
@@ -226,11 +226,11 @@ class TestCreateEmbeddingFunction:
 class TestCreateEmbeddingDB:
     """Test the create_embedding_db function."""
 
-    @patch("fivcadvisor.embeddings.EmbeddingDB")
-    @patch("fivcadvisor.embeddings.create_embedding_function")
+    @patch("fivcplayground.embeddings.EmbeddingDB")
+    @patch("fivcplayground.embeddings.create_embedding_function")
     def test_create_embedding_db_default(self, mock_create_func, mock_db_class):
         """Test creating an embedding DB with default function."""
-        from fivcadvisor.embeddings import create_embedding_db
+        from fivcplayground.embeddings import create_embedding_db
 
         mock_func = Mock()
         mock_create_func.return_value = mock_func
@@ -243,10 +243,10 @@ class TestCreateEmbeddingDB:
         mock_create_func.assert_called_once()
         mock_db_class.assert_called_once()
 
-    @patch("fivcadvisor.embeddings.EmbeddingDB")
+    @patch("fivcplayground.embeddings.EmbeddingDB")
     def test_create_embedding_db_custom_function(self, mock_db_class):
         """Test creating an embedding DB with custom function."""
-        from fivcadvisor.embeddings import create_embedding_db
+        from fivcplayground.embeddings import create_embedding_db
 
         mock_func = Mock()
         mock_db = Mock()

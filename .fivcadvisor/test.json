@@ -1,0 +1,50 @@
+{
+  "ids": [
+    [
+      "-2001027365055172581",
+      "-5475377552126220030",
+      "6995796965205052382",
+      "-8470410493480431594"
+    ]
+  ],
+  "embeddings": null,
+  "documents": [
+    [
+      "Calculator powered by SymPy for comprehensive mathematical operations.\n\nThis tool provides advanced mathematical functionality through multiple operation modes,\nincluding expression evaluation, equation solving, calculus operations (derivatives, integrals),\nlimits, series expansions, and matrix operations. Results are formatted with appropriate\nprecision and can be displayed in scientific notation when needed.\n\nHow It Works:\n------------\n1. The function parses the mathematical expression using SymPy's parser\n2. Based on the selected mode, it routes the expression to the appropriate handler\n3. Variables and constants are substituted with their values when provided\n4. The expression is evaluated symbolically and/or numerically as appropriate\n5. Results are formatted based on precision preferences and value magnitude\n6. Rich output is generated with operation details and formatted results\n\nOperation Modes:\n--------------\n- evaluate: Calculate the value of a mathematical expression\n- solve: Find solutions to an equation or system of equations\n- derive: Calculate derivatives of an expression\n- integrate: Find the indefinite integral of an expression\n- limit: Evaluate the limit of an expression at a point\n- series: Generate series expansion of an expression\n- matrix: Perform matrix operations\n\nCommon Usage Scenarios:\n---------------------\n- Basic calculations: Evaluating arithmetic expressions\n- Equation solving: Finding roots of polynomials or systems of equations\n- Calculus: Computing derivatives and integrals for analysis\n- Engineering analysis: Working with scientific notations and constants\n- Mathematics education: Visualizing step-by-step solutions\n- Data science: Matrix operations and statistical calculations",
+      "Success case: Returns the calculation result with appropriate formatting\n    Error case: Returns information about what went wrong during calculation\n\nNotes:\n    - For equation solving, set the expression equal to zero implicitly (x**2 + 1 means x**2 + 1 = 0)\n    - Use 'pi' and 'e' for mathematical constants\n    - The 'wrt' parameter is required for differentiation and integration\n    - Matrix expressions use Python-like syntax: [[1, 2], [3, 4]]\n    - Precision control impacts display only, internal calculations use higher precision\n    - Symbolic results are returned when possible unless force_numeric=True",
+      "Args:\n    expression: The mathematical expression to evaluate, such as \"2 + 2 * 3\",\n        \"x**2 + 2*x + 1\", or \"sin(pi/2)\". For matrix operations, use array\n        notation like \"[[1, 2], [3, 4]]\".\n    mode: The calculation mode to use. Options are:\n        - \"evaluate\": Compute the value of the expression (default)\n        - \"solve\": Solve an equation or system of equations\n        - \"derive\": Calculate the derivative of an expression\n        - \"integrate\": Find the indefinite integral of an expression\n        - \"limit\": Calculate the limit of an expression at a point\n        - \"series\": Generate a series expansion of an expression\n        - \"matrix\": Perform matrix operations\n    precision: Number of decimal places for the result (default: 10).\n        Higher values provide more precise output but may impact performance.\n    scientific: Whether to use scientific notation for numbers (default: False).\n        When True, formats large and small numbers using scientific notation.\n    force_numeric: Force numeric evaluation of symbolic expressions (default: False).\n        When True, tries to convert symbolic results to numeric values.\n    variables: Optional dictionary of variable names and their values to substitute\n        in the expression, e.g., {\"a\": 1, \"b\": 2}.\n    wrt: Variable to differentiate or integrate with respect to (required for\n        \"derive\" and \"integrate\" modes).\n    point: Point at which to evaluate a limit (required for \"limit\" mode).\n        Use \"oo\" for infinity.\n    order: Order of derivative or series expansion (optional for \"derive\" and\n        \"series\" modes, default is 1 for derivatives and 5 for series).\n\nReturns:\n    Dict containing status and response content in the format:\n    {\n        \"status\": \"success|error\",\n        \"content\": [{\"text\": \"Result: <calculated_result>\"}]\n    }",
+      "Get the current time in ISO 8601 format.\n\nThis tool returns the current date and time in ISO 8601 format (e.g., 2023-04-15T14:32:16.123456+00:00)\nfor the specified timezone. If no timezone is provided, the value from the DEFAULT_TIMEZONE\nenvironment variable is used (defaults to 'UTC' if not set).\n\nArgs:\n    timezone (str, optional): The timezone to use (e.g., 'UTC', 'US/Pacific', 'Europe/London', 'Asia/Tokyo').\n        Defaults to environment variable DEFAULT_TIMEZONE ('UTC' if not set).\n\nReturns:\n    str: The current time in ISO 8601 format.\n\nRaises:\n    ValueError: If an invalid timezone is provided.\n\nExamples:\n    >>> current_time()  # Returns current time in default timezone (from DEFAULT_TIMEZONE or UTC)\n    '2023-04-15T14:32:16.123456+00:00'\n\n    >>> current_time(timezone=\"US/Pacific\")  # Returns current time in Pacific timezone\n    '2023-04-15T07:32:16.123456-07:00'"
+    ]
+  ],
+  "uris": null,
+  "included": [
+    "metadatas",
+    "documents",
+    "distances"
+  ],
+  "data": null,
+  "metadatas": [
+    [
+      {
+        "__tool__": "calculator"
+      },
+      {
+        "__tool__": "calculator"
+      },
+      {
+        "__tool__": "calculator"
+      },
+      {
+        "__tool__": "current_time"
+      }
+    ]
+  ],
+  "distances": [
+    [
+      1.7584528923034668,
+      1.794198989868164,
+      1.8161790370941162,
+      1.8239109516143799
+    ]
+  ]
+}

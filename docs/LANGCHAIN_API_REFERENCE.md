@@ -2,7 +2,7 @@
 
 ## 📚 Overview
 
-This document provides a complete API reference for the LangChain-based FivcAdvisor system. All APIs maintain 100% backward compatibility with the Strands framework.
+This document provides a complete API reference for the LangChain-based FivcPlayground system. All APIs maintain 100% backward compatibility with the Strands framework.
 
 ---
 
@@ -14,7 +14,7 @@ This document provides a complete API reference for the LangChain-based FivcAdvi
 Creates a companion agent for general conversation.
 
 ```python
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 agent = create_companion_agent()
 result = await agent.invoke_async("Hello!")
@@ -33,7 +33,7 @@ result = await agent.invoke_async("Hello!")
 Creates an agent specialized in tool retrieval and usage.
 
 ```python
-from fivcadvisor.agents import create_tooling_agent
+from fivcplayground.agents import create_tooling_agent
 
 agent = create_tooling_agent()
 result = await agent.invoke_async("Find tools for data analysis")
@@ -47,7 +47,7 @@ result = await agent.invoke_async("Find tools for data analysis")
 Creates a consultant agent for expert advice.
 
 ```python
-from fivcadvisor.agents import create_consultant_agent
+from fivcplayground.agents import create_consultant_agent
 
 agent = create_consultant_agent()
 result = await agent.invoke_async("What's the best approach for this?")
@@ -61,7 +61,7 @@ result = await agent.invoke_async("What's the best approach for this?")
 Creates a planning agent for task planning.
 
 ```python
-from fivcadvisor.agents import create_planning_agent
+from fivcplayground.agents import create_planning_agent
 
 agent = create_planning_agent()
 result = await agent.invoke_async("Plan my project")
@@ -75,7 +75,7 @@ result = await agent.invoke_async("Plan my project")
 Creates a research agent for information gathering.
 
 ```python
-from fivcadvisor.agents import create_research_agent
+from fivcplayground.agents import create_research_agent
 
 agent = create_research_agent()
 result = await agent.invoke_async("Research machine learning")
@@ -125,7 +125,7 @@ print(result)  # Agent response
 Invocation with custom tools.
 
 ```python
-from fivcadvisor.tools.types import AgentTool
+from fivcplayground.tools.types import AgentTool
 
 tools = [
     AgentTool(
@@ -196,7 +196,7 @@ agent.event_bus.subscribe("BEFORE_INVOCATION", on_event)
 Represents a tool that agents can use.
 
 ```python
-from fivcadvisor.tools.types import AgentTool
+from fivcplayground.tools.types import AgentTool
 
 tool = AgentTool(
     tool_name="my_tool",
@@ -226,7 +226,7 @@ tool = AgentTool(
 Converts Strands tools to LangChain tools.
 
 ```python
-from fivcadvisor.adapters.tools import convert_strands_tools_to_langchain
+from fivcplayground.adapters.tools import convert_strands_tools_to_langchain
 
 strands_tools = [...]
 langchain_tools = convert_strands_tools_to_langchain(strands_tools)
@@ -247,7 +247,7 @@ langchain_tools = convert_strands_tools_to_langchain(strands_tools)
 Manages event subscriptions and emissions.
 
 ```python
-from fivcadvisor.adapters.events import EventBus
+from fivcplayground.adapters.events import EventBus
 
 event_bus = EventBus()
 
@@ -282,7 +282,7 @@ event_bus.emit("BEFORE_INVOCATION", {"query": "test"})
 Creates an OpenAI model.
 
 ```python
-from fivcadvisor.adapters.models import create_openai_model
+from fivcplayground.adapters.models import create_openai_model
 
 model = create_openai_model(api_key="sk-...", model="gpt-4")
 ```
@@ -299,7 +299,7 @@ model = create_openai_model(api_key="sk-...", model="gpt-4")
 Creates an Ollama model.
 
 ```python
-from fivcadvisor.adapters.models import create_ollama_model
+from fivcplayground.adapters.models import create_ollama_model
 
 model = create_ollama_model(base_url="http://localhost:11434", model="llama2")
 ```
@@ -336,7 +336,7 @@ All APIs maintain 100% backward compatibility with Strands:
 
 ```python
 # Old Strands code works unchanged
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 agent = create_companion_agent()
 result = await agent.invoke_async("Hello!")

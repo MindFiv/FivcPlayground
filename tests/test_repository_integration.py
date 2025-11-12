@@ -6,14 +6,14 @@ Integration tests for FileTaskRuntimeRepository with TaskMonitor.
 import tempfile
 from datetime import datetime
 
-from fivcadvisor.tasks.types import (
+from fivcplayground.tasks.types import (
     TaskMonitor,
     TaskRuntime,
     TaskRuntimeStep,
     TaskStatus,
 )
-from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 
 class TestRepositoryIntegration:

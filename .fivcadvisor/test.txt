@@ -1,0 +1,29 @@
+{'init_event_loop': True}
+{'start': True}
+{'start_event_loop': True}
+{'event': {'messageStart': {'role': 'assistant'}}}
+{'event': {'contentBlockStart': {'start': {}}}}
+{'event': {'contentBlockStop': {}}}
+{'event': {'contentBlockStart': {'start': {'toolUse': {'name': 'current_time', 'toolUseId': 'call_136c06a6d6604503976d6f'}}}}}
+{'event': {'contentBlockDelta': {'delta': {'toolUse': {'input': '{}'}}}}}
+{'delta': {'toolUse': {'input': '{}'}}, 'current_tool_use': {'toolUseId': 'call_136c06a6d6604503976d6f', 'name': 'current_time', 'input': '{}'}, 'agent': <strands.agent.agent.Agent object at 0x1238d9160>, 'event_loop_cycle_id': UUID('045ab412-1c86-456d-8cec-3662d779dc3d'), 'request_state': {}, 'event_loop_cycle_trace': <strands.telemetry.metrics.Trace object at 0x1244bc4d0>, 'event_loop_cycle_span': NonRecordingSpan(SpanContext(trace_id=0x00000000000000000000000000000000, span_id=0x0000000000000000, trace_flags=0x00, trace_state=[], is_remote=False))}
+{'event': {'contentBlockStop': {}}}
+{'event': {'messageStop': {'stopReason': 'tool_use'}}}
+{'event': {'metadata': {'usage': {'inputTokens': 5656, 'outputTokens': 15, 'totalTokens': 5671}, 'metrics': {'latencyMs': 0}}}}
+{'message': {'role': 'assistant', 'content': [{'toolUse': {'toolUseId': 'call_136c06a6d6604503976d6f', 'name': 'current_time', 'input': {}}}]}}
+{'message': {'role': 'user', 'content': [{'toolResult': {'toolUseId': 'call_136c06a6d6604503976d6f', 'status': 'success', 'content': [{'text': '2025-10-08T12:23:31.032460+00:00'}]}}]}}
+{'start': True}
+{'start': True}
+{'start_event_loop': True}
+{'event': {'messageStart': {'role': 'assistant'}}}
+{'event': {'contentBlockStart': {'start': {}}}}
+{'event': {'contentBlockDelta': {'delta': {'text': 'The'}}}}
+{'event': {'contentBlockDelta': {'delta': {'text': ' current time is'}}}}
+{'event': {'contentBlockDelta': {'delta': {'text': ' 1'}}}}
+{'event': {'contentBlockDelta': {'delta': {'text': '2:2'}}}}
+{'event': {'contentBlockDelta': {'delta': {'text': '3 PM UTC.'}}}}
+{'event': {'contentBlockStop': {}}}
+{'event': {'messageStop': {'stopReason': 'end_turn'}}}
+{'event': {'metadata': {'usage': {'inputTokens': 5717, 'outputTokens': 13, 'totalTokens': 5730}, 'metrics': {'latencyMs': 0}}}}
+{'message': {'role': 'assistant', 'content': [{'text': 'The current time is 12:23 PM UTC.'}]}}
+{'result': AgentResult(stop_reason='end_turn', message={'role': 'assistant', 'content': [{'text': 'The current time is 12:23 PM UTC.'}]}, metrics=EventLoopMetrics(cycle_count=2, tool_metrics={'current_time': ToolMetrics(tool={'toolUseId': 'call_136c06a6d6604503976d6f', 'name': 'current_time', 'input': {}}, call_count=1, success_count=1, error_count=0, total_time=0.00044608116149902344)}, cycle_durations=[1.761159896850586], traces=[<strands.telemetry.metrics.Trace object at 0x1244bc4d0>, <strands.telemetry.metrics.Trace object at 0x123664aa0>], accumulated_usage={'inputTokens': 11373, 'outputTokens': 28, 'totalTokens': 11401}, accumulated_metrics={'latencyMs': 0}), state={})}

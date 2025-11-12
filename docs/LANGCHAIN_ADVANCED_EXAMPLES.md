@@ -2,7 +2,7 @@
 
 ## 🚀 Advanced Usage Patterns
 
-This guide provides advanced examples for using FivcAdvisor with LangChain.
+This guide provides advanced examples for using FivcPlayground with LangChain.
 
 ---
 
@@ -12,7 +12,7 @@ This guide provides advanced examples for using FivcAdvisor with LangChain.
 
 ```python
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def main():
     agent = create_companion_agent()
@@ -45,9 +45,9 @@ asyncio.run(main())
 ### Example: Specialized Agent Swarm
 
 ```python
-from fivcadvisor.agents import create_generic_agent_swarm
-from fivcadvisor.tasks.types import TaskTeam, TaskSpecialist
-from fivcadvisor.tools.types import ToolsRetriever
+from fivcplayground.agents import create_generic_agent_swarm
+from fivcplayground.tasks.types import TaskTeam, TaskSpecialist
+from fivcplayground.tools.types import ToolsRetriever
 
 # Create specialist agents
 specialists = [
@@ -72,7 +72,7 @@ team = TaskTeam(specialists=specialists)
 
 # Create swarm using the LangChain adapter
 async def main():
-    from fivcadvisor.adapters import create_langchain_swarm
+    from fivcplayground.adapters import create_langchain_swarm
 
     # Create agents from team specialists
     agents = [create_default_agent(name=s.name, system_prompt=s.backstory)
@@ -96,8 +96,8 @@ asyncio.run(main())
 ### Example: Adding Custom Tools
 
 ```python
-from fivcadvisor.agents import create_tooling_agent
-from fivcadvisor.tools.types import AgentTool
+from fivcplayground.agents import create_tooling_agent
+from fivcplayground.tools.types import AgentTool
 
 # Define custom tools
 def calculate_sum(numbers: str) -> str:
@@ -159,7 +159,7 @@ asyncio.run(main())
 ### Example: Streaming Agent Output
 
 ```python
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def main():
     agent = create_companion_agent()
@@ -186,7 +186,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def invoke_with_retry(agent, query, max_retries=3):
     """Invoke agent with retry logic"""
@@ -224,7 +224,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def process_batch(queries):
     """Process multiple queries concurrently"""
@@ -262,7 +262,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from fivcadvisor.agents import (
+from fivcplayground.agents import (
     create_research_agent,
     create_consultant_agent,
     create_planning_agent
@@ -302,7 +302,7 @@ asyncio.run(main())
 ```python
 import time
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 async def main():
     agent = create_companion_agent()
@@ -339,7 +339,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from fivcadvisor.agents import create_companion_agent
+from fivcplayground.agents import create_companion_agent
 
 class ConversationManager:
     def __init__(self):
@@ -388,8 +388,8 @@ asyncio.run(main())
 ### Example: Using Different Models
 
 ```python
-from fivcadvisor.adapters.models import create_openai_model, create_ollama_model
-from fivcadvisor.adapters.agents import LangChainAgentAdapter
+from fivcplayground.adapters.models import create_openai_model, create_ollama_model
+from fivcplayground.adapters.agents import LangChainAgentAdapter
 
 # Create with OpenAI
 openai_model = create_openai_model(

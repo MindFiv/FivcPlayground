@@ -1,4 +1,4 @@
-# Quick Start Guide: FivcAdvisor with Persistent MCP Connections
+# Quick Start Guide: FivcPlayground with Persistent MCP Connections
 
 **Last Updated**: 2025-10-30  
 **Status**: ✅ Production Ready
@@ -7,7 +7,7 @@
 
 ## What's New
 
-FivcAdvisor now has:
+FivcPlayground now has:
 - ✅ Persistent MCP connections (tools stay connected)
 - ✅ Proper asyncio handling in Streamlit
 - ✅ Clean resource management
@@ -19,7 +19,7 @@ FivcAdvisor now has:
 
 ### 1. Install Dependencies
 ```bash
-cd /Users/charlie/Works/FivcAdvisor
+cd /Users/charlie/Works/FivcPlayground
 uv sync
 ```
 
@@ -35,7 +35,7 @@ uv run pytest tests/ -q
 
 ### Start Streamlit
 ```bash
-streamlit run src/fivcadvisor/app/__init__.py
+streamlit run src/fivcplayground/app/__init__.py
 ```
 
 ### Expected Behavior
@@ -133,7 +133,7 @@ cat mcp.yml
 ps aux | grep mcp
 
 # Check logs
-streamlit run src/fivcadvisor/app/__init__.py --logger.level=debug
+streamlit run src/fivcplayground/app/__init__.py --logger.level=debug
 ```
 
 ### Issue: Tools not loading
@@ -146,7 +146,7 @@ streamlit run src/fivcadvisor/app/__init__.py --logger.level=debug
 **Solution**:
 ```bash
 # Test MCP connection
-python -c "from fivcadvisor.tools import default_loader; default_loader.load()"
+python -c "from fivcplayground.tools import default_loader; default_loader.load()"
 
 # Check logs for errors
 # Look for "Error loading tools from" messages
@@ -185,7 +185,7 @@ uv run pytest tests/ -q
 uv run pytest tests/test_tools_loader.py -xvs
 
 # With coverage
-uv run pytest tests/ --cov=src/fivcadvisor
+uv run pytest tests/ --cov=src/fivcplayground
 ```
 
 ### Adding New Tools
@@ -202,7 +202,7 @@ export PYTHONPATH=/path/to/project
 python -c "
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from fivcadvisor.app import main
+from fivcplayground.app import main
 main()
 "
 ```
@@ -223,7 +223,7 @@ main()
 ### Reload MCP Configuration
 
 ```python
-from fivcadvisor.app.utils import default_mcp_loader
+from fivcplayground.app.utils import default_mcp_loader
 
 # Reload configuration
 loader = default_mcp_loader
@@ -234,7 +234,7 @@ loader.load()
 ### Check Loaded Tools
 
 ```python
-from fivcadvisor.tools import default_retriever
+from fivcplayground.tools import default_retriever
 
 # List all tools (including bundles)
 tools = default_retriever.get_all()
@@ -251,7 +251,7 @@ expanded_tools = default_retriever.retrieve("calculate math", expand=True)
 ### Monitor Connections
 
 ```python
-from fivcadvisor.app.utils import default_mcp_loader
+from fivcplayground.app.utils import default_mcp_loader
 
 loader = default_mcp_loader
 print(f"Client: {loader.client}")
@@ -291,7 +291,7 @@ Include:
 
 ## Version Info
 
-- **FivcAdvisor**: 0.1.0
+- **FivcPlayground**: 0.1.0
 - **Python**: 3.10+
 - **Streamlit**: 1.49.1+
 - **nest-asyncio**: 1.6.0+

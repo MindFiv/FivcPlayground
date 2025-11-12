@@ -10,9 +10,9 @@ import os
 import tempfile
 import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from fivcadvisor import __backend__
-from fivcadvisor.tools.types.loaders import ToolsLoader
-from fivcadvisor.tools.types.retrievers import ToolsRetriever
+from fivcplayground import __backend__
+from fivcplayground.tools.types.loaders import ToolsLoader
+from fivcplayground.tools.types.retrievers import ToolsRetriever
 
 
 def create_mock_tool(name: str, description: str):
@@ -141,7 +141,7 @@ class TestToolsLoaderLoad:
 
             # Mock the ToolsBundle to avoid actual MCP connections
             with patch(
-                "fivcadvisor.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolsBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -185,7 +185,7 @@ class TestToolsLoaderLoad:
             )
 
             with patch(
-                "fivcadvisor.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolsBundle"
             ) as mock_bundle_class:
                 # Make the bundle raise an error when loading
                 mock_bundle_class.side_effect = Exception("Connection failed")
@@ -298,7 +298,7 @@ class TestToolsLoaderIncrementalUpdates:
             mock_tool1 = create_mock_tool("tool1", "Tool 1 description")
 
             with patch(
-                "fivcadvisor.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolsBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -336,7 +336,7 @@ class TestToolsLoaderIncrementalUpdates:
             loader.tools_bundles = {"old_server": {"old_tool"}}
 
             with patch(
-                "fivcadvisor.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolsBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -373,7 +373,7 @@ class TestToolsLoaderPersistentConnections:
             )
 
             with patch(
-                "fivcadvisor.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolsBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle

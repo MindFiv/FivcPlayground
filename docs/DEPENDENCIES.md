@@ -1,10 +1,10 @@
-# FivcAdvisor Dependencies Guide
+# FivcPlayground Dependencies Guide
 
-This document explains the dependency structure and installation options for FivcAdvisor.
+This document explains the dependency structure and installation options for FivcPlayground.
 
 ## 📁 Dependency Management
 
-FivcAdvisor uses modern Python dependency management with:
+FivcPlayground uses modern Python dependency management with:
 - **`pyproject.toml`** - Primary dependency specification (source of truth)
 - **`uv.lock`** - Lock file for reproducible builds
 - **`uv`** - Fast Python package manager (recommended)
@@ -98,7 +98,7 @@ pip install -e ".[dev]"
 ## 🔍 Troubleshooting
 
 ### Common Issues
-1. **Python version**: FivcAdvisor requires Python 3.10+
+1. **Python version**: FivcPlayground requires Python 3.10+
 2. **UV installation**: Install uv from https://astral.sh/uv/
 3. **Virtual environment**: UV automatically manages virtual environments
 
@@ -115,7 +115,7 @@ rm -rf .venv uv.lock
 uv sync
 
 # Check installation
-uv run fivcadvisor --help
+uv run fivcplayground --help
 ```
 
 ## 📊 Dependency Analysis
@@ -149,7 +149,7 @@ uv export --format requirements-txt > requirements.txt
 ## 📝 Dependency Notes
 
 ### Strands Framework
-FivcAdvisor is built on the Strands framework:
+FivcPlayground is built on the Strands framework:
 - `strands-agents>=1.9.1`: Core agent framework with async support
 - `strands-agents-tools>=0.2.8`: Built-in tools and MCP integration
 
@@ -162,7 +162,7 @@ FivcAdvisor is built on the Strands framework:
 - Recommended: Python 3.11 or 3.12
 - Uses modern Python features (type hints, async/await, pattern matching)
 
-This modern dependency management ensures FivcAdvisor remains maintainable and secure.
+This modern dependency management ensures FivcPlayground remains maintainable and secure.
 
 ---
 

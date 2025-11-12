@@ -14,14 +14,14 @@ The SQLite repository provides:
 """
 
 from datetime import datetime
-from fivcadvisor.agents.types import (
+from fivcplayground.agents.types import (
     AgentsRuntimeMeta,
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
     AgentsContent,
 )
-from fivcadvisor.agents.types.repositories import SqliteAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories import SqliteAgentsRuntimeRepository
 
 
 def example_1_basic_agent_storage():

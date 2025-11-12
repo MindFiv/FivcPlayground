@@ -6,7 +6,7 @@
 
 ## Overview
 
-Successfully migrated FivcAdvisor from LangChain 0.3.x to LangChain 1.0.x with a custom LangGraph Swarm implementation. This guide documents the migration process and key changes.
+Successfully migrated FivcPlayground from LangChain 0.3.x to LangChain 1.0.x with a custom LangGraph Swarm implementation. This guide documents the migration process and key changes.
 
 ## Key Changes
 
@@ -41,7 +41,7 @@ Replaced `langgraph-swarm` (incompatible with LangGraph 1.0) with a custom imple
 - Full async/await support
 - Built on LangGraph 1.0 StateGraph
 
-**Implementation Location**: `src/fivcadvisor/adapters/multiagent.py`
+**Implementation Location**: `src/fivcplayground/adapters/multiagent.py`
 
 ### 3. SwarmState TypedDict
 
@@ -83,13 +83,13 @@ pytest tests/ -v
 
 **Before**:
 ```python
-from fivcadvisor.adapters import create_langchain_swarm
+from fivcplayground.adapters import create_langchain_swarm
 swarm = create_langchain_swarm([agent1, agent2])
 ```
 
 **After** (Same API):
 ```python
-from fivcadvisor.adapters import create_langchain_swarm
+from fivcplayground.adapters import create_langchain_swarm
 swarm = create_langchain_swarm([agent1, agent2])
 ```
 

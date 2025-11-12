@@ -6,8 +6,8 @@ Tests for the tools retriever module.
 import pytest
 from unittest.mock import Mock
 
-from fivcadvisor import __backend__
-from fivcadvisor.tools.types.retrievers import ToolsRetriever
+from fivcplayground import __backend__
+from fivcplayground.tools.types.retrievers import ToolsRetriever
 
 
 def create_mock_tool(name: str, description: str):

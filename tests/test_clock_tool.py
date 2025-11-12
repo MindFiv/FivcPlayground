@@ -15,9 +15,9 @@ import re
 
 import pytest
 
-from fivcadvisor import __backend__
-from fivcadvisor.tools.clock import clock
-from fivcadvisor.tools.types.backends import get_tool_name
+from fivcplayground import __backend__
+from fivcplayground.tools.clock import clock
+from fivcplayground.tools.types.backends import get_tool_name
 
 
 def invoke_tool(tool, **kwargs):

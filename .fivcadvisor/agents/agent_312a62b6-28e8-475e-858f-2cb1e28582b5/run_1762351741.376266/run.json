@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762351741.376266",
+  "agent_id": "312a62b6-28e8-475e-858f-2cb1e28582b5",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-05T22:09:01.376225",
+  "completed_at": "2025-11-05T22:09:04.718698",
+  "query": {
+    "text": "现在几点了？"
+  },
+  "reply": {
+    "text": "现在是2025年11月5日晚上10点09分哦。时间过得真快，这么晚了，你还在忙吗？(•̀ᴗ•́)و\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762351741.376266",
+  "duration": 3.342473,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 1,
+  "successful_tool_calls": 1,
+  "failed_tool_calls": 0
+}

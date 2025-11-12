@@ -1,0 +1,19 @@
+{
+  "tool_use_id": "call_8135bd6e9a504de581d078",
+  "tool_name": "new_page",
+  "tool_input": {
+    "url": "https://www.google.com"
+  },
+  "tool_result": [
+    {
+      "text": "Navigation timeout of 10000 ms exceeded"
+    }
+  ],
+  "status": "error",
+  "started_at": "2025-11-05T22:15:05.369257",
+  "completed_at": "2025-11-05T22:15:17.020692",
+  "error": null,
+  "id": "call_8135bd6e9a504de581d078",
+  "duration": 11.651435,
+  "is_completed": true
+}

@@ -10,9 +10,9 @@ This example shows how to:
 """
 
 from datetime import datetime
-from fivcadvisor.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
-from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
+from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 
 def example_basic_persistence():

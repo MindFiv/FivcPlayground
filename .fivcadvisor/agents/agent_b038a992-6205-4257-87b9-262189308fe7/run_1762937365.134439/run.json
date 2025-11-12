@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762937365.134439",
+  "agent_id": "b038a992-6205-4257-87b9-262189308fe7",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-12T16:49:25.134424",
+  "completed_at": "2025-11-12T16:49:28.418898",
+  "query": {
+    "text": "Tell me a fun fact about AI"
+  },
+  "reply": {
+    "text": "Here's a fun AI fact: The concept of artificial intelligence dates back to ancient myths! Long before computers, humans dreamed of creating intelligent machines—like the bronze robot Talos in Greek mythology or mechanical automata from ancient China. It makes you wonder if we've always been destined to build our own \"digital descendants,\" doesn't it? 😊\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762937365.134439",
+  "duration": 3.284474,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 0,
+  "successful_tool_calls": 0,
+  "failed_tool_calls": 0
+}

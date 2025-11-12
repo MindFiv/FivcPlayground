@@ -1,6 +1,6 @@
-# FivcAdvisor Documentation
+# FivcPlayground Documentation
 
-Welcome to the FivcAdvisor documentation! This directory contains comprehensive guides and technical documentation for the FivcAdvisor intelligent agent ecosystem built on the Strands framework.
+Welcome to the FivcPlayground documentation! This directory contains comprehensive guides and technical documentation for the FivcPlayground intelligent agent ecosystem built on the Strands framework.
 
 ## 📚 Documentation Index
 
@@ -8,7 +8,7 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 
 #### [🎯 DESIGN.md](DESIGN.md)
 **System Architecture and Design Principles**
-- Overview of FivcAdvisor's architecture based on Strands
+- Overview of FivcPlayground's architecture based on Strands
 - Agent system and specialized agent types
 - Tool management and retrieval
 - Core features and workflows
@@ -154,4 +154,4 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 **Last Updated**: 2025-10-16
 **Version**: 0.1.0
 **Framework**: Strands (strands-agents 1.9.1+)
-**Maintainer**: FivcAdvisor Team
+**Maintainer**: FivcPlayground Team

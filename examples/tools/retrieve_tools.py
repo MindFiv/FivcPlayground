@@ -10,13 +10,13 @@ This example demonstrates how to use the ToolsRetriever to:
 import asyncio
 import dotenv
 
-from fivcadvisor.utils import OutputDir
-from fivcadvisor.tools import (
+from fivcplayground.utils import OutputDir
+from fivcplayground.tools import (
     ToolsRetriever,
     ToolsLoader,
 )
-from fivcadvisor.tools.clock import clock
-from fivcadvisor.tools.calculator import calculator
+from fivcplayground.tools.clock import clock
+from fivcplayground.tools.calculator import calculator
 
 dotenv.load_dotenv()
 

@@ -12,9 +12,9 @@ This example shows how to:
 import asyncio
 import dotenv
 
-from fivcadvisor import tools
-from fivcadvisor.tasks.types import TaskMonitorManager
-from fivcadvisor.utils import OutputDir
+from fivcplayground import tools
+from fivcplayground.tasks.types import TaskMonitorManager
+from fivcplayground.utils import OutputDir
 
 dotenv.load_dotenv()
 
@@ -26,7 +26,7 @@ async def main():
 
     # 1. Create TaskMonitorManager with persistence
     print("\n1️⃣ Creating TaskMonitorManager with persistence...")
-    from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+    from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
 
     output_dir = OutputDir().subdir('tasks')
     repo = FileTaskRuntimeRepository(output_dir=output_dir)

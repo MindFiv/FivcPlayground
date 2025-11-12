@@ -13,10 +13,10 @@ Regression: https://github.com/FivcAdvisor/fivcadvisor/issues/XXX
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from fivcadvisor import __backend__
-from fivcadvisor.tools import _load_retriever
-from fivcadvisor.tools.types.retrievers import ToolsRetriever
-from fivcadvisor.tools.types.backends import get_tool_name
+from fivcplayground import __backend__
+from fivcplayground.tools import _load_retriever
+from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.backends import get_tool_name
 
 
 def create_mock_tool(name: str, description: str):
@@ -43,8 +43,8 @@ class TestToolsInitRegression:
         - LangChain: 'name' and 'description'
         - Strands: 'tool_name' and 'tool_spec'
         """
-        with patch("fivcadvisor.tools.ToolsLoader") as mock_loader_class:
-            with patch("fivcadvisor.tools.ToolsRetriever") as mock_retriever_class:
+        with patch("fivcplayground.tools.ToolsLoader") as mock_loader_class:
+            with patch("fivcplayground.tools.ToolsRetriever") as mock_retriever_class:
                 # Setup mock retriever
                 mock_retriever = MagicMock(spec=ToolsRetriever)
 
@@ -76,7 +76,7 @@ class TestToolsInitRegression:
         This ensures that tools returned from get_all() have the correct
         attributes for the current backend (name for LangChain, tool_name for Strands).
         """
-        from fivcadvisor.tools.types.retrievers import ToolsRetriever
+        from fivcplayground.tools.types.retrievers import ToolsRetriever
         from unittest.mock import Mock
 
         # Create mock embedding DB
@@ -110,8 +110,8 @@ class TestToolsInitRegression:
         This test captures the print output and verifies that tool names are
         correctly extracted using the backend-agnostic get_tool_name function.
         """
-        with patch("fivcadvisor.tools.ToolsLoader") as mock_loader_class:
-            with patch("fivcadvisor.tools.ToolsRetriever") as mock_retriever_class:
+        with patch("fivcplayground.tools.ToolsLoader") as mock_loader_class:
+            with patch("fivcplayground.tools.ToolsRetriever") as mock_retriever_class:
                 # Setup mock retriever
                 mock_retriever = MagicMock(spec=ToolsRetriever)
 
@@ -145,7 +145,7 @@ class TestToolsInitRegression:
         Only runs when backend is set to "langchain".
         """
         from langchain_core.tools import tool as make_tool
-        from fivcadvisor.tools.types.retrievers import ToolsRetriever
+        from fivcplayground.tools.types.retrievers import ToolsRetriever
         from unittest.mock import Mock
 
         # Create mock embedding DB

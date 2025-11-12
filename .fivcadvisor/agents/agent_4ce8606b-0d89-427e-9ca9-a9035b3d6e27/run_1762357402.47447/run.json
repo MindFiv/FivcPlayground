@@ -1,0 +1,21 @@
+{
+  "agent_run_id": "1762357402.47447",
+  "agent_id": "4ce8606b-0d89-427e-9ca9-a9035b3d6e27",
+  "agent_name": "Companion",
+  "status": "executing",
+  "started_at": "2025-11-05T23:43:22.474459",
+  "completed_at": null,
+  "query": {
+    "text": "What time is it now?"
+  },
+  "reply": null,
+  "streaming_text": "",
+  "error": null,
+  "id": "1762357402.47447",
+  "duration": null,
+  "is_running": true,
+  "is_completed": false,
+  "tool_call_count": 0,
+  "successful_tool_calls": 0,
+  "failed_tool_calls": 0
+}

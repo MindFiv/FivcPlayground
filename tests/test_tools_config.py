@@ -7,7 +7,7 @@ import os
 import tempfile
 import pytest
 
-from fivcadvisor.tools.types.configs import ToolsConfig, ToolsConfigValue
+from fivcplayground.tools.types.configs import ToolsConfig, ToolsConfigValue
 
 
 class TestToolsConfig:

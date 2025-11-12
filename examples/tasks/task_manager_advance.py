@@ -14,10 +14,10 @@ import dotenv
 
 from datetime import datetime
 from collections import defaultdict
-from fivcadvisor import tools
-from fivcadvisor.tasks.types import TaskMonitorManager, TaskStatus
-from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground import tools
+from fivcplayground.tasks.types import TaskMonitorManager, TaskStatus
+from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 dotenv.load_dotenv()
 

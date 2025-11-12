@@ -16,10 +16,10 @@ Tests the chat utility for handling conversation state and agent execution:
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from langchain_core.messages import AIMessage
-from fivcadvisor.app.utils import Chat, ChatManager
-from fivcadvisor.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
-from fivcadvisor.agents.types.repositories import AgentsRuntimeRepository
-from fivcadvisor import tools
+from fivcplayground.app.utils import Chat, ChatManager
+from fivcplayground.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
+from fivcplayground.agents.types.repositories import AgentsRuntimeRepository
+from fivcplayground import tools
 
 
 class TestChatInitialization:
@@ -197,7 +197,7 @@ class TestChatHistory:
 
     def test_list_history_loads_tool_calls_for_completed_runtimes(self):
         """Test list_history loads and attaches tool calls to completed runtimes."""
-        from fivcadvisor.agents.types import AgentsRuntimeToolCall
+        from fivcplayground.agents.types import AgentsRuntimeToolCall
         from datetime import datetime
 
         mock_retriever = Mock(spec=tools.ToolsRetriever)
@@ -280,9 +280,9 @@ class TestChatAsk:
 
         # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.create_briefing_task"
+            "fivcplayground.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task, patch(
-            "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
         ) as mock_agent_creator_getter:
             # Mock the task to return a mock with run_async method that returns BaseMessage
             mock_task = Mock()
@@ -331,9 +331,9 @@ class TestChatAsk:
 
         # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.create_briefing_task"
+            "fivcplayground.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task, patch(
-            "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
         ) as mock_agent_creator_getter:
             # Mock the task to return a mock with run_async method
             mock_task = Mock()
@@ -373,9 +373,9 @@ class TestChatAsk:
 
         # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.create_briefing_task"
+            "fivcplayground.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task, patch(
-            "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
         ) as mock_agent_creator_getter:
             # Mock the task to return a mock with run_async method that returns BaseMessage
             mock_task = Mock()
@@ -583,9 +583,9 @@ class TestAgentExecutionMethodRegression:
 
         # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.create_briefing_task"
+            "fivcplayground.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task, patch(
-            "fivcadvisor.app.utils.chats.agents.default_retriever.get"
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
         ) as mock_agent_creator_getter:
             mock_task = Mock()
             mock_desc_msg = AIMessage(content="Agent description")
@@ -625,7 +625,7 @@ class TestAgentExecutionMethodRegression:
 
         # Mock create_briefing_task
         with patch(
-            "fivcadvisor.app.utils.chats.create_briefing_task"
+            "fivcplayground.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             mock_task = Mock()
             mock_task.run_async = AsyncMock(return_value="Agent description")

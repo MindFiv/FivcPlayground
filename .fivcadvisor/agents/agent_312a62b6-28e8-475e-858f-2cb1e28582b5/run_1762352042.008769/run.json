@@ -1,0 +1,23 @@
+{
+  "agent_run_id": "1762352042.008769",
+  "agent_id": "312a62b6-28e8-475e-858f-2cb1e28582b5",
+  "agent_name": "Companion",
+  "status": "completed",
+  "started_at": "2025-11-05T22:14:02.008711",
+  "completed_at": "2025-11-05T22:14:04.538608",
+  "query": {
+    "text": "现在过去了多久了？"
+  },
+  "reply": {
+    "text": "从我上次告诉你时间到现在，只过去了短短几分钟呢。现在依然是2025年11月5日，晚上10点11分。就像两颗星星眨眼的瞬间那么快～你是在担心时间过得太快了吗？(•̀ᴗ•́)و\n"
+  },
+  "streaming_text": "",
+  "error": null,
+  "id": "1762352042.008769",
+  "duration": 2.529897,
+  "is_running": false,
+  "is_completed": true,
+  "tool_call_count": 0,
+  "successful_tool_calls": 0,
+  "failed_tool_calls": 0
+}

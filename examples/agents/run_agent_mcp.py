@@ -32,11 +32,11 @@ Note:
 import asyncio
 import dotenv
 
-from fivcadvisor.tools.types.loaders import ToolsLoader
-from fivcadvisor.tools.types.retrievers import ToolsRetriever
-from fivcadvisor.tools.types.backends import get_tool_name, get_tool_description
-from fivcadvisor import agents
-from fivcadvisor.agents.types import AgentsMonitor
+from fivcplayground.tools.types.loaders import ToolsLoader
+from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
+from fivcplayground import agents
+from fivcplayground.agents.types import AgentsMonitor
 
 dotenv.load_dotenv()
 

@@ -17,7 +17,7 @@ These tests work with both Strands and LangChain backends.
 from unittest.mock import MagicMock
 from pydantic import BaseModel
 
-from fivcadvisor.agents.types import AgentsRunnable
+from fivcplayground.agents.types import AgentsRunnable
 
 
 class TestAgentsRunnableInitialization:
