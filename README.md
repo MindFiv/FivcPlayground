@@ -118,7 +118,7 @@ fivcplayground info
 
 - **Generic** - Standard agent for general task execution
 - **Companion** - Friendly chat agent for conversations
-- **ToolRetriever** - Specialized in finding the right tools
+- **Tooling** - Specialized in finding the right tools
 - **Consultant** - Assesses tasks and recommends approaches
 - **Planner** - Creates execution plans and teams
 - **Researcher** - Analyzes patterns and workflows

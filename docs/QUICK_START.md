@@ -19,14 +19,20 @@ FivcPlayground now has:
 
 ### 1. Install Dependencies
 ```bash
-cd /Users/charlie/Works/FivcPlayground
+# Navigate to the project directory
+cd /path/to/fivcplayground
+
+# Install dependencies using uv (recommended)
 uv sync
+
+# Or using make
+make install
 ```
 
 ### 2. Verify Installation
 ```bash
 uv run pytest tests/ -q
-# Expected: 510 passed
+# Expected: 426+ tests passed
 ```
 
 ---
@@ -35,6 +41,13 @@ uv run pytest tests/ -q
 
 ### Start Streamlit
 ```bash
+# Using the CLI (recommended)
+uv run fivcplayground web
+
+# Or using make
+make serve
+
+# Or directly with streamlit
 streamlit run src/fivcplayground/app/__init__.py
 ```
 
@@ -263,10 +276,12 @@ print(f"Tools: {loader.tools_bundles}")
 
 ## Documentation
 
-- **PERSISTENT_MCP_CONNECTIONS.md** - Architecture details
-- **NEST_ASYNCIO_FIX.md** - Asyncio fix explanation
-- **ASYNCIO_ISSUE_RESOLUTION.md** - Problem analysis
-- **ARCHITECTURE_DIAGRAM.md** - Visual diagrams
+For more detailed information, see:
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and MCP connections
+- **[DESIGN.md](DESIGN.md)** - System design and components
+- **[WEB_INTERFACE.md](WEB_INTERFACE.md)** - Web interface guide
+- **[DEPENDENCIES.md](DEPENDENCIES.md)** - Dependency management
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - MCP implementation details
 
 ---
 

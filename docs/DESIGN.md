@@ -123,7 +123,7 @@ FivcPlayground provides a flexible agent system with specialized agents for diff
 - Maintains conversation context
 - Ideal for interactive sessions
 
-#### 3. **ToolRetriever Agent**
+#### 3. **Tooling Agent**
 *Specialized in finding the right tools*
 - Analyzes task requirements
 - Searches tool registry
