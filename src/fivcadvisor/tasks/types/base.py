@@ -19,7 +19,8 @@ from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
-from langchain_core.messages import BaseMessage
+
+from fivcadvisor.agents.types import AgentsContent
 
 
 class TaskStatus(str, Enum):
@@ -132,7 +133,7 @@ class TaskRuntimeStep(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Step completion timestamp"
     )
-    messages: List[BaseMessage] = Field(
+    messages: List[AgentsContent] = Field(
         default_factory=list, description="Messages during execution"
     )
     error: Optional[str] = Field(default=None, description="Error message if failed")

@@ -111,3 +111,36 @@ class Runnable(ABC):
             >>> result = runnable(query="test")  # Equivalent to runnable.run(query="test")
         """
         return self.run(**kwargs)
+
+
+class ProxyRunnable(Runnable):
+    """
+    Proxy runnable that delegates to another runnable.
+
+    This class provides a proxy implementation of the Runnable interface that
+    forwards all execution to a wrapped runnable. It can be used to add
+    additional behavior or preprocessing before delegating to the underlying
+    runnable.
+    """
+
+    def __init__(self, runnable: Runnable, **kwargs: Any):
+        self._runnable = runnable
+        self._kwargs = kwargs
+
+    @property
+    def id(self) -> str:
+        return self._runnable.id
+
+    @property
+    def name(self) -> str:
+        return self._runnable.name
+
+    async def run_async(self, **kwargs: Any) -> Any:
+        for k, v in self._kwargs.items():
+            kwargs.setdefault(k, v)
+        return await self._runnable.run_async(**kwargs)
+
+    def run(self, **kwargs: Any) -> Any:
+        for k, v in self._kwargs.items():
+            kwargs.setdefault(k, v)
+        return self._runnable.run(**kwargs)

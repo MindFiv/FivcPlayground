@@ -11,9 +11,10 @@ This module provides core utility types and abstract base classes:
 __all__ = [
     "OutputDir",
     "Runnable",
+    "ProxyRunnable",
     "LazyValue",
 ]
 
 from .directories import OutputDir
-from .runnables import Runnable
+from .runnables import Runnable, ProxyRunnable
 from .variables import LazyValue

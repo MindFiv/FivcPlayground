@@ -60,11 +60,11 @@ from fivcadvisor.tasks.types import (
     TaskRuntimeStep,
     TaskStatus,
     TaskMonitorManager,
-    TaskRunnable,
 )
 from fivcadvisor.tools import ToolsRetriever
 from fivcadvisor.utils import (
     Runnable,
+    ProxyRunnable,
     create_lazy_value,
 )
 
@@ -122,9 +122,9 @@ def create_tooling_task(
     kwargs["response_model"] = TaskRequirement
 
     # Create tooling agent
-    return TaskRunnable(
+    return ProxyRunnable(
+        agents.create_tooling_agent(**kwargs),
         query=f"Retrieve the best tools for the following task: \n{query}",
-        runnable=agents.create_tooling_agent(**kwargs),
     )
 
 
@@ -179,11 +179,11 @@ def create_briefing_task(
     if "tools" not in kwargs and tools_retriever is not None:
         kwargs["tools"] = [tools_retriever.to_tool()]
 
-    return TaskRunnable(
+    return ProxyRunnable(
+        agents.create_consultant_agent(**kwargs),
         query=f"Summarize the following content and make it brief and short enough, "
         "say less than 10 words, so that it can be set as a title: \n"
         f"{query}",
-        runnable=agents.create_consultant_agent(**kwargs),
     )
 
 
@@ -245,14 +245,14 @@ def create_assessing_task(
     # Extract response_model before passing to agent
     kwargs["response_model"] = TaskAssessment
 
-    return TaskRunnable(
+    return ProxyRunnable(
+        agents.create_consultant_agent(**kwargs),
         query=f"Assess the following query and determine the best approach for handling it. "
         f"Provide your assessment in JSON format with these exact fields:\n"
         f"- require_planning (bool): Whether a planning agent is required to break down the task. "
         f"Set to true for complex tasks that need multiple steps or specialized agents.\n"
         f"- reasoning (string): Brief explanation of your assessment\n\n"
         f"Query: {query}",
-        runnable=agents.create_consultant_agent(**kwargs),
     )
 
 
@@ -318,7 +318,8 @@ def create_planning_task(
     # Extract response_model before passing to agent
     kwargs["response_model"] = TaskTeam
 
-    return TaskRunnable(
+    return ProxyRunnable(
+        agents.create_planning_agent(**kwargs),
         query=f"Plan the following query and determine the best approach for handling it. "
         f"Provide your plan in JSON format with these exact fields:\n"
         f"- specialists (array): List of specialist agents needed for the task\n"
@@ -327,7 +328,6 @@ def create_planning_task(
         f"  - backstory (string): System prompt/backstory for the agent\n"
         f"  - tools (array): List of tool names the agent needs\n\n"
         f"Query: {query}",
-        runnable=agents.create_planning_agent(**kwargs),
     )
 
 

@@ -70,32 +70,10 @@ class AgentsRunnable(Runnable):
 
     @property
     def id(self) -> str:
-        """
-        Get the unique identifier for this runnable.
-
-        Returns:
-            The unique identifier string
-
-        Example:
-            >>> agent = AgentsRunnable(model=model, tools=[], agent_id="my-agent")
-            >>> print(agent.id)
-            'my-agent'
-        """
         return self._id
 
     @property
     def name(self) -> str:
-        """
-        Get the name of this runnable.
-
-        Returns:
-            The runnable name
-
-        Example:
-            >>> agent = AgentsRunnable(agent_name="MyAgent", model=model, tools=[])
-            >>> print(agent.name)
-            'MyAgent'
-        """
         return self._name
 
     @property

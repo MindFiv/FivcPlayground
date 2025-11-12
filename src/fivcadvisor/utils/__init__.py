@@ -5,6 +5,7 @@ __all__ = [
     "LazyValue",
     "OutputDir",
     "Runnable",
+    "ProxyRunnable",
 ]
 
 from typing import Optional, Callable
@@ -13,6 +14,7 @@ from fivcadvisor.utils.types import (
     LazyValue,
     OutputDir,
     Runnable,
+    ProxyRunnable,
 )
 
 
