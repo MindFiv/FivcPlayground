@@ -5,7 +5,7 @@ Regression tests for tools module initialization.
 This module contains tests to prevent regressions in the tools initialization
 process, particularly around tool attribute access.
 
-Regression: https://github.com/FivcAdvisor/fivcadvisor/issues/XXX
+Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 - Issue: AttributeError: 'StructuredTool' object has no attribute 'tool_name'
 - Root Cause: Code was accessing tool.tool_name instead of tool.name
 - Fix: Changed to use tool.name which is the correct LangChain Tool attribute

@@ -1,7 +1,7 @@
 """
 Agent Example - MCP Tools Integration
 
-This example demonstrates how to use FivcAdvisor agents with MCP (Model Context Protocol) tools.
+This example demonstrates how to use FivcPlayground agents with MCP (Model Context Protocol) tools.
 It shows:
 1. Loading MCP tools (chrome-devtools) from configured servers using ToolsLoader
 2. Creating an agent with MCP tools
@@ -49,7 +49,7 @@ async def main():
     Strands and LangChain frameworks.
     """
 
-    print("FivcAdvisor - Agent with MCP Tools Example")
+    print("FivcPlayground - Agent with MCP Tools Example")
     print("\n" + "=" * 70)
 
     # Step 1: Load MCP tools using ToolsLoader

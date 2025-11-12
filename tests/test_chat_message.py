@@ -13,7 +13,11 @@ import pytest
 from unittest.mock import Mock
 from langchain_core.messages import AIMessage
 from fivcplayground.app.components import ChatMessage
-from fivcplayground.agents.types import AgentsRuntime, AgentsRuntimeToolCall, AgentsContent
+from fivcplayground.agents.types import (
+    AgentsRuntime,
+    AgentsRuntimeToolCall,
+    AgentsContent,
+)
 
 
 class TestChatMessageClass:

@@ -26,7 +26,7 @@ async def main():
     Run the tool retriever example.
     """
 
-    print("FivcAdvisor - Tool Retriever Example")
+    print("FivcPlayground - Tool Retriever Example")
     print("\n" + "=" * 50)
 
     # Create a retriever instance

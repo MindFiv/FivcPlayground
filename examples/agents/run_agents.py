@@ -1,7 +1,7 @@
 """
 Agent Example - Companion Agent Usage
 
-This example demonstrates how to use FivcAdvisor agents with LangChain.
+This example demonstrates how to use FivcPlayground agents with LangChain.
 It shows:
 1. Creating a companion agent
 2. Invoking the agent with queries
@@ -23,7 +23,7 @@ async def main():
     Run agent example demonstrating companion agent usage.
     """
 
-    print("FivcAdvisor - Companion Agent Example")
+    print("FivcPlayground - Companion Agent Example")
     print("\n" + "=" * 50)
 
     # Create a companion agent

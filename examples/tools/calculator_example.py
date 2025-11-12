@@ -21,7 +21,7 @@ def main():
     Run the calculator tool example.
     """
 
-    print("FivcAdvisor - Calculator Tool Example")
+    print("FivcPlayground - Calculator Tool Example")
     print("\n" + "=" * 60)
 
     # Example 1: Evaluate mathematical expressions
@@ -80,7 +80,7 @@ def main():
     # Example 5: Using with agents
     print("\n5. Using Calculator with Agents")
     print("-" * 60)
-    print("  The calculator tool can be used with FivcAdvisor agents:")
+    print("  The calculator tool can be used with FivcPlayground agents:")
     print("  - Agents automatically select calculator for math queries")
     print("  - Supports both simple and complex expressions")
     print("  - Provides safe evaluation with limited namespace")
