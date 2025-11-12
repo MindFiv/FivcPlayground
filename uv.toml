@@ -1,0 +1,6 @@
+[[index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"  # 阿里云源
+default = true  # 设为默认源
+
+[[index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"  # 清华源（备用）

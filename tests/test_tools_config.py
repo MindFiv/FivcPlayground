@@ -7,7 +7,7 @@ import os
 import tempfile
 import pytest
 
-from fivcadvisor.tools.types.configs import ToolsConfig, ToolsConfigValue
+from fivcplayground.tools.types.configs import ToolsConfig, ToolsConfigValue
 
 
 class TestToolsConfig:
@@ -25,11 +25,10 @@ class TestToolsConfig:
     def test_init_with_yaml_file(self):
         """Test initialization with existing YAML file."""
         yaml_content = """
-mcpServers:
-  test_server:
-    command: python
-    args:
-      - test.py
+test_server:
+  command: python
+  args:
+    - test.py
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
@@ -39,26 +38,35 @@ mcpServers:
         try:
             config = ToolsConfig(config_path)
 
-            assert "mcpServers" in config._configs
-            assert "test_server" in config._configs["mcpServers"]
+            assert "test_server" in config._configs
+            assert isinstance(config._configs["test_server"], ToolsConfigValue)
         finally:
             os.unlink(config_path)
 
-    def test_get_clients(self):
-        """Test getting clients."""
+    def test_get_connection_from_config(self):
+        """Test getting connection from configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "test.yaml")
             config = ToolsConfig(config_path)
 
-            clients = config.get_clients()
+            # Add a valid configuration
+            config.set("test_server", {"command": "python", "args": ["test.py"]})
 
-            assert isinstance(clients, list)
+            # Should be able to get the config value
+            config_value = config.get("test_server")
+            assert config_value is not None
+
+            # Should have a connection property
+            connection = config_value.value
+            assert connection is not None
 
     def test_load_yaml_file_method(self):
         """Test _load_yaml_file method."""
         yaml_content = """
-test_key: test_value
-number: 42
+test_server:
+  command: python
+  args:
+    - test.py
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
@@ -69,8 +77,8 @@ number: 42
             config = ToolsConfig(config_path)
             result = config._load_yaml_file(config_path)
 
-            assert result["test_key"] == "test_value"
-            assert result["number"] == 42
+            assert "test_server" in result
+            assert result["test_server"]["command"] == "python"
         finally:
             os.unlink(config_path)
 
@@ -78,8 +86,10 @@ number: 42
         """Test _load_json_file method."""
         json_content = """
 {
-  "test_key": "test_value",
-  "number": 42
+  "test_server": {
+    "command": "python",
+    "args": ["test.py"]
+  }
 }
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -91,8 +101,8 @@ number: 42
             config = ToolsConfig(config_path)
             result = config._load_json_file(config_path)
 
-            assert result["test_key"] == "test_value"
-            assert result["number"] == 42
+            assert "test_server" in result
+            assert result["test_server"]["command"] == "python"
         finally:
             os.unlink(config_path)
 
@@ -138,8 +148,10 @@ number: 42
     def test_save_yaml_file(self):
         """Test saving configuration to YAML file."""
         yaml_content = """
-test_key: test_value
-number: 42
+test_server:
+  command: python
+  args:
+    - test.py
 """
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create initial config file
@@ -156,14 +168,16 @@ number: 42
             assert os.path.exists(save_path)
             with open(save_path, "r") as f:
                 content = f.read()
-                assert "test_key" in content or "test_value" in content
+                assert "test_server" in content or "python" in content
 
     def test_save_json_file(self):
         """Test saving configuration to JSON file."""
         json_content = """
 {
-  "test_key": "test_value",
-  "number": 42
+  "test_server": {
+    "command": "python",
+    "args": ["test.py"]
+  }
 }
 """
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -181,12 +195,15 @@ number: 42
             assert os.path.exists(save_path)
             with open(save_path, "r") as f:
                 content = f.read()
-                assert "test_key" in content or "test_value" in content
+                assert "test_server" in content or "python" in content
 
     def test_save_without_filename(self):
         """Test saving to default config file path."""
         yaml_content = """
-test_key: test_value
+test_server:
+  command: python
+  args:
+    - test.py
 """
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "test.yaml")
@@ -219,7 +236,7 @@ test_key: test_value
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "test.yaml")
             with open(config_path, "w") as f:
-                f.write("test: value")
+                f.write("test_server:\n  command: python\n  args:\n    - test.py")
 
             config = ToolsConfig(config_path)
             save_path = os.path.join(tmpdir, "saved.yaml")
@@ -232,7 +249,7 @@ test_key: test_value
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "test.json")
             with open(config_path, "w") as f:
-                f.write('{"test": "value"}')
+                f.write('{"test_server": {"command": "python", "args": ["test.py"]}}')
 
             config = ToolsConfig(config_path)
             save_path = os.path.join(tmpdir, "saved.json")
@@ -294,59 +311,60 @@ class TestToolsConfigValue:
 
     def test_validate_invalid_no_command_or_url(self):
         """Test validation fails when neither command nor url is provided."""
-        config = ToolsConfigValue({"args": ["test.py"]})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="must have 'command' or 'url' key"):
+            ToolsConfigValue({"args": ["test.py"]})
 
     def test_validate_invalid_empty_command(self):
         """Test validation fails with empty command."""
-        config = ToolsConfigValue({"command": ""})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'command' must be a non-empty string"):
+            ToolsConfigValue({"command": ""})
 
     def test_validate_invalid_command_not_string(self):
         """Test validation fails when command is not a string."""
-        config = ToolsConfigValue({"command": 123})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'command' must be a non-empty string"):
+            ToolsConfigValue({"command": 123})
 
     def test_validate_invalid_args_not_list(self):
         """Test validation fails when args is not a list."""
-        config = ToolsConfigValue({"command": "python", "args": "test.py"})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'args' must be a list"):
+            ToolsConfigValue({"command": "python", "args": "test.py"})
 
     def test_validate_invalid_env_not_dict(self):
         """Test validation fails when env is not a dict."""
-        config = ToolsConfigValue({"command": "python", "env": "VAR=value"})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'env' must be a dict"):
+            ToolsConfigValue({"command": "python", "env": "VAR=value"})
 
     def test_validate_invalid_empty_url(self):
         """Test validation fails with empty URL."""
-        config = ToolsConfigValue({"url": ""})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'url' must be a non-empty string"):
+            ToolsConfigValue({"url": ""})
 
     def test_validate_invalid_url_not_string(self):
         """Test validation fails when URL is not a string."""
-        config = ToolsConfigValue({"url": 123})
-        assert config.validate() is False
+        with pytest.raises(ValueError, match="'url' must be a non-empty string"):
+            ToolsConfigValue({"url": 123})
 
-    def test_get_client_command_based(self):
-        """Test get_client returns MCPClient for command-based config."""
+    def test_connection_command_based(self):
+        """Test connection property returns StdioConnection for command-based config."""
         config = ToolsConfigValue({"command": "python", "args": ["test.py"]})
-        client = config.get_client()
-        assert client is not None
+        connection = config.value
+        assert connection is not None
+        assert isinstance(connection, dict)
+        assert connection.get("transport") == "stdio"
+        assert connection.get("command") == "python"
+        assert connection.get("args") == ["test.py"]
 
-    def test_get_client_url_based(self):
-        """Test get_client returns MCPClient for URL-based config."""
+    def test_connection_url_based(self):
+        """Test connection property returns SSEConnection for URL-based config."""
         config = ToolsConfigValue({"url": "http://localhost:8000"})
-        client = config.get_client()
-        assert client is not None
+        connection = config.value
+        assert connection is not None
+        assert isinstance(connection, dict)
+        assert connection.get("transport") == "sse"
+        assert connection.get("url") == "http://localhost:8000"
 
-    def test_get_client_invalid_config(self):
-        """Test get_client returns None for invalid config."""
-        config = ToolsConfigValue({"args": ["test.py"]})
-        client = config.get_client()
-        assert client is None
-
-    def test_get_client_with_env_vars(self):
-        """Test get_client merges environment variables."""
+    def test_connection_with_env_vars(self):
+        """Test connection property includes environment variables."""
         config = ToolsConfigValue(
             {
                 "command": "python",
@@ -354,8 +372,10 @@ class TestToolsConfigValue:
                 "env": {"CUSTOM_VAR": "custom_value"},
             }
         )
-        client = config.get_client()
-        assert client is not None
+        connection = config.value
+        assert connection is not None
+        assert isinstance(connection, dict)
+        assert "CUSTOM_VAR" in connection.get("env", {})
 
 
 class TestToolsConfigSet:
@@ -391,9 +411,9 @@ class TestToolsConfigSet:
             config_path = os.path.join(tmpdir, "test.yaml")
             config = ToolsConfig(config_path)
 
-            result = config.set("invalid_server", {"args": ["test.py"]})
-            assert result is False
-            assert "invalid_server" not in config._configs
+            # Invalid config should raise ValueError
+            with pytest.raises(ValueError):
+                config.set("invalid_server", {"args": ["test.py"]})
 
 
 class TestToolsConfigLoad:

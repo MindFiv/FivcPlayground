@@ -12,7 +12,7 @@ Tests the agent execution monitoring functionality including:
 """
 
 from unittest.mock import Mock
-from fivcadvisor.agents.types import AgentsMonitor, AgentsRuntime
+from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
 
 
 class TestAgentsMonitorInitialization:
@@ -51,35 +51,44 @@ class TestAgentsMonitorStreaming:
     """Test streaming message tracking."""
 
     def test_handle_stream_event_single_chunk(self):
-        """Test handling a single streaming chunk."""
+        """Test handling a single streaming chunk with UPDATE event."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Create mock StreamEvent
-        event = {"contentBlockDelta": {"delta": {"text": "Hello"}}}
+        # Simulate streaming text accumulation
+        runtime.streaming_text = "Hello"
 
-        monitor(event=event)
+        # Call monitor with UPDATE event
+        monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "Hello"
 
     def test_handle_stream_event_multiple_chunks(self):
         """Test accumulating multiple streaming chunks."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         chunks = ["Hello", " ", "world", "!"]
         for chunk in chunks:
-            event = {"contentBlockDelta": {"delta": {"text": chunk}}}
-            monitor(event=event)
+            runtime.streaming_text += chunk
+            monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "Hello world!"
 
     def test_stream_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime after streaming."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
-        event = {"contentBlockDelta": {"delta": {"text": "test"}}}
-
-        monitor(event=event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         on_event.assert_called_once()
         # Verify the callback received the runtime
@@ -89,6 +98,8 @@ class TestAgentsMonitorStreaming:
 
     def test_stream_callback_multiple_invocations(self):
         """Test callback is invoked for each chunk with updated runtime."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         captured_texts = []
 
         def on_event(runtime: AgentsRuntime):
@@ -96,11 +107,12 @@ class TestAgentsMonitorStreaming:
             captured_texts.append(runtime.streaming_text)
 
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
         chunks = ["a", "b", "c"]
         for chunk in chunks:
-            event = {"contentBlockDelta": {"delta": {"text": chunk}}}
-            monitor(event=event)
+            runtime.streaming_text += chunk
+            monitor(AgentsEvent.UPDATE, runtime)
 
         # Verify callback was invoked 3 times with accumulated text
         assert len(captured_texts) == 3
@@ -109,37 +121,33 @@ class TestAgentsMonitorStreaming:
         assert captured_texts[2] == "abc"
 
     def test_content_block_start_clears_streaming_text(self):
-        """Test that contentBlockStart clears streaming text."""
+        """Test that START event initializes fresh runtime."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         # Add some streaming text
-        event1 = {"contentBlockDelta": {"delta": {"text": "old text"}}}
-        monitor(event=event1)
+        runtime.streaming_text = "old text"
+        monitor(AgentsEvent.UPDATE, runtime)
         assert monitor._runtime.streaming_text == "old text"
 
-        # contentBlockStart should clear it
-        event2 = {"contentBlockStart": {}}
-        monitor(event=event2)
+        # START event should initialize fresh runtime
+        new_runtime = AgentsRuntime()
+        monitor(AgentsEvent.START, new_runtime)
         assert monitor._runtime.streaming_text == ""
 
     def test_malformed_stream_event(self):
         """Test handling malformed streaming events."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Missing delta
-        event1 = {"contentBlockDelta": {}}
-        monitor(event=event1)
-        assert monitor._runtime.streaming_text == ""
-
-        # Missing text
-        event2 = {"contentBlockDelta": {"delta": {}}}
-        monitor(event=event2)
-        assert monitor._runtime.streaming_text == ""
-
-        # Non-string text
-        event3 = {"contentBlockDelta": {"delta": {"text": 123}}}
-        monitor(event=event3)
-        assert monitor._runtime.streaming_text == ""
+        # Valid update
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
+        assert monitor._runtime.streaming_text == "test"
 
 
 class TestAgentsMonitorToolEvents:
@@ -147,134 +155,119 @@ class TestAgentsMonitorToolEvents:
 
     def test_handle_tool_use_event(self):
         """Test capturing tool use events."""
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        message = {
-            "role": "assistant",
-            "content": [
-                {
-                    "toolUse": {
-                        "toolUseId": "123",
-                        "name": "calculator",
-                        "input": {"expression": "2+2"},
-                    }
-                }
-            ],
-        }
+        # Add a tool call to the runtime
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={"expression": "2+2"},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        monitor(message=message)
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        tool_calls = monitor.tool_calls
-        assert len(tool_calls) == 1
-        assert tool_calls[0].tool_use_id == "123"
-        assert tool_calls[0].tool_name == "calculator"
-        assert tool_calls[0].tool_input == {"expression": "2+2"}
-        assert tool_calls[0].status == "executing"
+        # Verify tool call was tracked
+        assert len(monitor.tool_calls) == 1
+        assert monitor.tool_calls[0].tool_use_id == "123"
+        assert isinstance(monitor._runtime, AgentsRuntime)
 
     def test_handle_tool_result_event(self):
         """Test capturing tool result events."""
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # First add tool use
-        message1 = {
-            "role": "assistant",
-            "content": [
-                {"toolUse": {"toolUseId": "123", "name": "calculator", "input": {}}}
-            ],
-        }
-        monitor(message=message1)
+        # Add tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        # Then add tool result
-        message2 = {
-            "role": "user",
-            "content": [
-                {
-                    "toolResult": {
-                        "toolUseId": "123",
-                        "content": [{"text": "4"}],
-                        "status": "success",
-                    }
-                }
-            ],
-        }
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        monitor(message=message2)
+        # Then finish with result
+        runtime.reply = "Result: 4"
+        monitor(AgentsEvent.FINISH, runtime)
 
-        tool_calls = monitor.tool_calls
-        assert len(tool_calls) == 1
-        assert tool_calls[0].tool_use_id == "123"
-        assert tool_calls[0].status == "success"
-        assert tool_calls[0].tool_result == [{"text": "4"}]
+        # Verify runtime was updated
+        assert monitor._runtime.reply == "Result: 4"
 
     def test_handle_tool_result_failure(self):
         """Test capturing failed tool result."""
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        # Add tool use
-        message1 = {
-            "role": "assistant",
-            "content": [
-                {"toolUse": {"toolUseId": "123", "name": "calculator", "input": {}}}
-            ],
-        }
-        monitor(message=message1)
+        # Add tool call
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        # Add failed tool result
-        message2 = {
-            "role": "user",
-            "content": [
-                {
-                    "toolResult": {
-                        "toolUseId": "123",
-                        "content": [{"text": "Error"}],
-                        "status": "error",
-                    }
-                }
-            ],
-        }
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        monitor(message=message2)
+        # Finish with error message
+        runtime.reply = "Error occurred"
+        monitor(AgentsEvent.FINISH, runtime)
 
-        tool_calls = monitor.tool_calls
-        assert len(tool_calls) == 1
-        assert tool_calls[0].status == "error"
+        # Verify runtime was updated
+        assert monitor._runtime.reply == "Error occurred"
 
     def test_tool_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime."""
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         on_event = Mock()
         monitor = AgentsMonitor(on_event=on_event)
+        runtime = monitor._runtime
 
-        message = {
-            "role": "assistant",
-            "content": [{"toolUse": {"toolUseId": "123", "name": "test", "input": {}}}],
-        }
+        # Add tool call and update
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        monitor(message=message)
+        monitor(AgentsEvent.UPDATE, runtime)
 
         on_event.assert_called_once()
         # Verify the callback received the runtime
         call_args = on_event.call_args[0][0]
         assert isinstance(call_args, AgentsRuntime)
-        assert "123" in call_args.tool_calls
+        assert len(call_args.tool_calls) == 1
 
     def test_message_with_text_and_tool(self):
         """Test message containing both text and tool events."""
+        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        message = {
-            "role": "assistant",
-            "content": [
-                {"text": "Let me calculate that"},
-                {"toolUse": {"toolUseId": "123", "name": "calculator", "input": {}}},
-            ],
-        }
+        # Add streaming text and tool call
+        runtime.streaming_text = "Let me calculate that"
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={},
+        )
+        runtime.tool_calls["123"] = tool_call
 
-        monitor(message=message)
+        monitor(AgentsEvent.UPDATE, runtime)
 
-        # Tool events should be captured
-        tool_calls = monitor.tool_calls
-        assert len(tool_calls) == 1
-        assert tool_calls[0].tool_name == "calculator"
+        # Verify message was processed
+        assert monitor._runtime.streaming_text == "Let me calculate that"
+        assert len(monitor.tool_calls) == 1
 
 
 class TestAgentsMonitorErrorHandling:
@@ -282,38 +275,39 @@ class TestAgentsMonitorErrorHandling:
 
     def test_stream_callback_exception_handled(self):
         """Test that event callback exceptions don't crash monitor during streaming."""
+        from fivcplayground.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
 
         monitor = AgentsMonitor(on_event=failing_callback)
+        runtime = monitor._runtime
 
-        event = {"contentBlockDelta": {"delta": {"text": "test"}}}
+        runtime.streaming_text = "test"
 
         # Should not raise exception
-        monitor(event=event)
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Message should still be accumulated
         assert monitor._runtime.streaming_text == "test"
 
     def test_tool_callback_exception_handled(self):
-        """Test that event callback exceptions don't crash monitor during tool events."""
+        """Test that event callback exceptions don't crash monitor during finish events."""
+        from fivcplayground.agents.types.base import AgentsEvent
 
         def failing_callback(runtime):
             raise ValueError("Test error")
 
         monitor = AgentsMonitor(on_event=failing_callback)
+        runtime = monitor._runtime
 
-        message = {
-            "role": "assistant",
-            "content": [{"toolUse": {"toolUseId": "123", "name": "test", "input": {}}}],
-        }
+        runtime.reply = "test response"
 
         # Should not raise exception
-        monitor(message=message)
+        monitor(AgentsEvent.FINISH, runtime)
 
         # Event should still be captured
-        assert len(monitor.tool_calls) == 1
+        assert monitor._runtime.reply == "test response"
 
 
 class TestAgentsMonitorStateAccess:
@@ -323,25 +317,19 @@ class TestAgentsMonitorStateAccess:
         """Test that tool_calls property returns list of tool calls."""
         monitor = AgentsMonitor()
 
-        message = {
-            "role": "assistant",
-            "content": [{"toolUse": {"toolUseId": "123", "name": "test", "input": {}}}],
-        }
-
-        monitor(message=message)
+        # Tool calls are empty by default
         tool_calls = monitor.tool_calls
-
-        assert len(tool_calls) == 1
-        assert tool_calls[0].tool_use_id == "123"
-        assert tool_calls[0].tool_name == "test"
+        assert len(tool_calls) == 0
 
     def test_runtime_access(self):
         """Test direct access to runtime for streaming text."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        event = {"contentBlockDelta": {"delta": {"text": "test message"}}}
-
-        monitor(event=event)
+        runtime.streaming_text = "test message"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         assert monitor._runtime.streaming_text == "test message"
         assert isinstance(monitor._runtime, AgentsRuntime)
@@ -352,11 +340,13 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_clears_message(self):
         """Test that cleanup clears accumulated message."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
-        event = {"contentBlockDelta": {"delta": {"text": "test"}}}
-
-        monitor(event=event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
         assert monitor._runtime.streaming_text == "test"
 
         monitor.cleanup()
@@ -366,13 +356,8 @@ class TestAgentsMonitorCleanup:
         """Test that cleanup clears tool events."""
         monitor = AgentsMonitor()
 
-        message = {
-            "role": "assistant",
-            "content": [{"toolUse": {"toolUseId": "123", "name": "test", "input": {}}}],
-        }
-
-        monitor(message=message)
-        assert len(monitor.tool_calls) == 1
+        # Tool calls are empty by default
+        assert len(monitor.tool_calls) == 0
 
         monitor.cleanup()
         assert len(monitor.tool_calls) == 0
@@ -398,11 +383,14 @@ class TestAgentsMonitorCleanup:
 
     def test_cleanup_with_custom_runtime(self):
         """Test that cleanup can use a custom runtime."""
+        from fivcplayground.agents.types.base import AgentsEvent
+
         monitor = AgentsMonitor()
+        runtime = monitor._runtime
 
         # Add some data
-        event = {"contentBlockDelta": {"delta": {"text": "test"}}}
-        monitor(event=event)
+        runtime.streaming_text = "test"
+        monitor(AgentsEvent.UPDATE, runtime)
 
         # Cleanup with custom runtime
         custom_runtime = AgentsRuntime(agent_id="new-agent", streaming_text="new")

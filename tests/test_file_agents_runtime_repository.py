@@ -6,14 +6,14 @@ Tests for FileAgentsRuntimeRepository functionality.
 import tempfile
 from datetime import datetime
 
-from fivcadvisor.agents.types import (
+from fivcplayground.agents.types import (
     AgentsRuntime,
     AgentsRuntimeMeta,
     AgentsRuntimeToolCall,
     AgentsStatus,
 )
-from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
-from fivcadvisor.utils import OutputDir
+from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+from fivcplayground.utils import OutputDir
 
 
 class TestFileAgentsRuntimeRepository:

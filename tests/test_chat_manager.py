@@ -15,10 +15,11 @@ Tests the chat utility for handling conversation state and agent execution:
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from fivcadvisor.app.utils import Chat, ChatManager
-from fivcadvisor.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
-from fivcadvisor.agents.types.repositories import AgentsRuntimeRepository
-from fivcadvisor import tools
+from langchain_core.messages import AIMessage
+from fivcplayground.app.utils import Chat, ChatManager
+from fivcplayground.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
+from fivcplayground.agents.types.repositories import AgentsRuntimeRepository
+from fivcplayground import tools
 
 
 class TestChatInitialization:
@@ -196,7 +197,7 @@ class TestChatHistory:
 
     def test_list_history_loads_tool_calls_for_completed_runtimes(self):
         """Test list_history loads and attaches tool calls to completed runtimes."""
-        from fivcadvisor.agents.types import AgentsRuntimeToolCall
+        from fivcplayground.agents.types import AgentsRuntimeToolCall
         from datetime import datetime
 
         mock_retriever = Mock(spec=tools.ToolsRetriever)
@@ -262,13 +263,14 @@ class TestChatAsk:
     async def test_ask_basic_execution(self):
         """Test basic ask execution flow."""
         mock_retriever = Mock(spec=tools.ToolsRetriever)
+        mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
         mock_repo = Mock(spec=AgentsRuntimeRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tools_retriever=mock_retriever)
 
         # Mock the agent runtime
         mock_agent = AsyncMock()
-        mock_agent.invoke_async = AsyncMock(return_value="test response")
+        mock_agent.run_async = AsyncMock(return_value="test response")
         mock_agent.name = "TestAgent"
         mock_agent.system_prompt = "Test prompt"
         mock_agent.agent_id = "generated-agent-id"
@@ -276,13 +278,23 @@ class TestChatAsk:
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
         mock_repo.update_agent = Mock()
 
-        # Mock run_briefing_task to avoid actual agent creation
+        # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-        ) as mock_briefing:
-            mock_briefing.return_value = "Agent description"
+            "fivcplayground.app.utils.chats.create_briefing_task"
+        ) as mock_briefing_task, patch(
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
+        ) as mock_agent_creator_getter:
+            # Mock the task to return a mock with run_async method that returns BaseMessage
+            mock_task = Mock()
+            mock_desc_msg = AIMessage(content="Agent description")
+            mock_task.run_async = AsyncMock(return_value=mock_desc_msg)
+            mock_briefing_task.return_value = mock_task
 
-            result = await manager.ask("test query")
+            # Mock the agent creator function
+            mock_agent_creator = Mock(return_value=mock_agent)
+            mock_agent_creator_getter.return_value = mock_agent_creator
+
+            result = await manager.ask_async("test query")
 
         assert result == "test response"
         assert manager.running is False  # Should be reset after execution
@@ -296,7 +308,9 @@ class TestChatAsk:
     async def test_ask_with_existing_metadata(self):
         """Test ask execution with existing metadata doesn't recreate it."""
         mock_retriever = Mock(spec=tools.ToolsRetriever)
+        mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
         mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo.list_agent_runtimes = Mock(return_value=[])  # Return empty list
         meta = AgentsRuntimeMeta(
             agent_id="existing-agent",
             agent_name="Existing Agent",
@@ -311,17 +325,26 @@ class TestChatAsk:
 
         # Mock the agent runtime
         mock_agent = AsyncMock()
-        mock_agent.invoke_async = AsyncMock(return_value="test response")
+        mock_agent.run_async = AsyncMock(return_value="test response")
 
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
 
-        # Mock run_briefing_task to avoid actual agent creation
+        # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-        ) as mock_briefing:
-            mock_briefing.return_value = "Agent description"
+            "fivcplayground.app.utils.chats.create_briefing_task"
+        ) as mock_briefing_task, patch(
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
+        ) as mock_agent_creator_getter:
+            # Mock the task to return a mock with run_async method
+            mock_task = Mock()
+            mock_task.run_async = AsyncMock(return_value="Agent description")
+            mock_briefing_task.return_value = mock_task
 
-            result = await manager.ask("test query")
+            # Mock the agent creator function
+            mock_agent_creator = Mock(return_value=mock_agent)
+            mock_agent_creator_getter.return_value = mock_agent_creator
+
+            result = await manager.ask_async("test query")
 
         assert result == "test response"
         # Should NOT save agent metadata (already exists)
@@ -333,26 +356,38 @@ class TestChatAsk:
     async def test_ask_with_callback(self):
         """Test ask execution with on_event callback."""
         mock_retriever = Mock(spec=tools.ToolsRetriever)
+        mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
         mock_repo = Mock(spec=AgentsRuntimeRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tools_retriever=mock_retriever)
 
         mock_callback = Mock()
         mock_agent = AsyncMock()
-        mock_agent.invoke_async = AsyncMock(return_value="response")
+        mock_agent.run_async = AsyncMock(return_value="response")
         mock_agent.name = "TestAgent"
         mock_agent.system_prompt = "Test prompt"
         mock_agent.agent_id = "test-agent"
 
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
+        mock_repo.update_agent = Mock()
 
-        # Mock run_briefing_task to avoid actual agent creation
+        # Mock create_briefing_task and agent creator
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-        ) as mock_briefing:
-            mock_briefing.return_value = "Agent description"
+            "fivcplayground.app.utils.chats.create_briefing_task"
+        ) as mock_briefing_task, patch(
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
+        ) as mock_agent_creator_getter:
+            # Mock the task to return a mock with run_async method that returns BaseMessage
+            mock_task = Mock()
+            mock_desc_msg = AIMessage(content="Agent description")
+            mock_task.run_async = AsyncMock(return_value=mock_desc_msg)
+            mock_briefing_task.return_value = mock_task
 
-            await manager.ask("query", on_event=mock_callback)
+            # Mock the agent creator function
+            mock_agent_creator = Mock(return_value=mock_agent)
+            mock_agent_creator_getter.return_value = mock_agent_creator
+
+            await manager.ask_async("query", on_event=mock_callback)
 
         # Verify callback was passed to create_agent_runtime
         call_kwargs = manager.monitor_manager.create_agent_runtime.call_args[1]
@@ -366,7 +401,7 @@ class TestChatAsk:
         manager.running = True
 
         with pytest.raises(ValueError) as exc_info:
-            await manager.ask("test query")
+            await manager.ask_async("test query")
 
         assert "already processing" in str(exc_info.value).lower()
 
@@ -387,7 +422,7 @@ class TestChatAsk:
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
 
         with pytest.raises(Exception):
-            await manager.ask("query")
+            await manager.ask_async("query")
 
         # Running should be reset even after exception
         assert manager.running is False
@@ -513,6 +548,92 @@ class TestChatManager:
         assert chat1 is not chat2
         assert chat1.runtime_repo is chat2.runtime_repo  # Shared repo
         assert chat1.tools_retriever is chat2.tools_retriever  # Shared tools
+
+
+class TestAgentExecutionMethodRegression:
+    """Regression tests for agent execution method.
+
+    These tests ensure that the agent execution uses the correct method (run_async)
+    and not invoke_async, which was causing AttributeError in the Streamlit app.
+
+    Issue: agent.invoke_async() was being called but agents have run_async() method
+    """
+
+    @pytest.mark.asyncio
+    async def test_agent_execution_uses_run_async_not_invoke_async(self):
+        """Regression test: Verify agent execution uses run_async method."""
+        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_retriever = Mock(spec=tools.ToolsRetriever)
+        mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
+
+        manager = Chat(
+            agent_runtime_repo=mock_repo,
+            tools_retriever=mock_retriever,
+        )
+
+        # Create a mock agent with run_async method (correct)
+        mock_agent = AsyncMock()
+        mock_agent.run_async = AsyncMock(return_value="agent response")
+        mock_agent.name = "TestAgent"
+        mock_agent.system_prompt = "Test prompt"
+        mock_agent.agent_id = "test-agent-id"
+
+        manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
+        mock_repo.update_agent = Mock()
+
+        # Mock create_briefing_task and agent creator
+        with patch(
+            "fivcplayground.app.utils.chats.create_briefing_task"
+        ) as mock_briefing_task, patch(
+            "fivcplayground.app.utils.chats.agents.default_retriever.get"
+        ) as mock_agent_creator_getter:
+            mock_task = Mock()
+            mock_desc_msg = AIMessage(content="Agent description")
+            mock_task.run_async = AsyncMock(return_value=mock_desc_msg)
+            mock_briefing_task.return_value = mock_task
+
+            # Mock the agent creator function
+            mock_agent_creator = Mock(return_value=mock_agent)
+            mock_agent_creator_getter.return_value = mock_agent_creator
+
+            # This should work without AttributeError
+            result = await manager.ask_async("test query")
+
+        # Verify run_async was called (not invoke_async)
+        mock_agent.run_async.assert_called_once_with("test query")
+        assert result == "agent response"
+
+    @pytest.mark.asyncio
+    async def test_agent_without_run_async_raises_error(self):
+        """Regression test: Verify error if agent doesn't have run_async method."""
+        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_retriever = Mock(spec=tools.ToolsRetriever)
+
+        manager = Chat(
+            agent_runtime_repo=mock_repo,
+            tools_retriever=mock_retriever,
+        )
+
+        # Create a mock agent WITHOUT run_async method (incorrect)
+        mock_agent = Mock()
+        # Don't set run_async - this should cause an error
+        mock_agent.name = "TestAgent"
+        mock_agent.system_prompt = "Test prompt"
+        mock_agent.agent_id = "test-agent-id"
+
+        manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
+
+        # Mock create_briefing_task
+        with patch(
+            "fivcplayground.app.utils.chats.create_briefing_task"
+        ) as mock_briefing_task:
+            mock_task = Mock()
+            mock_task.run_async = AsyncMock(return_value="Agent description")
+            mock_briefing_task.return_value = mock_task
+
+            # This should raise an error because run_async is not available
+            with pytest.raises((AttributeError, TypeError)):
+                await manager.ask_async("test query")
 
 
 if __name__ == "__main__":

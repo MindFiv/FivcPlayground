@@ -1,55 +1,71 @@
+"""
+Agent Example - Companion Agent Usage
+
+This example demonstrates how to use FivcPlayground agents with LangChain.
+It shows:
+1. Creating a companion agent
+2. Invoking the agent with queries
+3. Handling agent responses
+"""
+
 import asyncio
-# import json
-from typing import Any
-
 import dotenv
-from strands.hooks import HookRegistry, BeforeInvocationEvent, AfterInvocationEvent, MessageAddedEvent
-# from strands.handlers.callback_handler import PrintingCallbackHandler
+import nest_asyncio
 
-from fivcadvisor import agents
+from fivcplayground import agents
 
 dotenv.load_dotenv()
-
-
-class LoggingHook(object):
-    def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
-        registry.add_callback(BeforeInvocationEvent, self.log_start)
-        registry.add_callback(AfterInvocationEvent, self.log_end)
-        registry.add_callback(MessageAddedEvent, self.log_stream)
-
-    def log_start(self, event: BeforeInvocationEvent) -> None:
-        print(f"Request started for agent: {event.agent}")
-
-    def log_stream(self, event: MessageAddedEvent) -> None:
-        print(f"Message added: {event.message}")
-
-    def log_end(self, event: AfterInvocationEvent) -> None:
-        print(f"Request completed for agent: {event.agent}")
-
-
-def debugger_callback_handler(**kwargs):
-    # Print the values in kwargs so that we can see everything
-    if "data" in kwargs:
-        return
-
-    print(kwargs)
+nest_asyncio.apply()
 
 
 async def main():
     """
-    Run agent example
+    Run agent example demonstrating companion agent usage.
     """
 
-    print("FivcAdvisor - Generic Agent Example")
+    print("FivcPlayground - Companion Agent Example")
     print("\n" + "=" * 50)
 
-    agent = agents.create_companion_agent(callback_handler=debugger_callback_handler)
-    print(agent.agent_id)
-    print(agent.name)
-    # agent.hooks.add_hook(LoggingHook())
-    result = agent("What time is it now?")
+    # Create a companion agent
+    from fivcplayground.agents.types import AgentsMonitor
+    agent_monitor = AgentsMonitor()
+    agent = agents.create_companion_agent(
+        callback_handler=agent_monitor)
+    print(f"Agent ID: {agent.id}")
+    print(f"Agent Name: {agent.name}")
+    print()
 
-    print(f'Result: {str(result)}')
+    # Example 1: Synchronous invocation
+    print("Example 1: Synchronous Invocation")
+    print("-" * 50)
+    query = "What time is it now?"
+    print(f"Query: {query}")
+    result = agent.run(query=query)
+    print(f"Result: {result}")
+    print()
+
+    # Example 2: Asynchronous invocation
+    print("Example 2: Asynchronous Invocation")
+    print("-" * 50)
+    query = "Tell me a fun fact about AI"
+    print(f"Query: {query}")
+    result = await agent.run_async(query=query)
+    print(f"Result: {result}")
+    print()
+
+    # Example 3: Multiple queries
+    print("Example 3: Multiple Queries")
+    print("-" * 50)
+    queries = [
+        "What is machine learning?",
+        "Explain neural networks",
+        "What is deep learning?",
+    ]
+
+    for query in queries:
+        print(f"Query: {query}")
+        result = agent(query=query)
+        print(f"Result: {result}\n")
 
 
 if __name__ == '__main__':

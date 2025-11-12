@@ -7,10 +7,12 @@ Tests the agent runtime data models including:
 - Status tracking
 - Tool call tracking
 - Timing calculations
+- BaseMessage serialization/deserialization (regression tests)
 """
 
+import json
 from datetime import datetime
-from fivcadvisor.agents.types import (
+from fivcplayground.agents.types import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
@@ -315,3 +317,192 @@ class TestAgentsStatus:
         runtime.status = AgentsStatus.EXECUTING
         assert runtime.status != AgentsStatus.PENDING
         assert runtime.status == AgentsStatus.EXECUTING
+
+
+class TestAgentsRuntimeMessageSerialization:
+    """Regression tests for BaseMessage serialization/deserialization.
+
+    These tests ensure that BaseMessage objects (AIMessage, HumanMessage, etc.)
+    are properly serialized to JSON and deserialized back without losing type
+    information or causing TypeErrors when passed to LangChain APIs.
+
+    This is a regression test for the issue where deserialized messages were
+    not recognized as valid BaseMessage types by langchain_openai.
+    """
+
+    def test_runtime_with_ai_message_reply(self):
+        """Test AgentsRuntime with AgentsContent reply."""
+        from fivcplayground.agents.types.base import AgentsContent
+
+        content = AgentsContent(text="This is a test response")
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            reply=content,
+        )
+
+        assert runtime.reply is not None
+        assert isinstance(runtime.reply, AgentsContent)
+        assert runtime.reply.text == "This is a test response"
+
+    def test_runtime_with_human_message_reply(self):
+        """Test AgentsRuntime with AgentsContent reply."""
+        from fivcplayground.agents.types.base import AgentsContent
+
+        content = AgentsContent(text="This is a user message")
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            reply=content,
+        )
+
+        assert runtime.reply is not None
+        assert isinstance(runtime.reply, AgentsContent)
+        assert runtime.reply.text == "This is a user message"
+
+    def test_runtime_json_serialization_with_ai_message(self):
+        """Test JSON serialization of AgentsRuntime with AgentsContent."""
+        from fivcplayground.agents.types.base import AgentsContent
+
+        content = AgentsContent(text="Test response with special chars: 中文 🎉")
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            query=AgentsContent(text="What is 2+2?"),
+            reply=content,
+            status=AgentsStatus.COMPLETED,
+        )
+
+        # Serialize to JSON
+        json_data = runtime.model_dump(mode="json")
+
+        # Verify reply is serialized as dict
+        assert isinstance(json_data["reply"], dict)
+        assert json_data["reply"]["text"] == "Test response with special chars: 中文 🎉"
+
+        # Verify it can be converted to JSON string
+        json_str = json.dumps(json_data)
+        assert isinstance(json_str, str)
+        assert "Test response with special chars" in json_str
+
+    def test_runtime_json_deserialization_with_ai_message(self):
+        """Test JSON deserialization of AgentsRuntime with AgentsContent."""
+        from fivcplayground.agents.types.base import AgentsContent
+
+        original_content = AgentsContent(text="Test response")
+        original_runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            query=AgentsContent(text="What is 2+2?"),
+            reply=original_content,
+            status=AgentsStatus.COMPLETED,
+        )
+
+        # Serialize to JSON dict
+        json_data = original_runtime.model_dump(mode="json")
+
+        # Deserialize back
+        restored_runtime = AgentsRuntime(**json_data)
+
+        # Verify the content is properly restored
+        assert restored_runtime.reply is not None
+        assert isinstance(restored_runtime.reply, AgentsContent)
+        assert restored_runtime.reply.text == "Test response"
+        assert restored_runtime.agent_id == "agent-123"
+        assert restored_runtime.status == AgentsStatus.COMPLETED
+
+    def test_runtime_roundtrip_serialization(self):
+        """Test complete roundtrip: object -> JSON -> object."""
+        from fivcplayground.agents.types.base import AgentsContent
+
+        content = AgentsContent(
+            text="现在是2025年10月29日凌晨0点10分，差不多该休息啦～今天过得怎么样呀？（*^▽^*）"
+        )
+        original_runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            query=AgentsContent(text="How are you?"),
+            reply=content,
+            status=AgentsStatus.COMPLETED,
+            started_at=datetime(2025, 10, 29, 0, 0, 0),
+            completed_at=datetime(2025, 10, 29, 0, 10, 0),
+        )
+
+        # Serialize to JSON string
+        json_str = json.dumps(original_runtime.model_dump(mode="json"))
+
+        # Deserialize from JSON string
+        json_data = json.loads(json_str)
+        restored_runtime = AgentsRuntime(**json_data)
+
+        # Verify all fields are preserved
+        assert restored_runtime.agent_id == original_runtime.agent_id
+        assert restored_runtime.agent_name == original_runtime.agent_name
+        assert restored_runtime.query == original_runtime.query
+        assert restored_runtime.status == original_runtime.status
+        assert restored_runtime.reply is not None
+        assert isinstance(restored_runtime.reply, AgentsContent)
+        assert restored_runtime.reply.text == content.text
+
+    def test_runtime_with_none_reply(self):
+        """Test AgentsRuntime with None reply."""
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+            reply=None,
+        )
+
+        assert runtime.reply is None
+
+        # Serialize and deserialize
+        json_data = runtime.model_dump(mode="json")
+        restored_runtime = AgentsRuntime(**json_data)
+        assert restored_runtime.reply is None
+
+    def test_runtime_reply_is_valid_base_message(self):
+        """Test that deserialized reply is a valid AgentsContent.
+
+        This is the core regression test - the deserialized content should be
+        properly restored as AgentsContent.
+        """
+        from fivcplayground.agents.types.base import AgentsContent
+
+        content = AgentsContent(text="Test response")
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            reply=content,
+        )
+
+        # Serialize and deserialize
+        json_data = runtime.model_dump(mode="json")
+        restored_runtime = AgentsRuntime(**json_data)
+
+        # The restored content should be a proper AgentsContent instance
+        assert restored_runtime.reply is not None
+        assert isinstance(restored_runtime.reply, AgentsContent)
+
+        # It should have the text attribute
+        assert hasattr(restored_runtime.reply, "text")
+        assert restored_runtime.reply.text == "Test response"
+
+    def test_runtime_with_message_dict_input(self):
+        """Test that AgentsRuntime can accept dict representation of AgentsContent.
+
+        This tests the field_validator that converts dicts to AgentsContent objects.
+        """
+        from fivcplayground.agents.types.base import AgentsContent
+
+        # Use the format that AgentsContent produces
+        content_dict = {
+            "text": "Test response",
+        }
+
+        runtime = AgentsRuntime(
+            agent_id="agent-123",
+            reply=content_dict,
+        )
+
+        # Should be converted to AgentsContent
+        assert runtime.reply is not None
+        assert isinstance(runtime.reply, AgentsContent)
+        assert runtime.reply.text == "Test response"

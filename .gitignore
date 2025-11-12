@@ -28,5 +28,5 @@ tmp/
 temp/
 .tmp/
 .coverage
-.fivcadvisor/
+.fivcplayground/
 .spec-workflow/

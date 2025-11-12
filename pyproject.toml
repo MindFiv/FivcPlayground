@@ -3,43 +3,57 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fivcadvisor"
+name = "fivcplayground"
 version = "0.1.0"
-description = "Pattern-driven CrewAI flows and tools"
+description = "Personal Simple Generic Agents"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Charlie" }]
+authors = [
+    { name = "Charlie ZHANG", email = "sunnypig2002@gmail.com" }
+]
 dependencies = [
-  "typer>=0.12.3",
-  "rich>=13.7.1",
-  "PyYAML>=6.0.1",
-  "python-dotenv>=1.0.1",
-  "pydantic>=2.7.0",
-  "httpx>=0.28.1",
-  "streamlit>=1.49.1",
-  "audioread>=3.0.1",
-  "strands-agents>=1.9.1",
-  "strands-agents-tools>=0.2.8",
-  "openai>=1.109.1",
-  "langchain-text-splitters>=0.3.11",
-  "chromadb>=1.1.0",
+    "typer>=0.12.3",
+    "rich>=13.7.1",
+    "PyYAML>=6.0.1",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.7.0",
+    "streamlit>=1.49.1",
+    "chromadb>=1.1.0",
+    # LangChain 1.0 migration dependencies
+    "langchain>=1.0.0",
+    "langchain-core>=1.0.0",
+    "langchain-community>=0.4.0",
+    "langchain-openai>=1.0.0",
+    "langgraph>=1.0.0",
+    "langchain-mcp-adapters>=0.1.11",
+    "langchain-ollama>=1.0.0",
+    "nest-asyncio>=1.6.0",
+    # Strands framework dependencies (optional)
+    "strands-agents>=1.14.0",
+    # Text splitters for document loading
+    "langchain-text-splitters>=0.3.11",
+    # Transitive dependencies (required by other packages)
+    "httpx>=0.28.1", # Required by: chromadb, langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
+    "openai>=1.109.1", # Required by: langchain-openai
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.2.0",
-  "pytest-asyncio>=0.21.0",
-  "pytest-cov>=4.1.0",
-  "ruff>=0.4.0,<0.6"
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=5.1.0",
+    "ruff>=0.4.0,<0.6"
 ]
 
 [project.scripts]
-fivcadvisor = "fivcadvisor.cli:main"
+fivcplayground = "fivcplayground.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [dependency-groups]
+
 dev = [
     "pytest>=8.4.1",
 ]
@@ -51,7 +65,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
     "ignore::RuntimeWarning",
-
     # Keep important warnings but suppress noisy third-party ones
     "default::UserWarning",
     "default::FutureWarning",
@@ -68,7 +81,7 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
-    "-p", "no:warnings",  # Disable warnings plugin
+    "-p", "no:warnings", # Disable warnings plugin
 ]
 
 # Markers for test categorization

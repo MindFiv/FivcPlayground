@@ -1,4 +1,4 @@
-# 🚀 FivcAdvisor System Design
+# 🚀 FivcPlayground System Design
 
 > *An intelligent agent ecosystem built on Strands for autonomous tool generation, task assessment, and dynamic agent orchestration*
 
@@ -17,7 +17,7 @@
 
 ## 🎯 Overview
 
-FivcAdvisor is a multi-agent system built on the **Strands framework** that provides intelligent task assessment, dynamic tool retrieval, and flexible agent orchestration. The system uses specialized agents to handle different aspects of task execution, from initial assessment to tool generation and performance evaluation.
+FivcPlayground is a multi-agent system built on the **Strands framework** that provides intelligent task assessment, dynamic tool retrieval, and flexible agent orchestration. The system uses specialized agents to handle different aspects of task execution, from initial assessment to tool generation and performance evaluation.
 
 ### Technology Stack
 
@@ -31,7 +31,7 @@ FivcAdvisor is a multi-agent system built on the **Strands framework** that prov
 
 ## 🏗️ Architecture
 
-FivcAdvisor follows a modular architecture with clear separation of concerns:
+FivcPlayground follows a modular architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -63,19 +63,19 @@ FivcAdvisor follows a modular architecture with clear separation of concerns:
 
 | Component | Description | Location |
 |-----------|-------------|----------|
-| **Agents** | Specialized agents for different tasks | `src/fivcadvisor/agents/` |
-| **Agent Types** | Runtime models, repositories, monitors | `src/fivcadvisor/agents/types/` |
-| **Tools** | Tool management and retrieval system | `src/fivcadvisor/tools/` |
-| **Models** | LLM model factories and configuration | `src/fivcadvisor/models.py` |
-| **Tasks** | Task execution and orchestration | `src/fivcadvisor/tasks/` |
-| **App** | Streamlit web interface | `src/fivcadvisor/app/` |
-| **Embeddings** | Vector database for semantic search | `src/fivcadvisor/embeddings/` |
-| **Settings** | Configuration management | `src/fivcadvisor/settings/` |
-| **Utils** | Utility functions and helpers | `src/fivcadvisor/utils/` |
+| **Agents** | Specialized agents for different tasks | `src/fivcplayground/agents/` |
+| **Agent Types** | Runtime models, repositories, monitors | `src/fivcplayground/agents/types/` |
+| **Tools** | Tool management and retrieval system | `src/fivcplayground/tools/` |
+| **Models** | LLM model factories and providers | `src/fivcplayground/models/` |
+| **Tasks** | Task execution and orchestration | `src/fivcplayground/tasks/` |
+| **App** | Streamlit web interface | `src/fivcplayground/app/` |
+| **Embeddings** | Vector database for semantic search | `src/fivcplayground/embeddings/` |
+| **Settings** | Configuration management | `src/fivcplayground/settings/` |
+| **Utils** | Utility functions and helpers | `src/fivcplayground/utils/` |
 
 ### Agent Runtime System
 
-FivcAdvisor includes a comprehensive runtime tracking system for agent execution:
+FivcPlayground includes a comprehensive runtime tracking system for agent execution:
 
 **Core Models:**
 - `AgentsRuntimeMeta`: Agent configuration and metadata
@@ -86,12 +86,14 @@ FivcAdvisor includes a comprehensive runtime tracking system for agent execution
 **Repository Pattern:**
 - `AgentsRuntimeRepository`: Abstract interface for persistence
 - `FileAgentsRuntimeRepository`: File-based JSON storage implementation
-- Hierarchical directory structure for organized data storage
+- `SqliteAgentsRuntimeRepository`: SQLite database-backed implementation
+- Hierarchical directory structure for organized data storage (file-based)
+- Relational database schema with foreign keys and indexes (SQLite)
 - Automatic persistence of all agent interactions
 
 **Storage Structure:**
 ```
-.fivcadvisor/agents/
+.fivcplayground/agents/
 └── agent_<agent_id>/
     ├── agent.json                    # Agent metadata
     └── run_<timestamp>/
@@ -104,7 +106,7 @@ FivcAdvisor includes a comprehensive runtime tracking system for agent execution
 
 ## 🤖 Agent System
 
-FivcAdvisor provides a flexible agent system with specialized agents for different purposes:
+FivcPlayground provides a flexible agent system with specialized agents for different purposes:
 
 ### Agent Types
 
@@ -175,7 +177,7 @@ FivcAdvisor provides a flexible agent system with specialized agents for differe
 Agents are created using factory functions with the `@agent_creator` decorator:
 
 ```python
-from fivcadvisor import agents
+from fivcplayground import agents
 
 # Create a generic agent
 agent = agents.create_default_agent()
@@ -197,7 +199,7 @@ custom_agent = agents.create_default_agent(
 
 ### Tool System
 
-FivcAdvisor uses a flexible tool management system:
+FivcPlayground uses a flexible tool management system:
 
 **Built-in Tools:**
 - `calculator` - Mathematical calculations
@@ -214,13 +216,10 @@ FivcAdvisor uses a flexible tool management system:
 The `ToolsConfig` class manages MCP server configurations with automatic validation:
 
 ```python
-from fivcadvisor.tools.types.configs import ToolsConfig, ToolsConfigValue
+from fivcplayground.tools.types.configs import ToolsConfig, ToolsConfigValue
 
 # Load configuration from YAML or JSON
 config = ToolsConfig("mcp.yaml")
-
-# Get MCP clients
-clients = config.get_clients()
 
 # Check for errors during loading
 errors = config.get_errors()
@@ -243,6 +242,9 @@ servers = config.list()
 
 # Get a specific server configuration
 server_config = config.get("my_server")
+
+# Get connection object for a server
+connection = server_config.value
 ```
 
 **Configuration Value Validation:**
@@ -250,25 +252,29 @@ server_config = config.get("my_server")
 Each MCP server configuration is a `ToolsConfigValue` that supports two types:
 
 1. **Command-based** (stdio):
+
 ```python
 config = ToolsConfigValue({
     "command": "python",
     "args": ["server.py"],
     "env": {"VAR": "value"}  # optional
 })
+connection = config.value  # Returns StdioConnection
 ```
 
 2. **URL-based** (SSE):
+
 ```python
 config = ToolsConfigValue({
     "url": "http://localhost:8000"
 })
+connection = config.value  # Returns SSEConnection
 ```
 
 **API Details:**
 
-- `validate()` - Validates configuration structure and required fields
-- `get_client()` - Creates and returns an MCPClient instance
+- `validate(raise_exception=False)` - Validates configuration structure and required fields
+- `connection` - Property that returns a Connection object (StdioConnection or SSEConnection)
 - `set(name, config)` - Adds/updates a configuration (accepts dict or ToolsConfigValue)
 - `get(name)` - Retrieves a specific configuration
 - `delete(name)` - Removes a configuration
@@ -285,7 +291,7 @@ Supported configuration formats:
 The `ToolsRetriever` provides semantic search over available tools:
 
 ```python
-from fivcadvisor import tools
+from fivcplayground import tools
 
 # Get all tools
 all_tools = tools.default_retriever.get_all()
@@ -293,9 +299,23 @@ all_tools = tools.default_retriever.get_all()
 # Get specific tools
 selected_tools = tools.default_retriever.get_batch(["calculator", "python_repl"])
 
-# Search for relevant tools
+# Search for relevant tools (returns bundles as-is)
 relevant_tools = tools.default_retriever.retrieve("I need to calculate something")
+
+# Search and expand bundles into individual tools
+expanded_tools = tools.default_retriever.retrieve("I need to calculate something", expand=True)
 ```
+
+#### Tool Bundles
+
+Tools from MCP servers are automatically organized into **bundles** by server. When retrieving tools:
+
+- **`expand=False` (default)**: Returns `ToolsBundle` objects that group related tools
+- **`expand=True`**: Expands bundles and returns individual tools
+
+This is useful for:
+- **Bundle mode**: When you want to treat a server's tools as a cohesive unit
+- **Expanded mode**: When you need individual tools for fine-grained control
 
 ---
 
@@ -408,7 +428,7 @@ relevant_tools = tools.default_retriever.retrieve("I need to calculate something
 
 ### Multi-Page Structure
 
-FivcAdvisor's web interface uses Streamlit's navigation system for a modern multi-page experience:
+FivcPlayground's web interface uses Streamlit's navigation system for a modern multi-page experience:
 
 ```
 Web Application

@@ -8,7 +8,7 @@ import tempfile
 import pytest
 from pathlib import Path
 
-from fivcadvisor.utils import (
+from fivcplayground.utils import (
     create_default_kwargs,
     create_lazy_value,
     create_output_dir,
