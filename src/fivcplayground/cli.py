@@ -196,11 +196,11 @@ def info():
     • Event-driven agent orchestration
 
     [bold]Usage Examples:[/bold]
-    fivcadvisor run Generic                                         # Interactive mode
-    fivcadvisor run Generic --query "What is machine learning?"     # Programmatic mode
-    fivcadvisor web                                                 # Launch web interface
-    fivcadvisor clean                                               # Clean temporary files
-    fivcadvisor info
+    fivcplayground run Generic                                         # Interactive mode
+    fivcplayground run Generic --query "What is machine learning?"     # Programmatic mode
+    fivcplayground web                                                 # Launch web interface
+    fivcplayground clean                                               # Clean temporary files
+    fivcplayground info
     """
 
     console.print(Panel(info_text, title="FivcPlayground", border_style="blue"))
