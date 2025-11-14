@@ -12,7 +12,7 @@ class OutputDir(object):
     def __init__(self, base: Optional[str] = None):
         """Create an output directory for FivcPlayground."""
         base = base or os.environ.get(
-            "WORKSPACE", os.path.join(os.getcwd(), ".fivcadvisor")
+            "WORKSPACE", os.path.join(os.getcwd(), ".fivcplayground")
         )
         self.base = Path(base)
         self.base = self.base.resolve()

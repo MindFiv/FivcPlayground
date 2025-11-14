@@ -28,7 +28,7 @@ def _ollama_embedding_function(*args, **kwargs) -> EmbeddingFunction:
 
 def create_embedding_function(*args, **kwargs) -> EmbeddingFunction:
     """Create a default embedding function for chromadb."""
-    kwargs = utils.create_default_kwargs(kwargs, settings.default_embedder_config)
+    kwargs = settings.DEFAULT_EMBEDDING_ARGS(kwargs)
 
     model_provider = kwargs.pop("provider")
     if not model_provider:
@@ -60,4 +60,4 @@ def create_embedding_db(
     )
 
 
-default_embedding_db = utils.create_lazy_value(lambda: create_embedding_db())
+default_embedding_db = utils.LazyValue(lambda: create_embedding_db())

@@ -1,6 +1,4 @@
-default_framework: 'langchain'
-
-default_embedder:
+default_embedding:
   provider: "openai"
   model: "text-embedding-v3"
   api_key: "sk-..."

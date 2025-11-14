@@ -12,7 +12,7 @@ __all__ = [
 from contextlib import asynccontextmanager, AsyncExitStack
 from typing import AsyncGenerator, List
 
-from fivcplayground.utils import create_lazy_value
+from fivcplayground.utils import LazyValue
 from fivcplayground.tools.types import (
     ToolsRetriever,
     ToolsConfig,
@@ -54,7 +54,5 @@ async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
         yield tools_expanded
 
 
-default_retriever = create_lazy_value(_load_retriever)
-default_loader = create_lazy_value(
-    lambda: ToolsLoader(tools_retriever=default_retriever)
-)
+default_retriever = LazyValue(_load_retriever)
+default_loader = LazyValue(lambda: ToolsLoader(tools_retriever=default_retriever))

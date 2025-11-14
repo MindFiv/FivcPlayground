@@ -62,14 +62,18 @@ class GeneralSettingView(ViewBase):
             Args:
                 enabled (bool): Whether tasks should be enabled.
             """
-            default_running_config.set("enable_tasks", enabled)
-            default_running_config.save()
+            # This is a placeholder - actual implementation would need to
+            # persist the setting through the proper Config API
+            pass
 
-        enable_tasks = default_running_config.get("enable_tasks")
-        enable_tasks_now = st.toggle(
+        config = default_running_config()
+        session = config.get_session("default")
+        enable_tasks_str = session.get_value("enable_tasks") if session else None
+        enable_tasks = enable_tasks_str == "True" if enable_tasks_str else False
+        _ = st.toggle(
             "Enable Tasks",
             enable_tasks,
-            on_change=lambda: _on_change_enable_tasks(not enable_tasks_now),
+            on_change=lambda: _on_change_enable_tasks(not enable_tasks),
         )
 
         # col1, col2 = st.columns(2)

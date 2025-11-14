@@ -1,116 +1,107 @@
 __all__ = [
-    "config",
-    "default_embedder_config",
-    "default_llm_config",
-    "chat_llm_config",
-    "reasoning_llm_config",
-    "coding_llm_config",
-    "agent_logger_config",
-    "default_logger_config",
-    "SettingsConfig",
+    "DEFAULT_EMBEDDING_ARGS",
+    "DEFAULT_LLM_ARGS",
+    "CHAT_LLM_ARGS",
+    "REASONING_LLM_ARGS",
+    "CODING_LLM_ARGS",
+    "Config",
+    "ConfigSession",
 ]
 
 import os
-from fivcplayground.utils import (
-    create_lazy_value,
-    create_default_kwargs,
+from typing import Dict, cast
+
+from fivcglue.interfaces import (
+    IComponentSite,
+    configs,
 )
-from fivcplayground.settings.types import SettingsConfig
+from fivcglue.implements.utils import (
+    ComponentSite,
+)
+from fivcplayground.utils import (
+    DefaultKwargs,
+    LazyValue,
+)
+from fivcplayground.settings.types import Config, ConfigSession
 
 
-def _load_config():
+def _load_component_site() -> IComponentSite:
+    """Load and initialize the default component site.
+
+    This creates a ComponentSite and registers the default settings config.
+    """
+
+    site = ComponentSite()
+
+    # Load default settings config from file
     config_file = os.environ.get("SETTINGS_FILE", "settings.yaml")
     config_file = os.path.abspath(config_file)
-    return SettingsConfig(config_file)
+    config_impl = Config(site, config_file=config_file)
+
+    site.register_component(configs.IConfig, config_impl)
+    return site
 
 
-config = create_lazy_value(_load_config)
+def _load_config_session(conf_session: configs.IConfigSession) -> Dict[str, str]:
+    """Load a configuration session into a dictionary."""
+    return {k: conf_session.get_value(k) for k in conf_session.list_keys()}
 
-default_framework = create_lazy_value(
-    lambda: config.get("default_framework") or "strands"
+
+def _load_config(component_site: IComponentSite, session_name: str) -> Dict[str, str]:
+    """Load a configuration into a dictionary."""
+    conf = cast(configs.IConfig, component_site.get_component(configs.IConfig))
+    conf_session = conf.get_session(session_name)
+    return _load_config_session(conf_session) if conf_session else {}
+
+
+default_component_site = LazyValue(_load_component_site)
+
+_DEFAULT_EMBEDDING_ARGS = DefaultKwargs(
+    {
+        "provider": "openai",
+        "model": "text-embedding-v3",
+        "base_url": "https://api.openai.com/v1",
+        "api_key": "",
+        "dimension": 1024,
+    }
 )
 
-default_embedder_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("default_embedder") or {},
-        {
-            "provider": "openai",
-            "model": "text-embedding-v3",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "",
-            "dimension": 1024,
-        },
+_DEFAULT_LLM_ARGS = DefaultKwargs(
+    {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "base_url": "https://api.openai.com/v1",
+        "api_key": "",
+        "temperature": 0.5,
+    }
+)
+
+DEFAULT_EMBEDDING_ARGS = LazyValue(
+    lambda: _DEFAULT_EMBEDDING_ARGS(
+        _load_config(cast(IComponentSite, default_component_site), "default_embedding")
     )
 )
 
-default_llm_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("default_llm") or {},
-        {
-            "provider": "openai",
-            "model": "gpt-4o-mini",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "",
-            "temperature": 0.5,
-        },
+DEFAULT_LLM_ARGS = LazyValue(
+    lambda: _DEFAULT_LLM_ARGS(
+        _load_config(cast(IComponentSite, default_component_site), "default_llm")
     )
 )
 
-chat_llm_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("chat_llm") or {},
-        {
-            "provider": "openai",
-            "model": "gpt-4o-mini",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "",
-            "temperature": 1.0,
-        },
+CHAT_LLM_ARGS = LazyValue(
+    lambda: _DEFAULT_LLM_ARGS(
+        _load_config(cast(IComponentSite, default_component_site), "chat_llm")
     )
 )
 
-reasoning_llm_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("reasoning_llm") or {},
-        {
-            "provider": "openai",
-            "model": "gpt-4o-mini",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "",
-            "temperature": 0.1,
-        },
+REASONING_LLM_ARGS = LazyValue(
+    lambda: _DEFAULT_LLM_ARGS(
+        _load_config(cast(IComponentSite, default_component_site), "reasoning_llm")
     )
 )
 
-coding_llm_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("coding_llm") or {},
-        {
-            "provider": "openai",
-            "model": "gpt-4o-mini",
-            "base_url": "https://api.openai.com/v1",
-            "api_key": "",
-            "temperature": 0.1,
-        },
-    )
-)
-
-agent_logger_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("agent_logger") or {},
-        {
-            "level": "INFO",
-            "format": "%(asctime)s - %(levelname)s - %(message)s",
-        },
-    )
-)
-
-default_logger_config = create_lazy_value(
-    lambda: create_default_kwargs(
-        config.get("default_logger") or {},
-        {
-            "level": "INFO",
-            "format": "%(asctime)s - %(levelname)s - %(message)s",
-        },
+CODING_LLM_ARGS = LazyValue(
+    lambda: _DEFAULT_LLM_ARGS(
+        _load_config(cast(IComponentSite, default_component_site), "coding_llm")
     )
 )

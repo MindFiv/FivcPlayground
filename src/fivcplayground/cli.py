@@ -18,16 +18,13 @@ from rich.panel import Panel
 from rich.text import Text
 
 from fivcplayground import agents, tools
-from fivcplayground.utils import create_output_dir
+from fivcplayground.utils import OutputDir
 
 load_dotenv()
 
 app = typer.Typer(
     name="FivcPlayground",
-    help="FivcPlayground - "
-    "Intelligent agent ecosystem for "
-    "autonomous tool generation and "
-    "dynamic crew orchestration",
+    help="FivcPlayground - " "Personal Simple Generic Agents",
     rich_markup_mode="rich",
 )
 
@@ -88,7 +85,7 @@ def run(
         verbose=verbose,
     )
 
-    with create_output_dir(base=output):
+    with OutputDir(base=output):
         try:
             agent(query)
             console.print("[green]✅ Agent completed successfully![/green]")
@@ -106,7 +103,7 @@ def clean():
 
     try:
         # Clean temp directories
-        output_dir = create_output_dir()
+        output_dir = OutputDir()
         output_dir.cleanup(ignore_errors=False)
         console.print("[green]✅ Cleanup completed[/green]")
 

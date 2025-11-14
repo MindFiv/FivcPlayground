@@ -35,6 +35,7 @@ dependencies = [
     # Transitive dependencies (required by other packages)
     "httpx>=0.28.1", # Required by: chromadb, langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
     "openai>=1.109.1", # Required by: langchain-openai
+    "fivcglue>=0.1.3",
 ]
 
 [project.optional-dependencies]

@@ -201,5 +201,5 @@ def _load_retriever() -> AgentsRetriever:
     return retriever
 
 
-default_retriever = utils.create_lazy_value(_load_retriever)
-default_agent = utils.create_lazy_value(lambda: create_companion_agent())
+default_retriever = utils.LazyValue(_load_retriever)
+default_agent = utils.LazyValue(lambda: create_companion_agent())

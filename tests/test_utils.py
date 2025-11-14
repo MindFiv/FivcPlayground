@@ -9,61 +9,9 @@ import pytest
 from pathlib import Path
 
 from fivcplayground.utils import (
-    create_default_kwargs,
-    create_lazy_value,
-    create_output_dir,
     LazyValue,
     OutputDir,
 )
-
-
-class TestCreateDefaultKwargs:
-    """Test the create_default_kwargs function."""
-
-    def test_empty_kwargs(self):
-        """Test with empty kwargs."""
-        defaults = {"key1": "value1", "key2": "value2"}
-        result = create_default_kwargs({}, defaults)
-
-        assert result["key1"] == "value1"
-        assert result["key2"] == "value2"
-
-    def test_partial_kwargs(self):
-        """Test with partial kwargs."""
-        defaults = {"key1": "default1", "key2": "default2", "key3": "default3"}
-        kwargs = {"key1": "custom1"}
-        result = create_default_kwargs(kwargs, defaults)
-
-        assert result["key1"] == "custom1"  # Custom value preserved
-        assert result["key2"] == "default2"  # Default value used
-        assert result["key3"] == "default3"  # Default value used
-
-    def test_full_kwargs(self):
-        """Test with all kwargs provided."""
-        defaults = {"key1": "default1", "key2": "default2"}
-        kwargs = {"key1": "custom1", "key2": "custom2"}
-        result = create_default_kwargs(kwargs, defaults)
-
-        assert result["key1"] == "custom1"
-        assert result["key2"] == "custom2"
-
-    def test_none_values(self):
-        """Test that None values are replaced with defaults."""
-        defaults = {"key1": "default1", "key2": "default2"}
-        kwargs = {"key1": None, "key2": "custom2"}
-        result = create_default_kwargs(kwargs, defaults)
-
-        assert result["key1"] == "default1"  # None replaced with default
-        assert result["key2"] == "custom2"  # Custom value preserved
-
-    def test_extra_kwargs(self):
-        """Test that extra kwargs are preserved."""
-        defaults = {"key1": "default1"}
-        kwargs = {"key1": "custom1", "key2": "extra"}
-        result = create_default_kwargs(kwargs, defaults)
-
-        assert result["key1"] == "custom1"
-        assert result["key2"] == "extra"  # Extra key preserved
 
 
 class TestLazyValue:
@@ -210,17 +158,6 @@ class TestLazyValue:
         assert lazy1 != "other"
 
 
-class TestCreateLazyValue:
-    """Test the create_lazy_value function."""
-
-    def test_create_lazy_value(self):
-        """Test creating a LazyValue with the factory function."""
-        lazy = create_lazy_value(lambda: "test_value")
-
-        assert isinstance(lazy, LazyValue)
-        assert lazy() == "test_value"
-
-
 class TestOutputDir:
     """Test the OutputDir class."""
 
@@ -280,27 +217,6 @@ class TestOutputDir:
             assert output_dir.base.exists()
             output_dir.cleanup()
             assert not output_dir.base.exists()
-
-
-class TestCreateOutputDir:
-    """Test the create_output_dir function."""
-
-    def test_create_output_dir_default(self):
-        """Test creating OutputDir with default path."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            os.environ["WORKSPACE"] = tmpdir
-            output_dir = create_output_dir()
-
-            assert isinstance(output_dir, OutputDir)
-            assert output_dir.base.exists()
-
-    def test_create_output_dir_custom(self):
-        """Test creating OutputDir with custom path."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_dir = create_output_dir(tmpdir)
-
-            assert isinstance(output_dir, OutputDir)
-            assert str(output_dir) == str(Path(tmpdir).resolve())
 
 
 class TestLazyValueAdditionalOperations:

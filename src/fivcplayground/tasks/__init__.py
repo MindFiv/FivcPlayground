@@ -65,7 +65,7 @@ from fivcplayground.tools import ToolsRetriever
 from fivcplayground.utils import (
     Runnable,
     ProxyRunnable,
-    create_lazy_value,
+    LazyValue,
 )
 
 
@@ -331,4 +331,4 @@ def create_planning_task(
     )
 
 
-default_manager = create_lazy_value(lambda: TaskMonitorManager())
+default_manager = LazyValue(lambda: TaskMonitorManager())

@@ -175,15 +175,14 @@ class TestOllamaProvider:
 class TestCreateDefaultModel:
     """Test create_default_model factory function."""
 
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
     @patch("fivcplayground.models.create_model")
-    def test_create_default_model_with_openai(
-        self, mock_create_model, mock_create_kwargs
-    ):
+    def test_create_default_model_with_openai(self, mock_create_model, mock_config):
         """Test create_default_model with OpenAI provider."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_model.return_value = mock_model
-        mock_create_kwargs.return_value = {
+        # Mock DEFAULT_LLM_ARGS to return a dict when called
+        mock_config.return_value = {
             "provider": "openai",
             "model": "gpt-4",
             "framework": "langchain",
@@ -194,14 +193,15 @@ class TestCreateDefaultModel:
         assert result == mock_model
         mock_create_model.assert_called_once()
 
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
     @patch("fivcplayground.models.create_model")
     def test_create_default_model_unsupported_provider(
-        self, mock_create_model, mock_create_kwargs
+        self, mock_create_model, mock_config
     ):
         """Test create_default_model raises error for unsupported provider."""
         mock_create_model.side_effect = ValueError("Unsupported model provider")
-        mock_create_kwargs.return_value = {
+        # Mock DEFAULT_LLM_ARGS to return a dict when called
+        mock_config.return_value = {
             "provider": "unsupported",
             "framework": "langchain",
         }
@@ -209,15 +209,14 @@ class TestCreateDefaultModel:
         with pytest.raises(ValueError, match="Unsupported model provider"):
             create_default_model(provider="unsupported")
 
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
     @patch("fivcplayground.models.backends.create_model")
-    def test_create_default_model_merges_settings(
-        self, mock_create_model, mock_create_kwargs
-    ):
+    def test_create_default_model_merges_settings(self, mock_create_model, mock_config):
         """Test create_default_model merges with settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_model.return_value = mock_model
-        mock_create_kwargs.return_value = {
+        # Mock DEFAULT_LLM_ARGS to return a dict when called
+        mock_config.return_value = {
             "provider": "openai",
             "temperature": 0.5,
             "framework": "langchain",
@@ -225,22 +224,23 @@ class TestCreateDefaultModel:
 
         create_default_model(temperature=0.7)
 
-        # Verify create_default_kwargs was called with kwargs and settings
-        assert mock_create_kwargs.called
+        # Verify DEFAULT_LLM_ARGS was called with kwargs
+        assert mock_config.called
 
 
 class TestCreateChatModel:
     """Test create_chat_model factory function."""
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock)
     def test_create_chat_model_calls_create_default_model(
-        self, mock_create_kwargs, mock_create_default
+        self, mock_config, mock_create_default
     ):
         """Test create_chat_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {
+        # Mock CHAT_LLM_ARGS to return a dict when called
+        mock_config.return_value = {
             "provider": "openai",
             "framework": "langchain",
         }
@@ -251,33 +251,33 @@ class TestCreateChatModel:
         mock_create_default.assert_called_once()
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
-    def test_create_chat_model_uses_chat_config(
-        self, mock_create_kwargs, mock_create_default
-    ):
+    @patch("fivcplayground.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock)
+    def test_create_chat_model_uses_chat_config(self, mock_config, mock_create_default):
         """Test create_chat_model uses chat_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"framework": "langchain"}
+        # Mock CHAT_LLM_ARGS to return a dict when called
+        mock_config.return_value = {"framework": "langchain"}
 
         create_chat_model(temperature=0.8)
 
-        # Verify create_default_kwargs was called with chat_llm_config
-        assert mock_create_kwargs.called
+        # Verify CHAT_LLM_ARGS was called with kwargs
+        assert mock_config.called
 
 
 class TestCreateReasoningModel:
     """Test create_reasoning_model factory function."""
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.REASONING_LLM_ARGS", new_callable=MagicMock)
     def test_create_reasoning_model_calls_create_default_model(
-        self, mock_create_kwargs, mock_create_default
+        self, mock_config, mock_create_default
     ):
         """Test create_reasoning_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"framework": "langchain"}
+        # Mock REASONING_LLM_ARGS to return a dict when called
+        mock_config.return_value = {"framework": "langchain"}
 
         result = create_reasoning_model()
 
@@ -285,32 +285,34 @@ class TestCreateReasoningModel:
         mock_create_default.assert_called_once()
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.REASONING_LLM_ARGS", new_callable=MagicMock)
     def test_create_reasoning_model_uses_reasoning_config(
-        self, mock_create_kwargs, mock_create_default
+        self, mock_config, mock_create_default
     ):
         """Test create_reasoning_model uses reasoning_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"framework": "langchain"}
+        # Mock REASONING_LLM_ARGS to return a dict when called
+        mock_config.return_value = {"framework": "langchain"}
 
         create_reasoning_model()
 
-        assert mock_create_kwargs.called
+        assert mock_config.called
 
 
 class TestCreateCodingModel:
     """Test create_coding_model factory function."""
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.CODING_LLM_ARGS", new_callable=MagicMock)
     def test_create_coding_model_calls_create_default_model(
-        self, mock_create_kwargs, mock_create_default
+        self, mock_config, mock_create_default
     ):
         """Test create_coding_model delegates to create_default_model."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"framework": "langchain"}
+        # Mock CODING_LLM_ARGS to return a dict when called
+        mock_config.return_value = {"framework": "langchain"}
 
         result = create_coding_model()
 
@@ -318,15 +320,16 @@ class TestCreateCodingModel:
         mock_create_default.assert_called_once()
 
     @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.utils.create_default_kwargs")
+    @patch("fivcplayground.models.settings.CODING_LLM_ARGS", new_callable=MagicMock)
     def test_create_coding_model_uses_coding_config(
-        self, mock_create_kwargs, mock_create_default
+        self, mock_config, mock_create_default
     ):
         """Test create_coding_model uses coding_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_create_default.return_value = mock_model
-        mock_create_kwargs.return_value = {"framework": "langchain"}
+        # Mock CODING_LLM_ARGS to return a dict when called
+        mock_config.return_value = {"framework": "langchain"}
 
         create_coding_model()
 
-        assert mock_create_kwargs.called
+        assert mock_config.called

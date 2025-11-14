@@ -4,7 +4,7 @@ Tests for the embeddings module.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 from fivcplayground.embeddings.types.db import EmbeddingDB, EmbeddingCollection
 
@@ -146,19 +146,16 @@ class TestCreateEmbeddingFunction:
     """Test the create_embedding_function function."""
 
     @patch("fivcplayground.embeddings._openai_embedding_function")
-    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
-    @patch("fivcplayground.embeddings.settings.default_embedder_config")
-    def test_create_embedding_function_openai(
-        self, mock_config, mock_create_kwargs, mock_openai
-    ):
+    @patch(
+        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        new_callable=MagicMock,
+    )
+    def test_create_embedding_function_openai(self, mock_config, mock_openai):
         """Test creating an OpenAI embedding function."""
         from fivcplayground.embeddings import create_embedding_function
 
+        # Mock DEFAULT_EMBEDDING_ARGS to return a dict when called
         mock_config.return_value = {
-            "provider": "openai",
-            "model": "text-embedding-ada-002",
-        }
-        mock_create_kwargs.return_value = {
             "provider": "openai",
             "model": "text-embedding-ada-002",
         }
@@ -171,16 +168,16 @@ class TestCreateEmbeddingFunction:
         mock_openai.assert_called_once()
 
     @patch("fivcplayground.embeddings._ollama_embedding_function")
-    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
-    @patch("fivcplayground.embeddings.settings.default_embedder_config")
-    def test_create_embedding_function_ollama(
-        self, mock_config, mock_create_kwargs, mock_ollama
-    ):
+    @patch(
+        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        new_callable=MagicMock,
+    )
+    def test_create_embedding_function_ollama(self, mock_config, mock_ollama):
         """Test creating an Ollama embedding function."""
         from fivcplayground.embeddings import create_embedding_function
 
+        # Mock DEFAULT_EMBEDDING_ARGS to return a dict when called
         mock_config.return_value = {"provider": "ollama", "model": "llama2"}
-        mock_create_kwargs.return_value = {"provider": "ollama", "model": "llama2"}
         mock_func = Mock()
         mock_ollama.return_value = mock_func
 
@@ -190,16 +187,16 @@ class TestCreateEmbeddingFunction:
         mock_ollama.assert_called_once()
 
     @patch("chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction")
-    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
-    @patch("fivcplayground.embeddings.settings.default_embedder_config")
-    def test_create_embedding_function_default(
-        self, mock_config, mock_create_kwargs, mock_sentence
-    ):
+    @patch(
+        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        new_callable=MagicMock,
+    )
+    def test_create_embedding_function_default(self, mock_config, mock_sentence):
         """Test creating a default (sentence transformer) embedding function."""
         from fivcplayground.embeddings import create_embedding_function
 
+        # Mock DEFAULT_EMBEDDING_ARGS to return a dict with provider when called
         mock_config.return_value = {"provider": "other"}
-        mock_create_kwargs.return_value = {"provider": "other"}
         mock_func = Mock()
         mock_sentence.return_value = mock_func
 
@@ -208,16 +205,16 @@ class TestCreateEmbeddingFunction:
         assert func == mock_func
         mock_sentence.assert_called_once_with(model_name="all-MiniLM-L6-v2")
 
-    @patch("fivcplayground.embeddings.utils.create_default_kwargs")
-    @patch("fivcplayground.embeddings.settings.default_embedder_config")
-    def test_create_embedding_function_no_provider(
-        self, mock_config, mock_create_kwargs
-    ):
+    @patch(
+        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        new_callable=MagicMock,
+    )
+    def test_create_embedding_function_no_provider(self, mock_config):
         """Test that create_embedding_function raises error without provider."""
         from fivcplayground.embeddings import create_embedding_function
 
-        mock_config.return_value = {}
-        mock_create_kwargs.return_value = {"provider": None}
+        # Mock DEFAULT_EMBEDDING_ARGS to return a dict without provider when called
+        mock_config.return_value = {"provider": None}
 
         with pytest.raises(AssertionError, match="provider not specified"):
             create_embedding_function()

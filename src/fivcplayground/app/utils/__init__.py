@@ -22,7 +22,8 @@ from .tasks import TaskManager
 
 def _load_running_config():
     with utils.OutputDir():
-        return settings.SettingsConfig("run.yml")
+        component_site = settings.default_component_site()
+        return component_site.get_component(settings.configs.IConfig)
 
 
 def _load_mcp_config():
@@ -33,5 +34,5 @@ def _load_mcp_config():
         )
 
 
-default_running_config = utils.create_lazy_value(_load_running_config)
-default_mcp_loader = utils.create_lazy_value(_load_mcp_config)
+default_running_config = utils.LazyValue(_load_running_config)
+default_mcp_loader = utils.LazyValue(_load_mcp_config)
