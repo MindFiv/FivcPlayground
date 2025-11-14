@@ -21,6 +21,7 @@ venv/
 .env
 
 # Temporary files and generated content
+dist/
 configs/settings.yaml
 configs/mcp.yaml
 repl_state/

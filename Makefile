@@ -1,4 +1,4 @@
-.PHONY: help install install-min dev lint format test clean serve serve-dev sample info
+.PHONY: help install install-min dev lint format test clean build publish serve serve-dev sample info
 
 # Default target
 help:
@@ -15,6 +15,10 @@ help:
 	@echo "  format       - Format code with ruff"
 	@echo "  test         - Run tests with pytest"
 	@echo "  clean        - Clean temporary files and caches"
+	@echo ""
+	@echo "Distribution:"
+	@echo "  build        - Build package distributions (wheel and source)"
+	@echo "  publish      - Publish package to PyPI"
 	@echo ""
 	@echo "Running:"
 	@echo "  serve        - Start Streamlit web interface (production)"
@@ -58,6 +62,25 @@ clean:
 	find . -type f -name "*.pyo" -delete 2>/dev/null || true
 	find . -type f -name ".coverage" -delete 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+
+# Distribution targets
+build: clean dev
+	@echo "Building package distributions..."
+	@echo "Removing existing build artifacts..."
+	rm -rf dist/ build/ 2>/dev/null || true
+	@echo "Building wheel and source distributions..."
+	uv run python -m build
+	@echo "Build complete! Distributions available in dist/"
+
+publish: build
+	@echo "Publishing package to PyPI..."
+	@if [ ! -d "dist" ] || [ -z "$$(ls -A dist/)" ]; then \
+		echo "Error: No distributions found in dist/ directory"; \
+		echo "Please run 'make build' first"; \
+		exit 1; \
+	fi
+	uv run python -m twine upload dist/*
+	@echo "Package published successfully!"
 
 # Web interface targets
 serve:
