@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fivcplayground"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Personal Simple Generic Agents"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -52,6 +52,9 @@ fivcplayground = "fivcplayground.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fivcplayground.__version__" }
 
 [dependency-groups]
 

@@ -105,7 +105,7 @@ class ToolsLoader(object):
         self.config.load()
         errors = self.config.get_errors()
         if errors:
-            print(f"Errors loading config: {errors}")
+            # print(f"Errors loading config: {errors}")
             return
 
         # Create persistent client (kept alive during app runtime)

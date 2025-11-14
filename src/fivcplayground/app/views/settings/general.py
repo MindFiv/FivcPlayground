@@ -9,14 +9,11 @@ allowing users to configure application-wide settings. The view handles:
 - Chat configuration settings
 - Task management toggles
 - Application preferences
-
-The general settings view uses the default_running_config utility for state
-management and persistence of user preferences.
 """
 
 import streamlit as st
 
-from fivcplayground.app.utils import default_running_config
+from fivcplayground import settings
 from fivcplayground.app.views.base import ViewBase, ViewNavigation
 
 
@@ -66,7 +63,9 @@ class GeneralSettingView(ViewBase):
             # persist the setting through the proper Config API
             pass
 
-        config = default_running_config()
+        # Get the default component site and retrieve the config
+        component_site = settings.default_component_site()
+        config = component_site.get_component(settings.configs.IConfig)
         session = config.get_session("default")
         enable_tasks_str = session.get_value("enable_tasks") if session else None
         enable_tasks = enable_tasks_str == "True" if enable_tasks_str else False

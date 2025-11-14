@@ -9,8 +9,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 import streamlit as st
 
-from fivcplayground.app.utils import default_running_config
-
 
 class ViewBase(ABC):
     def __init__(
@@ -120,7 +118,8 @@ class ViewNavigation(object):
         Returns:
             str: The current page ID, or None if not set
         """
-        return default_running_config.get("page_id")
+
+        return st.session_state.page_id if "page_id" in st.session_state else None
 
     @staticmethod
     def _set_current_page_id(page_id: str):
@@ -130,8 +129,7 @@ class ViewNavigation(object):
         Args:
             page_id: The page ID to set
         """
-        default_running_config.set("page_id", page_id)
-        default_running_config.save()
+        st.session_state.page_id = page_id
 
     def _get_page(self, page_id: str) -> Optional[ViewBase]:
         """

@@ -203,7 +203,7 @@ class ToolsConfig(object):
         self._configs.clear()
         configs = self._load_file(filename)
         if self._errors:
-            print(f"Errors loading config: {self._errors},")
+            print(f"Errors loading config: {self._errors}, in directory: {os.getcwd()}")
         else:
             for k, v in configs.items():
                 try:
