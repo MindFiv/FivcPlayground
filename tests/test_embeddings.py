@@ -6,7 +6,7 @@ Tests for the embeddings module.
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 
-from fivcplayground.embeddings.types.db import EmbeddingDB, EmbeddingCollection
+from fivcplayground.legacies.embeddings.types.db import EmbeddingDB, EmbeddingCollection
 
 
 class TestEmbeddingCollection:
@@ -113,7 +113,7 @@ class TestEmbeddingDB:
         mock_client.get_or_create_collection = Mock(return_value=mock_collection)
         return mock_client
 
-    @patch("fivcplayground.embeddings.types.db.chromadb.PersistentClient")
+    @patch("fivcplayground.legacies.embeddings.types.db.chromadb.PersistentClient")
     def test_init(self, mock_chroma_class, mock_embedding_function):
         """Test EmbeddingDB initialization."""
         mock_client = Mock()
@@ -125,7 +125,7 @@ class TestEmbeddingDB:
         assert db.db == mock_client
         mock_chroma_class.assert_called_once()
 
-    @patch("fivcplayground.embeddings.types.db.chromadb.PersistentClient")
+    @patch("fivcplayground.legacies.embeddings.types.db.chromadb.PersistentClient")
     def test_get_collection(self, mock_chroma_class, mock_embedding_function):
         """Test getting a collection."""
         mock_client = Mock()
@@ -145,14 +145,14 @@ class TestEmbeddingDB:
 class TestCreateEmbeddingFunction:
     """Test the create_embedding_function function."""
 
-    @patch("fivcplayground.embeddings._openai_embedding_function")
+    @patch("fivcplayground.legacies.embeddings._openai_embedding_function")
     @patch(
-        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        "fivcplayground.legacies.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
         new_callable=MagicMock,
     )
     def test_create_embedding_function_openai(self, mock_config, mock_openai):
         """Test creating an OpenAI embedding function."""
-        from fivcplayground.embeddings import create_embedding_function
+        from fivcplayground.legacies.embeddings import create_embedding_function
 
         # Mock DEFAULT_EMBEDDING_ARGS to return a dict when called
         mock_config.return_value = {
@@ -167,14 +167,14 @@ class TestCreateEmbeddingFunction:
         assert func == mock_func
         mock_openai.assert_called_once()
 
-    @patch("fivcplayground.embeddings._ollama_embedding_function")
+    @patch("fivcplayground.legacies.embeddings._ollama_embedding_function")
     @patch(
-        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        "fivcplayground.legacies.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
         new_callable=MagicMock,
     )
     def test_create_embedding_function_ollama(self, mock_config, mock_ollama):
         """Test creating an Ollama embedding function."""
-        from fivcplayground.embeddings import create_embedding_function
+        from fivcplayground.legacies.embeddings import create_embedding_function
 
         # Mock DEFAULT_EMBEDDING_ARGS to return a dict when called
         mock_config.return_value = {"provider": "ollama", "model": "llama2"}
@@ -188,12 +188,12 @@ class TestCreateEmbeddingFunction:
 
     @patch("chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction")
     @patch(
-        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        "fivcplayground.legacies.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
         new_callable=MagicMock,
     )
     def test_create_embedding_function_default(self, mock_config, mock_sentence):
         """Test creating a default (sentence transformer) embedding function."""
-        from fivcplayground.embeddings import create_embedding_function
+        from fivcplayground.legacies.embeddings import create_embedding_function
 
         # Mock DEFAULT_EMBEDDING_ARGS to return a dict with provider when called
         mock_config.return_value = {"provider": "other"}
@@ -206,12 +206,12 @@ class TestCreateEmbeddingFunction:
         mock_sentence.assert_called_once_with(model_name="all-MiniLM-L6-v2")
 
     @patch(
-        "fivcplayground.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
+        "fivcplayground.legacies.embeddings.settings.DEFAULT_EMBEDDING_ARGS",
         new_callable=MagicMock,
     )
     def test_create_embedding_function_no_provider(self, mock_config):
         """Test that create_embedding_function raises error without provider."""
-        from fivcplayground.embeddings import create_embedding_function
+        from fivcplayground.legacies.embeddings import create_embedding_function
 
         # Mock DEFAULT_EMBEDDING_ARGS to return a dict without provider when called
         mock_config.return_value = {"provider": None}
@@ -223,11 +223,11 @@ class TestCreateEmbeddingFunction:
 class TestCreateEmbeddingDB:
     """Test the create_embedding_db function."""
 
-    @patch("fivcplayground.embeddings.EmbeddingDB")
-    @patch("fivcplayground.embeddings.create_embedding_function")
+    @patch("fivcplayground.legacies.embeddings.EmbeddingDB")
+    @patch("fivcplayground.legacies.embeddings.create_embedding_function")
     def test_create_embedding_db_default(self, mock_create_func, mock_db_class):
         """Test creating an embedding DB with default function."""
-        from fivcplayground.embeddings import create_embedding_db
+        from fivcplayground.legacies.embeddings import create_embedding_db
 
         mock_func = Mock()
         mock_create_func.return_value = mock_func
@@ -240,10 +240,10 @@ class TestCreateEmbeddingDB:
         mock_create_func.assert_called_once()
         mock_db_class.assert_called_once()
 
-    @patch("fivcplayground.embeddings.EmbeddingDB")
+    @patch("fivcplayground.legacies.embeddings.EmbeddingDB")
     def test_create_embedding_db_custom_function(self, mock_db_class):
         """Test creating an embedding DB with custom function."""
-        from fivcplayground.embeddings import create_embedding_db
+        from fivcplayground.legacies.embeddings import create_embedding_db
 
         mock_func = Mock()
         mock_db = Mock()

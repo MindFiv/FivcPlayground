@@ -17,8 +17,8 @@ and provides both UI-based and direct YAML editing interfaces for flexibility.
 import streamlit as st
 import yaml
 
-from fivcplayground.app.views.base import ViewBase, ViewNavigation
-from fivcplayground.app.utils import default_mcp_loader
+from fivcplayground.legacies.app.views.base import ViewBase, ViewNavigation
+from fivcplayground.legacies.app.utils import default_mcp_loader
 
 
 class MCPSettingView(ViewBase):
@@ -414,7 +414,9 @@ class MCPSettingView(ViewBase):
                             st.error(self.ERR_INVALID_CONFIG.format(name=name))
                             return
                         # Try to create a ToolsConfigValue to validate
-                        from fivcplayground.tools.types.configs import ToolsConfigValue
+                        from fivcplayground.legacies.tools.types.configs import (
+                            ToolsConfigValue,
+                        )
 
                         try:
                             ToolsConfigValue(cfg)

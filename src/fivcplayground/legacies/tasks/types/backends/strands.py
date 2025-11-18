@@ -16,7 +16,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 from strands.multiagent import Swarm
 
-from fivcplayground.tasks.types import TaskEvent, TaskRuntime
+from fivcplayground.legacies.tasks.types import TaskEvent, TaskRuntime
 from fivcplayground.tools import ToolsRetriever
 from fivcplayground.utils import Runnable
 

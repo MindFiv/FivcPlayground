@@ -24,7 +24,7 @@ from fivcplayground.utils import (
     LazyValue,
 )
 from fivcplayground.interfaces import ISettingProvider, IEmbeddingDBProvider
-from fivcplayground.settings.types import Config, ConfigSession, ConfigSetting
+from fivcplayground.legacies.settings.types import Config, ConfigSession, ConfigSetting
 from fivcplayground.implements import EmbeddingsProviderImpl
 
 

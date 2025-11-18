@@ -24,8 +24,8 @@ This structure allows for:
     - Cascading deletes (deleting an agent removes all its runtimes)
 
 Example:
-    >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
-    >>> from fivcplayground.agents.types import AgentsRuntimeMeta, AgentsRuntime
+    >>> from fivcplayground.legacies.agents.types.repositories.files import FileAgentsRuntimeRepository
+    >>> from fivcplayground.legacies.agents.types import AgentsRuntimeMeta, AgentsRuntime
     >>> from fivcplayground.utils import OutputDir
     >>>
     >>> # Create repository
@@ -52,10 +52,10 @@ import shutil
 from pathlib import Path
 from typing import Optional, List
 
-from fivcplayground.agents.types import AgentsRuntimeMeta
+from fivcplayground.legacies.agents.types import AgentsRuntimeMeta
 from fivcplayground.utils import OutputDir
 
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.legacies.agents.types.repositories import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsRuntimeRepository,

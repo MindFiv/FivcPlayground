@@ -21,14 +21,14 @@ Key Features:
 from functools import cached_property
 from typing import Any, Optional, List, Callable, Dict
 
-from fivcplayground import agents, tools
-from fivcplayground.tasks.types.base import (
+from fivcplayground.legacies import agents, tools
+from fivcplayground.legacies.tasks.types.base import (
     TaskTeam,
     TaskStatus,
     TaskRuntime,
     TaskRuntimeStep,
 )
-from fivcplayground.tasks.types.repositories import TaskRuntimeRepository
+from fivcplayground.legacies.tasks.types.repositories import TaskRuntimeRepository
 
 
 class TaskMonitor(object):
@@ -39,9 +39,9 @@ class TaskMonitor(object):
     execution data through a required TaskRuntimeRepository.
 
     Usage with hooks (recommended):
-        >>> from fivcplayground.tasks.types import TaskMonitor
-        >>> from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
-        >>> from fivcplayground import agents
+        >>> from fivcplayground.legacies.tasks.types import TaskMonitor
+        >>> from fivcplayground.legacies.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcplayground.legacies import agents
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create repository and monitor
@@ -64,7 +64,7 @@ class TaskMonitor(object):
         ...     print(f"{step.agent_name}: {step.status}")
 
     Usage with persistence:
-        >>> from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcplayground.legacies.tasks.types.repositories.files import FileTaskRuntimeRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create repository
@@ -80,7 +80,7 @@ class TaskMonitor(object):
 
     Event callbacks:
         You can register callbacks to be notified of task events:
-        >>> from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcplayground.legacies.tasks.types.repositories.files import FileTaskRuntimeRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> def on_event(runtime: TaskRuntime):
@@ -198,9 +198,9 @@ class TaskMonitorManager(object):
     - Persist task history through TaskRuntimeRepository
 
     Usage:
-        >>> from fivcplayground.tasks.types.monitors import TaskMonitorManager
-        >>> from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
-        >>> from fivcplayground import tools
+        >>> from fivcplayground.legacies.tasks.types.monitors import TaskMonitorManager
+        >>> from fivcplayground.legacies.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcplayground.legacies import tools
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create manager with file-based persistence

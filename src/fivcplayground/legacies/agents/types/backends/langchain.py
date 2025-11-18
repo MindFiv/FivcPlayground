@@ -21,7 +21,7 @@ Return Types:
     - If response_model is None: Returns string content from agent response
 
 Example:
-    >>> from fivcplayground.agents.types import AgentsRunnable
+    >>> from fivcplayground.legacies.agents.types import AgentsRunnable
     >>> from langchain_openai import ChatOpenAI
     >>>
     >>> # Create a model
@@ -55,14 +55,14 @@ from langchain_core.language_models import BaseChatModel
 from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
-from fivcplayground.agents.types.base import (
+from fivcplayground.legacies.agents.types.base import (
     AgentsContent,
     AgentsStatus,
     AgentsEvent,
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
-from fivcplayground.tools import setup_tools, Tool
+from fivcplayground.legacies.tools import setup_tools, Tool
 from fivcplayground.utils import Runnable
 
 
@@ -92,7 +92,7 @@ class AgentsRunnable(Runnable):
         _messages: List of messages accumulated during execution
 
     Example:
-        >>> from fivcplayground.agents.types import AgentsRunnable
+        >>> from fivcplayground.legacies.agents.types import AgentsRunnable
         >>> from langchain_openai import ChatOpenAI
         >>> from langchain_core.messages import HumanMessage, AIMessage
         >>>

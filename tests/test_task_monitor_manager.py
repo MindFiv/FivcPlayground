@@ -7,14 +7,16 @@ import os
 import tempfile
 import pytest
 
-from fivcplayground.tasks.types import (
+from fivcplayground.legacies.tasks.types import (
     # TaskTeam,
     TaskMonitorManager,
     TaskMonitor,
     TaskRuntimeStep,
     TaskStatus,
 )
-from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.legacies.tasks.types.repositories.files import (
+    FileTaskRuntimeRepository,
+)
 from fivcplayground.utils import OutputDir
 
 

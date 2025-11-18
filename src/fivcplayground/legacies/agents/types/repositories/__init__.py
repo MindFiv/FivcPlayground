@@ -6,16 +6,16 @@ __all__ = [
     "SqliteAgentsRuntimeRepository",
 ]
 
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
-from fivcplayground.agents.types.repositories.base import (
+from fivcplayground.legacies.agents.types.repositories.base import (
     AgentsRuntimeRepository,
 )
-from fivcplayground.agents.types.repositories.files import (
+from fivcplayground.legacies.agents.types.repositories.files import (
     FileAgentsRuntimeRepository,
 )
-from fivcplayground.agents.types.repositories.sqlite import (
+from fivcplayground.legacies.agents.types.repositories.sqlite import (
     SqliteAgentsRuntimeRepository,
 )

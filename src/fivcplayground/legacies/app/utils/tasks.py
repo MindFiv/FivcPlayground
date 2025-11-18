@@ -12,8 +12,8 @@ new TaskMonitorManager.create_task() API which handles planning internally.
 import asyncio
 from typing import Optional, List, Callable
 
-from fivcplayground import tools
-from fivcplayground.tasks.types import (
+from fivcplayground.legacies import tools
+from fivcplayground.legacies.tasks.types import (
     TaskStatus,
     TaskRuntime,
     TaskMonitor,

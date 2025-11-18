@@ -14,7 +14,8 @@ __all__ = [
     "default_mcp_loader",
 ]
 
-from fivcplayground import utils, tools
+from fivcplayground import utils
+from fivcplayground.legacies import tools
 from .chats import Chat, ChatManager
 from .tasks import TaskManager
 

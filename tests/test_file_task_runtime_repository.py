@@ -6,8 +6,10 @@ Tests for FileTaskRuntimeRepository functionality.
 import tempfile
 from datetime import datetime
 
-from fivcplayground.tasks.types import TaskRuntime, TaskRuntimeStep, TaskStatus
-from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcplayground.legacies.tasks.types import TaskRuntime, TaskRuntimeStep, TaskStatus
+from fivcplayground.legacies.tasks.types.repositories.files import (
+    FileTaskRuntimeRepository,
+)
 from fivcplayground.utils import OutputDir
 
 

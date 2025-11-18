@@ -14,14 +14,14 @@ from strands.models import Model
 from strands.types.content import Message, ContentBlock
 from strands.types.tools import ToolUse, ToolResult
 
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsEvent,
     AgentsStatus,
     AgentsContent,
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
-from fivcplayground.tools import setup_tools, Tool
+from fivcplayground.legacies.tools import setup_tools, Tool
 from fivcplayground.utils import Runnable
 
 

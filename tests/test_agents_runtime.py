@@ -12,7 +12,7 @@ Tests the agent runtime data models including:
 
 import json
 from datetime import datetime
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
@@ -332,7 +332,7 @@ class TestAgentsRuntimeMessageSerialization:
 
     def test_runtime_with_ai_message_reply(self):
         """Test AgentsRuntime with AgentsContent reply."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         content = AgentsContent(text="This is a test response")
         runtime = AgentsRuntime(
@@ -347,7 +347,7 @@ class TestAgentsRuntimeMessageSerialization:
 
     def test_runtime_with_human_message_reply(self):
         """Test AgentsRuntime with AgentsContent reply."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         content = AgentsContent(text="This is a user message")
         runtime = AgentsRuntime(
@@ -362,7 +362,7 @@ class TestAgentsRuntimeMessageSerialization:
 
     def test_runtime_json_serialization_with_ai_message(self):
         """Test JSON serialization of AgentsRuntime with AgentsContent."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         content = AgentsContent(text="Test response with special chars: 中文 🎉")
         runtime = AgentsRuntime(
@@ -387,7 +387,7 @@ class TestAgentsRuntimeMessageSerialization:
 
     def test_runtime_json_deserialization_with_ai_message(self):
         """Test JSON deserialization of AgentsRuntime with AgentsContent."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         original_content = AgentsContent(text="Test response")
         original_runtime = AgentsRuntime(
@@ -413,7 +413,7 @@ class TestAgentsRuntimeMessageSerialization:
 
     def test_runtime_roundtrip_serialization(self):
         """Test complete roundtrip: object -> JSON -> object."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         content = AgentsContent(
             text="现在是2025年10月29日凌晨0点10分，差不多该休息啦～今天过得怎么样呀？（*^▽^*）"
@@ -465,7 +465,7 @@ class TestAgentsRuntimeMessageSerialization:
         This is the core regression test - the deserialized content should be
         properly restored as AgentsContent.
         """
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         content = AgentsContent(text="Test response")
         runtime = AgentsRuntime(
@@ -490,7 +490,7 @@ class TestAgentsRuntimeMessageSerialization:
 
         This tests the field_validator that converts dicts to AgentsContent objects.
         """
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.legacies.agents.types.base import AgentsContent
 
         # Use the format that AgentsContent produces
         content_dict = {

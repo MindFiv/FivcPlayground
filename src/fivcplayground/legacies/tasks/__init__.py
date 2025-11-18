@@ -51,8 +51,8 @@ __all__ = [
 
 from typing import Optional, Any
 
-from fivcplayground import agents
-from fivcplayground.tasks.types import (
+from fivcplayground.legacies import agents
+from fivcplayground.legacies.tasks.types import (
     TaskAssessment,
     TaskRequirement,
     TaskTeam,
@@ -61,7 +61,7 @@ from fivcplayground.tasks.types import (
     TaskStatus,
     TaskMonitorManager,
 )
-from fivcplayground.tools import ToolsRetriever
+from fivcplayground.legacies.tools import ToolsRetriever
 from fivcplayground.utils import (
     Runnable,
     ProxyRunnable,

@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Optional, List
 
 from fivcglue.interfaces import IComponent
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsRuntimeMeta,
     AgentsRuntime,
     AgentsRuntimeToolCall,

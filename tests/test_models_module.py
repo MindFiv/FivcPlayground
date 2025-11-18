@@ -13,13 +13,13 @@ import pytest
 from unittest.mock import patch, MagicMock
 from langchain_core.language_models import BaseChatModel
 
-from fivcplayground.models import (
+from fivcplayground.legacies.models import (
     create_default_model,
     create_chat_model,
     create_reasoning_model,
     create_coding_model,
 )
-from fivcplayground.models.backends.langchain import (
+from fivcplayground.legacies.models.backends.langchain import (
     _openai_model,
     _ollama_model,
 )
@@ -36,7 +36,7 @@ class TestModuleStructure:
 
     def test_module_exports(self):
         """Test that all expected functions are exported."""
-        from fivcplayground import models
+        from fivcplayground.legacies import models
 
         assert hasattr(models, "create_default_model")
         assert hasattr(models, "create_chat_model")
@@ -45,7 +45,7 @@ class TestModuleStructure:
 
     def test_all_exports(self):
         """Test __all__ contains expected exports."""
-        from fivcplayground.models import __all__
+        from fivcplayground.legacies.models import __all__
 
         expected = [
             "create_default_model",
@@ -57,7 +57,7 @@ class TestModuleStructure:
 
     def test_backends_module_exists(self):
         """Test that backends module is accessible."""
-        from fivcplayground.models.backends import langchain
+        from fivcplayground.legacies.models.backends import langchain
 
         assert hasattr(langchain, "_openai_model")
         assert hasattr(langchain, "_ollama_model")
@@ -175,8 +175,11 @@ class TestOllamaProvider:
 class TestCreateDefaultModel:
     """Test create_default_model factory function."""
 
-    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
-    @patch("fivcplayground.models.create_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.DEFAULT_LLM_ARGS",
+        new_callable=MagicMock,
+    )
+    @patch("fivcplayground.legacies.models.create_model")
     def test_create_default_model_with_openai(self, mock_create_model, mock_config):
         """Test create_default_model with OpenAI provider."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -193,8 +196,11 @@ class TestCreateDefaultModel:
         assert result == mock_model
         mock_create_model.assert_called_once()
 
-    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
-    @patch("fivcplayground.models.create_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.DEFAULT_LLM_ARGS",
+        new_callable=MagicMock,
+    )
+    @patch("fivcplayground.legacies.models.create_model")
     def test_create_default_model_unsupported_provider(
         self, mock_create_model, mock_config
     ):
@@ -209,8 +215,11 @@ class TestCreateDefaultModel:
         with pytest.raises(ValueError, match="Unsupported model provider"):
             create_default_model(provider="unsupported")
 
-    @patch("fivcplayground.models.settings.DEFAULT_LLM_ARGS", new_callable=MagicMock)
-    @patch("fivcplayground.models.backends.create_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.DEFAULT_LLM_ARGS",
+        new_callable=MagicMock,
+    )
+    @patch("fivcplayground.legacies.models.backends.create_model")
     def test_create_default_model_merges_settings(self, mock_create_model, mock_config):
         """Test create_default_model merges with settings."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -231,8 +240,10 @@ class TestCreateDefaultModel:
 class TestCreateChatModel:
     """Test create_chat_model factory function."""
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock
+    )
     def test_create_chat_model_calls_create_default_model(
         self, mock_config, mock_create_default
     ):
@@ -250,8 +261,10 @@ class TestCreateChatModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.CHAT_LLM_ARGS", new_callable=MagicMock
+    )
     def test_create_chat_model_uses_chat_config(self, mock_config, mock_create_default):
         """Test create_chat_model uses chat_llm_config from settings."""
         mock_model = MagicMock(spec=BaseChatModel)
@@ -268,8 +281,11 @@ class TestCreateChatModel:
 class TestCreateReasoningModel:
     """Test create_reasoning_model factory function."""
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.REASONING_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.REASONING_LLM_ARGS",
+        new_callable=MagicMock,
+    )
     def test_create_reasoning_model_calls_create_default_model(
         self, mock_config, mock_create_default
     ):
@@ -284,8 +300,11 @@ class TestCreateReasoningModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.REASONING_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.REASONING_LLM_ARGS",
+        new_callable=MagicMock,
+    )
     def test_create_reasoning_model_uses_reasoning_config(
         self, mock_config, mock_create_default
     ):
@@ -303,8 +322,11 @@ class TestCreateReasoningModel:
 class TestCreateCodingModel:
     """Test create_coding_model factory function."""
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.CODING_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.CODING_LLM_ARGS",
+        new_callable=MagicMock,
+    )
     def test_create_coding_model_calls_create_default_model(
         self, mock_config, mock_create_default
     ):
@@ -319,8 +341,11 @@ class TestCreateCodingModel:
         assert result == mock_model
         mock_create_default.assert_called_once()
 
-    @patch("fivcplayground.models.create_default_model")
-    @patch("fivcplayground.models.settings.CODING_LLM_ARGS", new_callable=MagicMock)
+    @patch("fivcplayground.legacies.models.create_default_model")
+    @patch(
+        "fivcplayground.legacies.models.settings.CODING_LLM_ARGS",
+        new_callable=MagicMock,
+    )
     def test_create_coding_model_uses_coding_config(
         self, mock_config, mock_create_default
     ):

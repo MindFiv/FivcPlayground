@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict
 
 from pydantic import BaseModel, Field
-from fivcplayground import embeddings
-from fivcplayground.tools.types.backends import (
+from fivcplayground.legacies import embeddings
+from fivcplayground.legacies.tools.types.backends import (
     Tool,
     make_tool,
     get_tool_name,

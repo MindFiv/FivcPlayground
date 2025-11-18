@@ -5,8 +5,8 @@ __all__ = [
     "create_coding_model",
 ]
 
-from fivcplayground import settings
-from fivcplayground.models.backends import (
+from fivcplayground.legacies import settings
+from fivcplayground.legacies.models.backends import (
     create_model,
     Model,
 )

@@ -8,7 +8,7 @@ import tempfile
 import pytest
 from unittest.mock import Mock
 
-from fivcplayground.settings.types import Config, ConfigSession
+from fivcplayground.legacies.settings.types import Config, ConfigSession
 from fivcglue.interfaces import IComponentSite
 
 
@@ -437,7 +437,7 @@ class TestSettingsModuleLazyValues:
 
     def test_default_llm_args_lazy_loading(self):
         """Test that DEFAULT_LLM_ARGS is lazily loaded."""
-        from fivcplayground import settings
+        from fivcplayground.legacies import settings
 
         config = settings.DEFAULT_LLM_ARGS()
         assert isinstance(config, dict)
@@ -445,7 +445,7 @@ class TestSettingsModuleLazyValues:
 
     def test_chat_llm_args_lazy_loading(self):
         """Test that CHAT_LLM_ARGS is lazily loaded."""
-        from fivcplayground import settings
+        from fivcplayground.legacies import settings
 
         config = settings.CHAT_LLM_ARGS()
         assert isinstance(config, dict)
@@ -453,7 +453,7 @@ class TestSettingsModuleLazyValues:
 
     def test_reasoning_llm_args_lazy_loading(self):
         """Test that REASONING_LLM_ARGS is lazily loaded."""
-        from fivcplayground import settings
+        from fivcplayground.legacies import settings
 
         config = settings.REASONING_LLM_ARGS()
         assert isinstance(config, dict)
@@ -461,7 +461,7 @@ class TestSettingsModuleLazyValues:
 
     def test_coding_llm_args_lazy_loading(self):
         """Test that CODING_LLM_ARGS is lazily loaded."""
-        from fivcplayground import settings
+        from fivcplayground.legacies import settings
 
         config = settings.CODING_LLM_ARGS()
         assert isinstance(config, dict)

@@ -49,8 +49,8 @@ This structure provides:
     - Cascading deletes for data consistency
 
 Example:
-    >>> from fivcplayground.agents.types.repositories.sqlite import SqliteAgentsRuntimeRepository
-    >>> from fivcplayground.agents.types import AgentsRuntimeMeta, AgentsRuntime
+    >>> from fivcplayground.legacies.agents.types.repositories.sqlite import SqliteAgentsRuntimeRepository
+    >>> from fivcplayground.legacies.agents.types import AgentsRuntimeMeta, AgentsRuntime
     >>>
     >>> # Create repository
     >>> repo = SqliteAgentsRuntimeRepository(db_path="./agents.db")
@@ -77,8 +77,8 @@ import sqlite3
 from pathlib import Path
 from typing import Optional, List
 
-from fivcplayground.agents.types import AgentsRuntimeMeta
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.legacies.agents.types import AgentsRuntimeMeta
+from fivcplayground.legacies.agents.types.repositories import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsRuntimeRepository,

@@ -11,7 +11,7 @@ execution steps, and real-time progress updates.
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from fivcplayground.tasks.types import TaskRuntime, TaskStatus
+from fivcplayground.legacies.tasks.types import TaskRuntime, TaskStatus
 
 
 class TaskMessage:

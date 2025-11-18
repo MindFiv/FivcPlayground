@@ -10,14 +10,16 @@ import tempfile
 import pytest
 from datetime import datetime
 
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsRuntimeMeta,
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
     AgentsContent,
 )
-from fivcplayground.agents.types.repositories import SqliteAgentsRuntimeRepository
+from fivcplayground.legacies.agents.types.repositories import (
+    SqliteAgentsRuntimeRepository,
+)
 
 
 @pytest.fixture

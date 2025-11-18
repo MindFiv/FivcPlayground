@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from fivcplayground.tasks.types.base import TaskRuntime, TaskRuntimeStep
+from fivcplayground.legacies.tasks.types.base import TaskRuntime, TaskRuntimeStep
 
 
 class TaskRuntimeRepository(ABC):

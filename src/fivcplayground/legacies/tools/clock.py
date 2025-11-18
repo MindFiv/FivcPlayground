@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, available_timezones
 from typing import Literal
 
-from fivcplayground.tools.types.backends import make_tool
+from fivcplayground.legacies.tools.types.backends import make_tool
 
 
 @make_tool

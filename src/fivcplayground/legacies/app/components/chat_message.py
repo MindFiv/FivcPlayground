@@ -4,7 +4,7 @@ import streamlit as st
 from pydantic import BaseModel
 from streamlit.delta_generator import DeltaGenerator
 
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     AgentsContent,
     AgentsRuntime,
     AgentsRuntimeToolCall,

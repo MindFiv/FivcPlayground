@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from fivcplayground import agents, tools
+from fivcplayground.legacies import agents, tools
 from fivcplayground.utils import OutputDir
 
 load_dotenv()
@@ -137,7 +137,9 @@ def web(
         console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
 
         # Get the path to the app module
-        app_path = os.path.join(os.path.dirname(__file__), "app", "__init__.py")
+        app_path = os.path.join(
+            os.path.dirname(__file__), "legacies", "app", "__init__.py"
+        )
 
         # Build streamlit command
         cmd = [

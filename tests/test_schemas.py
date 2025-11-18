@@ -9,7 +9,7 @@ Tests remain here but import from new location.
 import pytest
 from pydantic import ValidationError
 
-from fivcplayground.tasks.types import (
+from fivcplayground.legacies.tasks.types import (
     TaskAssessment,
     TaskRequirement,
     TaskTeam,

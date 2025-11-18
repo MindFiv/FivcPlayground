@@ -44,6 +44,7 @@ from fivcplayground.interfaces import (
     IEmbeddingDB,
     IEmbeddingDoc,
 )
+
 # Import tool implementations
 from .calculator import CalculatorToolImpl
 from .clock import ClockToolImpl

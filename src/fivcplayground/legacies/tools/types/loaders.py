@@ -2,14 +2,14 @@ import asyncio
 import os
 from typing import Optional
 
-from fivcplayground.tools.types.backends import (
+from fivcplayground.legacies.tools.types.backends import (
     ToolsBundle,
     get_tool_name,
     get_tool_description,
     set_tool_description,
 )
-from fivcplayground.tools.types.configs import ToolsConfig
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.legacies.tools.types.configs import ToolsConfig
+from fivcplayground.legacies.tools.types.retrievers import ToolsRetriever
 
 
 class ToolsLoader(object):

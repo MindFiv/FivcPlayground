@@ -11,9 +11,9 @@ The Chat class manages:
 - Agent metadata management
 
 Example:
-    >>> from fivcplayground.app.utils import Chat
-    >>> from fivcplayground import tools
-    >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+    >>> from fivcplayground.legacies.app.utils import Chat
+    >>> from fivcplayground.legacies import tools
+    >>> from fivcplayground.legacies.agents.types.repositories import FileAgentsRuntimeRepository
     >>> from fivcplayground.utils import OutputDir
     >>>
     >>> # Create chat with custom repository
@@ -40,14 +40,14 @@ from typing import Optional, Callable, List
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 
-from fivcplayground import agents, tools
-from fivcplayground.tasks import create_briefing_task
-from fivcplayground.agents.types import (
+from fivcplayground.legacies import agents, tools
+from fivcplayground.legacies.tasks import create_briefing_task
+from fivcplayground.legacies.agents.types import (
     AgentsRuntime,
     AgentsMonitorManager,
     AgentsRuntimeMeta,
 )
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.legacies.agents.types.repositories import (
     AgentsRuntimeRepository,
     SqliteAgentsRuntimeRepository,
 )
@@ -81,8 +81,8 @@ class Chat(object):
         is_running: Whether the agent is currently processing a query
 
     Example:
-        >>> from fivcplayground.app.utils import Chat
-        >>> from fivcplayground import tools
+        >>> from fivcplayground.legacies.app.utils import Chat
+        >>> from fivcplayground.legacies import tools
         >>>
         >>> # Create new chat instance
         >>> chat = Chat(tools_retriever=tools.default_retriever)
@@ -144,14 +144,14 @@ class Chat(object):
             AssertionError: If tools_retriever is None
 
         Example:
-            >>> from fivcplayground.app.utils import Chat
-            >>> from fivcplayground import tools
+            >>> from fivcplayground.legacies.app.utils import Chat
+            >>> from fivcplayground.legacies import tools
             >>>
             >>> # Create new chat with default repository
             >>> chat = Chat(tools_retriever=tools.default_retriever)
             >>>
             >>> # Resume existing chat with metadata
-            >>> from fivcplayground.agents.types import AgentsRuntimeMeta
+            >>> from fivcplayground.legacies.agents.types import AgentsRuntimeMeta
             >>> meta = AgentsRuntimeMeta(
             ...     agent_id="my-agent-123",
             ...     agent_name="My Assistant",
@@ -164,7 +164,7 @@ class Chat(object):
             ... )
             >>>
             >>> # Create with custom repository
-            >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+            >>> from fivcplayground.legacies.agents.types.repositories import FileAgentsRuntimeRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
             >>> repo = FileAgentsRuntimeRepository(
@@ -180,7 +180,9 @@ class Chat(object):
             - The agent_runtime_repo defaults to a file-based repository if not provided
             - If agent_runtime_meta is None, metadata is auto-created on first query
         """
-        from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+        from fivcplayground.legacies.agents.types.repositories import (
+            FileAgentsRuntimeRepository,
+        )
         from fivcplayground.utils import OutputDir
 
         assert tools_retriever is not None, "tools_retriever is required"
@@ -231,7 +233,7 @@ class Chat(object):
             str: The chat description, agent ID, or empty string
 
         Example:
-            >>> from fivcplayground.agents.types import AgentsRuntimeMeta
+            >>> from fivcplayground.legacies.agents.types import AgentsRuntimeMeta
             >>> meta = AgentsRuntimeMeta(
             ...     agent_id="my-agent",
             ...     description="Customer support bot"
@@ -356,8 +358,8 @@ class Chat(object):
                        Only one query can be processed at a time per Chat instance.
 
         Example:
-            >>> from fivcplayground.app.utils import Chat
-            >>> from fivcplayground import tools
+            >>> from fivcplayground.legacies.app.utils import Chat
+            >>> from fivcplayground.legacies import tools
             >>>
             >>> chat = Chat(tools_retriever=tools.default_retriever)
             >>>
@@ -496,8 +498,8 @@ class ChatManager(object):
         tools_retriever: Retriever for tool access
 
     Example:
-        >>> from fivcplayground.app.utils import ChatManager
-        >>> from fivcplayground import tools
+        >>> from fivcplayground.legacies.app.utils import ChatManager
+        >>> from fivcplayground.legacies import tools
         >>>
         >>> # Create manager with default settings
         >>> manager = ChatManager()
@@ -512,7 +514,7 @@ class ChatManager(object):
         >>> await new_chat.ask_async("Hello!")
         >>>
         >>> # Create manager with custom repository
-        >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+        >>> from fivcplayground.legacies.agents.types.repositories import FileAgentsRuntimeRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> repo = FileAgentsRuntimeRepository(
@@ -548,14 +550,14 @@ class ChatManager(object):
                             defaults to tools.default_retriever.
 
         Example:
-            >>> from fivcplayground.app.utils import ChatManager
+            >>> from fivcplayground.legacies.app.utils import ChatManager
             >>>
             >>> # Create with defaults
             >>> manager = ChatManager()
             >>>
             >>> # Create with custom settings
-            >>> from fivcplayground import tools
-            >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+            >>> from fivcplayground.legacies import tools
+            >>> from fivcplayground.legacies.agents.types.repositories import FileAgentsRuntimeRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
             >>> manager = ChatManager(

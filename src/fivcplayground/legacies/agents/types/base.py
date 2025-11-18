@@ -20,7 +20,7 @@ suitable for:
     - JSON serialization/deserialization
 
 Example:
-    >>> from fivcplayground.agents.types import (
+    >>> from fivcplayground.legacies.agents.types import (
     ...     AgentsRuntimeMeta,
     ...     AgentsRuntime,
     ...     AgentsRuntimeToolCall,

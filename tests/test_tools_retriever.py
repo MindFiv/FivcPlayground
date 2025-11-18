@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import Mock
 
 from fivcplayground import __backend__
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.legacies.tools.types.retrievers import ToolsRetriever
 
 
 def create_mock_tool(name: str, description: str):

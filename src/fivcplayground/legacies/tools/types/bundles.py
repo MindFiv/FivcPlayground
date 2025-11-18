@@ -3,7 +3,7 @@ __all__ = [
     "ToolsBundle",
 ]
 
-from fivcplayground.tools.types.backends import (
+from fivcplayground.legacies.tools.types.backends import (
     Tool,
     ToolsBundle,
 )

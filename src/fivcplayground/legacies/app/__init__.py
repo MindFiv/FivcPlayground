@@ -12,13 +12,13 @@ __all__ = [
 import streamlit as st
 import nest_asyncio
 
-from fivcplayground.tools import default_retriever
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.legacies.tools import default_retriever
+from fivcplayground.legacies.agents.types.repositories import (
     # FileAgentsRuntimeRepository,
     SqliteAgentsRuntimeRepository,
 )
-from fivcplayground.app.utils import ChatManager, default_mcp_loader
-from fivcplayground.app.views import (
+from fivcplayground.legacies.app.utils import ChatManager, default_mcp_loader
+from fivcplayground.legacies.app.views import (
     ViewNavigation,
     ChatView,
     TaskView,

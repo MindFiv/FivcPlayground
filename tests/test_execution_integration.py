@@ -8,7 +8,7 @@ Tests the complete workflow integration without requiring actual LLM calls.
 import sys
 import dotenv
 
-from fivcplayground import tasks, agents
+from fivcplayground.legacies import tasks, agents
 
 dotenv.load_dotenv()
 

@@ -13,8 +13,8 @@ allowing users to configure application-wide settings. The view handles:
 
 import streamlit as st
 
-from fivcplayground import settings
-from fivcplayground.app.views.base import ViewBase, ViewNavigation
+from fivcplayground.legacies import settings
+from fivcplayground.legacies.app.views.base import ViewBase, ViewNavigation
 
 
 class GeneralSettingView(ViewBase):

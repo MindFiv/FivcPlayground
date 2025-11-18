@@ -13,18 +13,18 @@ from contextlib import asynccontextmanager, AsyncExitStack
 from typing import AsyncGenerator, List
 
 from fivcplayground.utils import LazyValue
-from fivcplayground.tools.types import (
+from fivcplayground.legacies.tools.types import (
     ToolsRetriever,
     ToolsConfig,
     ToolsLoader,
 )
-from fivcplayground.tools.types.backends import (
+from fivcplayground.legacies.tools.types.backends import (
     Tool,
     ToolsBundle,
     get_tool_name,
 )
-from fivcplayground.tools.clock import clock
-from fivcplayground.tools.calculator import calculator
+from fivcplayground.legacies.tools.clock import clock
+from fivcplayground.legacies.tools.calculator import calculator
 
 
 def _load_retriever() -> ToolsRetriever:

@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Optional, List
 
 from fivcplayground.utils import OutputDir
-from fivcplayground.tasks.types.repositories import (
+from fivcplayground.legacies.tasks.types.repositories import (
     TaskRuntime,
     TaskRuntimeStep,
     TaskRuntimeRepository,

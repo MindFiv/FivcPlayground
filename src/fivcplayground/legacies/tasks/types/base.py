@@ -20,7 +20,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
 
-from fivcplayground.agents.types import AgentsContent
+from fivcplayground.legacies.agents.types import AgentsContent
 
 
 class TaskStatus(str, Enum):

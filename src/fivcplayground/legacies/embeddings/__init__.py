@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fivcplayground import settings, utils
-from fivcplayground.embeddings.types import (
+from fivcplayground import utils
+from fivcplayground.legacies import settings
+from fivcplayground.legacies.embeddings.types import (
     EmbeddingDB,
     EmbeddingFunction,
 )

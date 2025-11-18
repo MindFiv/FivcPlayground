@@ -16,16 +16,14 @@ __all__ = [
 from typing import cast, List
 from uuid import uuid4
 
-from fivcplayground import (
-    tools,
-    utils,
-)
-from fivcplayground.models import (
+from fivcplayground import utils
+from fivcplayground.legacies import tools
+from fivcplayground.legacies.models import (
     create_default_model,
     create_chat_model,
     create_reasoning_model,
 )
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.agents.types import (
     agents_creator,
     AgentsRunnable,
     AgentsRetriever,

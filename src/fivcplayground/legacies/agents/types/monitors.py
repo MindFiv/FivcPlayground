@@ -40,13 +40,13 @@ Key Features:
 
 from typing import Optional, List, Callable
 
-from fivcplayground.agents.types.base import (
+from fivcplayground.legacies.agents.types.base import (
     AgentsStatus,
     AgentsEvent,
     AgentsRuntime,
     AgentsRuntimeToolCall,
 )
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.legacies.agents.types.repositories import (
     AgentsRuntimeRepository,
 )
 
@@ -81,8 +81,8 @@ class AgentsMonitor(object):
         tool_calls: List of all tool calls from the runtime
 
     Usage:
-        >>> from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
-        >>> from fivcplayground import agents
+        >>> from fivcplayground.legacies.agents.types import AgentsMonitor, AgentsRuntime
+        >>> from fivcplayground.legacies import agents
         >>>
         >>> # Create monitor with optional event callback
         >>> def on_event(runtime: AgentsRuntime):
@@ -146,7 +146,7 @@ class AgentsMonitor(object):
                       Receives the complete AgentsRuntime state, allowing access to
                       streaming_text, tool_calls, and other execution metadata.
         """
-        from fivcplayground.agents.types.repositories.files import (
+        from fivcplayground.legacies.agents.types.repositories.files import (
             FileAgentsRuntimeRepository,
         )
 
@@ -270,8 +270,8 @@ class AgentsMonitorManager(object):
         to create and monitor agent executions.
 
     Usage:
-        >>> from fivcplayground.agents.types.monitors import AgentsMonitorManager
-        >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+        >>> from fivcplayground.legacies.agents.types.monitors import AgentsMonitorManager
+        >>> from fivcplayground.legacies.agents.types.repositories.files import FileAgentsRuntimeRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create manager with file-based persistence
@@ -310,7 +310,7 @@ class AgentsMonitorManager(object):
             AssertionError: If runtime_repo is None
 
         Example:
-            >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+            >>> from fivcplayground.legacies.agents.types.repositories.files import FileAgentsRuntimeRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
             >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))

@@ -12,8 +12,8 @@ Tests the ChatMessage class and its methods:
 import pytest
 from unittest.mock import Mock
 from langchain_core.messages import AIMessage
-from fivcplayground.app.components import ChatMessage
-from fivcplayground.agents.types import (
+from fivcplayground.legacies.app.components import ChatMessage
+from fivcplayground.legacies.agents.types import (
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsContent,
