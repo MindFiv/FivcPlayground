@@ -310,6 +310,127 @@ simple_value: just_a_string
             assert hasattr(config, "get_session")
             assert callable(config.get_session)
 
+    def test_settings_config_implements_isettingprovider(self, mock_component_site):
+        """Test that Config properly implements ISettingProvider interface."""
+        yaml_content = """
+default_llm:
+  provider: openai
+  model: gpt-4
+chat_llm:
+  provider: openai
+  model: gpt-4-turbo
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+            config_path = f.name
+
+        try:
+            config = Config(mock_component_site, config_path)
+
+            # Verify ISettingProvider methods exist
+            assert hasattr(config, "list_sessions")
+            assert callable(config.list_sessions)
+            assert hasattr(config, "get_config_value")
+            assert callable(config.get_config_value)
+            assert hasattr(config, "has_session")
+            assert callable(config.has_session)
+            assert hasattr(config, "get_errors")
+            assert callable(config.get_errors)
+        finally:
+            os.unlink(config_path)
+
+    def test_list_sessions(self, mock_component_site):
+        """Test Config.list_sessions() returns all session names."""
+        yaml_content = """
+default_llm:
+  provider: openai
+  model: gpt-4
+chat_llm:
+  provider: openai
+  model: gpt-4-turbo
+default_embedding:
+  provider: openai
+  model: text-embedding-3-small
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+            config_path = f.name
+
+        try:
+            config = Config(mock_component_site, config_path)
+            sessions = config.list_sessions()
+
+            assert isinstance(sessions, list)
+            assert len(sessions) == 3
+            assert "default_llm" in sessions
+            assert "chat_llm" in sessions
+            assert "default_embedding" in sessions
+        finally:
+            os.unlink(config_path)
+
+    def test_get_config_value(self, mock_component_site):
+        """Test Config.get_config_value() retrieves values by session and key."""
+        yaml_content = """
+default_llm:
+  provider: openai
+  model: gpt-4
+  temperature: 0.7
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+            config_path = f.name
+
+        try:
+            config = Config(mock_component_site, config_path)
+
+            # Test getting existing values
+            assert config.get_config_value("default_llm", "provider") == "openai"
+            assert config.get_config_value("default_llm", "model") == "gpt-4"
+            assert config.get_config_value("default_llm", "temperature") == "0.7"
+
+            # Test getting non-existent values
+            assert config.get_config_value("default_llm", "nonexistent") is None
+            assert config.get_config_value("nonexistent_session", "key") is None
+        finally:
+            os.unlink(config_path)
+
+    def test_has_session(self, mock_component_site):
+        """Test Config.has_session() checks session existence."""
+        yaml_content = """
+default_llm:
+  provider: openai
+  model: gpt-4
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(yaml_content)
+            f.flush()
+            config_path = f.name
+
+        try:
+            config = Config(mock_component_site, config_path)
+
+            # Test existing session
+            assert config.has_session("default_llm") is True
+
+            # Test non-existent session
+            assert config.has_session("nonexistent") is False
+        finally:
+            os.unlink(config_path)
+
+    def test_get_errors(self, mock_component_site):
+        """Test Config.get_errors() returns loading errors."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "nonexistent.yaml")
+            config = Config(mock_component_site, config_path)
+
+            # Should have errors from loading non-existent file
+            errors = config.get_errors()
+            assert isinstance(errors, list)
+            assert len(errors) > 0
+
 
 class TestSettingsModuleLazyValues:
     """Test lazy loading of settings module configurations."""

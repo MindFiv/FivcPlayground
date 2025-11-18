@@ -4,6 +4,57 @@ from fivcglue.interfaces import (
     IComponentSite,
     configs,
 )
+from fivcplayground.interfaces import ISetting, ISettingProvider
+
+
+class ConfigSetting(ISetting):
+    """
+    Configuration setting that implements ISetting interface.
+
+    This class wraps a configuration session and provides access to its
+    key-value pairs through the ISetting interface.
+    """
+
+    def __init__(self, name: str, session_data: dict):
+        """
+        Initialize a configuration setting.
+
+        Args:
+            name: Name of the setting (e.g., "default_llm")
+            session_data: Dictionary containing the setting's key-value pairs
+        """
+        self.name = name
+        self.session_data = session_data or {}
+
+    def get(self, key_name: str) -> str | None:
+        """
+        Get the value of a key in this setting.
+
+        Args:
+            key_name: The key to retrieve
+
+        Returns:
+            The value as a string if found, None otherwise.
+            Non-string values are converted to strings.
+        """
+        value = self.session_data.get(key_name)
+        if value is None:
+            return None
+        # Convert to string if not already
+        if isinstance(value, str):
+            return value
+        return str(value)
+
+    def list(self):
+        """
+        List all key-value pairs in this setting.
+
+        Yields:
+            Tuples of (key, value) where values are strings.
+        """
+        for key, value in self.session_data.items():
+            str_value = str(value) if not isinstance(value, str) else value
+            yield (key, str_value)
 
 
 class ConfigSession(configs.IConfigSession):
@@ -112,12 +163,32 @@ class ConfigSession(configs.IConfigSession):
         return False
 
 
-class Config(configs.IConfig):
+class Config(configs.IConfig, ISettingProvider):
     """
-    Settings configuration manager that implements the IConfig interface.
+    Settings configuration manager that implements both IConfig and ISettingProvider interfaces.
 
     This class loads configuration from YAML or JSON files and provides
-    access to configuration data through the IConfig interface (get_session).
+    access to configuration data through both the fivcglue IConfig interface
+    and the FivcPlayground ISettingsProvider interface.
+
+    Implements:
+    - configs.IConfig: fivcglue's configuration interface (get_session method)
+    - ISettingsProvider: FivcPlayground's settings provider interface (extended functionality)
+
+    The Config class supports multiple configuration file formats:
+    - YAML (.yaml, .yml)
+    - JSON (.json)
+
+    Configuration is loaded from a file specified at initialization time and cached
+    in memory. The configuration is organized hierarchically with top-level keys
+    treated as "sessions" that can be queried for individual values.
+
+    Example:
+        >>> from fivcplayground.settings import default_component_site
+        >>> from fivcplayground.interfaces import ISettingsProvider
+        >>> provider = default_component_site.get_component(ISettingsProvider)
+        >>> session = provider.get_session("default_llm")
+        >>> model = session.get_value("model")
     """
 
     def __init__(
@@ -210,3 +281,106 @@ class Config(configs.IConfig):
             session_data = {"value": session_data}
 
         return ConfigSession(session_name, session_data)
+
+    # ISettingsProvider interface methods
+
+    def list_sessions(self) -> list[str]:
+        """
+        List all available configuration sessions.
+
+        Returns the names of all top-level configuration keys that can be used as sessions.
+
+        Returns:
+            A list of session names. Returns an empty list if no sessions are available.
+        """
+        return list(self.configs.keys())
+
+    def get_config_value(self, session_name: str, key_name: str) -> str | None:
+        """
+        Get a configuration value by session and key.
+
+        Convenience method to retrieve a single configuration value without creating
+        a session object.
+
+        Args:
+            session_name: Name of the configuration session
+            key_name: Name of the configuration key within the session
+
+        Returns:
+            The configuration value as a string if found, None otherwise.
+        """
+        session = self.get_session(session_name)
+        if session is None:
+            return None
+        return session.get_value(key_name)
+
+    def has_session(self, session_name: str) -> bool:
+        """
+        Check if a configuration session exists.
+
+        Args:
+            session_name: Name of the configuration session to check
+
+        Returns:
+            True if the session exists, False otherwise.
+        """
+        return session_name in self.configs
+
+    def get_errors(self) -> list[Exception]:
+        """
+        Get list of errors encountered during configuration loading.
+
+        Returns:
+            A list of Exception objects. Returns an empty list if no errors occurred.
+        """
+        return self.errors
+
+    # ISettingsProvider interface methods (new)
+
+    def get_setting(
+        self,
+        name: str,
+        user_id: str | None,
+        **kwargs,
+    ) -> ISetting | None:
+        """
+        Get a setting by name (ISettingsProvider interface method).
+
+        Args:
+            name: Name of the setting to retrieve
+            user_id: Optional user ID for multi-user support (currently not used for file-based settings)
+            **kwargs: Additional configuration parameters
+
+        Returns:
+            A ConfigSetting instance if the setting exists, None otherwise
+        """
+        setting_data = self.configs.get(name)
+        if setting_data is None:
+            return None
+
+        # Ensure setting_data is a dict
+        if not isinstance(setting_data, dict):
+            # If it's not a dict, wrap it in a dict with a "value" key
+            setting_data = {"value": setting_data}
+
+        return ConfigSetting(name, setting_data)
+
+    def list_settings(
+        self,
+        user_id: str | None,
+        **kwargs,
+    ):
+        """
+        List all available settings (ISettingsProvider interface method).
+
+        Args:
+            user_id: Optional user ID for multi-user support (currently not used for file-based settings)
+            **kwargs: Additional configuration parameters
+
+        Yields:
+            ISetting instances for all settings in the configuration
+        """
+        for name in self.configs.keys():
+            setting = self.get_setting(name, user_id)
+            if setting is not None:
+                yield setting

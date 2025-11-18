@@ -6,6 +6,7 @@ __all__ = [
     "CODING_LLM_ARGS",
     "Config",
     "ConfigSession",
+    "ConfigSetting",
 ]
 
 import os
@@ -22,13 +23,24 @@ from fivcplayground.utils import (
     DefaultKwargs,
     LazyValue,
 )
-from fivcplayground.settings.types import Config, ConfigSession
+from fivcplayground.interfaces import ISettingProvider, IEmbeddingDBProvider
+from fivcplayground.settings.types import Config, ConfigSession, ConfigSetting
+from fivcplayground.implements import EmbeddingsProviderImpl
 
 
 def _load_component_site() -> IComponentSite:
     """Load and initialize the default component site.
 
-    This creates a ComponentSite and registers the default settings config.
+    This creates a ComponentSite and registers the default settings config and providers.
+
+    The Config implementation is registered for both:
+    - configs.IConfig (fivcglue's configuration interface)
+    - ISettingProvider (FivcPlayground's settings provider interface)
+
+    The EmbeddingsProviderImpl is registered for:
+    - IEmbeddingProvider (FivcPlayground's embeddings provider interface)
+
+    This enables backward compatibility while supporting the new interface-based architecture.
     """
 
     site = ComponentSite()
@@ -38,7 +50,14 @@ def _load_component_site() -> IComponentSite:
     config_file = os.path.abspath(config_file)
     config_impl = Config(site, config_file=config_file)
 
+    # Register with both interfaces for backward compatibility and new architecture
     site.register_component(configs.IConfig, config_impl)
+    site.register_component(ISettingProvider, config_impl)
+
+    # Register embeddings provider
+    embeddings_provider = EmbeddingsProviderImpl(site)
+    site.register_component(IEmbeddingDBProvider, embeddings_provider)
+
     return site
 
 
