@@ -10,6 +10,7 @@ Modules:
     models_langchain: LangChain model implementations for LLM model management
     tools_strands: Strands tool implementations for tool management
     tools_langchain: LangChain tool implementations for tool management
+    agents_strands: Strands agent implementations for agent management
     embeddings_chroma: ChromaDB-based embeddings implementations
 """
 
@@ -18,22 +19,28 @@ __all__ = [
     "SettingImpl",
     "ModelProviderImpl",
     "ModelImpl",
+    "ModelProviderImplLangChain",
+    "ModelImplLangChain",
     "ToolImpl",
-    "ToolRetrieverImpl",
-    "ToolRetrieverProviderImpl",
+    "ToolProviderImpl",
     "ToolImplLangChain",
-    "ToolRetrieverImplLangChain",
-    "ToolRetrieverProviderImplLangChain",
+    "ToolProviderImplLangChain",
+    "AgentImpl",
+    "AgentProviderImpl",
     "EmbeddingsImpl",
     "EmbeddingsProviderImpl",
 ]
 
 from .settings_file import SettingProviderImpl, SettingImpl
 from .models_strands import ModelProviderImpl, ModelImpl
-from .tools_strands import ToolImpl, ToolRetrieverImpl, ToolRetrieverProviderImpl
+from .models_langchain import (
+    ModelProviderImpl as ModelProviderImplLangChain,
+    ModelImpl as ModelImplLangChain,
+)
+from .tools_strands import ToolImpl, ToolProviderImpl
 from .tools_langchain import (
     ToolImpl as ToolImplLangChain,
-    ToolRetrieverImpl as ToolRetrieverImplLangChain,
-    ToolRetrieverProviderImpl as ToolRetrieverProviderImplLangChain,
+    ToolProviderImpl as ToolProviderImplLangChain,
 )
+from .agents_strands import AgentImpl, AgentProviderImpl
 from .embeddings_chroma import EmbeddingsImpl, EmbeddingsProviderImpl

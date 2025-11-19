@@ -11,7 +11,13 @@ import pytest
 
 from fivcglue.implements.utils import ComponentSite
 from fivcplayground.implements import ModelImpl, ModelProviderImpl
-from fivcplayground.interfaces import IModel, IModelProvider, ISetting, ISettingProvider
+from fivcplayground.interfaces import (
+    IModel,
+    IModelProvider,
+    ISetting,
+    ISettingProvider,
+    ModelConfig,
+)
 
 
 @pytest.fixture
@@ -56,6 +62,23 @@ class TestModelImpl:
         model = ModelImpl("chat_llm", provider="openai", model="gpt-4o-mini")
 
         assert model.name == "chat_llm"
+
+    def test_config_property(self):
+        """Test config property returns ModelConfig."""
+        model = ModelImpl(
+            "default_llm",
+            provider="openai",
+            model="gpt-4o-mini",
+            api_key="sk-test",
+            temperature=0.7,
+        )
+
+        config = model.config
+        assert isinstance(config, ModelConfig)
+        assert config.provider == "openai"
+        assert config.model == "gpt-4o-mini"
+        assert config.api_key == "sk-test"
+        assert config.temperature == 0.7
 
     def test_get_underlying_lazy_loading(self):
         """Test get_underlying creates model on first call."""

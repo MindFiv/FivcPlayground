@@ -1,18 +1,33 @@
 from abc import abstractmethod
 from typing import Iterable, Any, Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fivcglue.interfaces import IComponent
 
 
-class IEmbeddingDoc(BaseModel):
+class EmbeddingConfig(BaseModel):
+    """Configuration for an embedding database."""
+
+    provider: str = Field(default="openai", description="Embedding provider")
+    model: str = Field(default="text-embedding-v3", description="Model name")
+    api_key: str | None = Field(
+        default=None,
+        description="API key for the embedding provider",
+    )
+    base_url: str = Field(
+        default="https://api.openai.com/v1",
+        description="Base URL for the embedding provider",
+    )
+
+
+class EmbeddingDoc(BaseModel):
     """Document for embedding."""
 
     text: str
     metadata: Optional[dict] = None
 
 
-class IEmbeddingResult(IEmbeddingDoc):
+class EmbeddingResult(EmbeddingDoc):
     """Search result with score."""
 
     id: Optional[str] = None
@@ -27,12 +42,17 @@ class IEmbeddingDB(IComponent):
     def name(self) -> str:
         """Name of the embedding database."""
 
+    @property
     @abstractmethod
-    def add_document(self, doc: IEmbeddingDoc) -> List[IEmbeddingResult]:
+    def config(self) -> EmbeddingConfig:
+        """Configuration of the embedding database."""
+
+    @abstractmethod
+    def add_document(self, doc: EmbeddingDoc) -> List[EmbeddingResult]:
         """Add a document to the embedding database."""
 
     @abstractmethod
-    def get_document(self, doc_id: str) -> IEmbeddingResult | None:
+    def get_document(self, doc_id: str) -> EmbeddingResult | None:
         """Get a document from the embedding database."""
 
     @abstractmethod
@@ -50,7 +70,7 @@ class IEmbeddingDB(IComponent):
     @abstractmethod
     def search_documents(
         self, query: str, num_documents: int = 10
-    ) -> Iterable[IEmbeddingResult]:
+    ) -> Iterable[EmbeddingResult]:
         """Search the embedding database."""
 
 

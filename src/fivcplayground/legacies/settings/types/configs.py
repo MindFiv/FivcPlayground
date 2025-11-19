@@ -23,8 +23,13 @@ class ConfigSetting(ISetting):
             name: Name of the setting (e.g., "default_llm")
             session_data: Dictionary containing the setting's key-value pairs
         """
-        self.name = name
+        self._name = name
         self.session_data = session_data or {}
+
+    @property
+    def name(self) -> str:
+        """Get the name of the setting."""
+        return self._name
 
     def get(self, key_name: str) -> str | None:
         """

@@ -1,7 +1,7 @@
 """
 Tests for tool implementations.
 
-Tests the ToolImpl and ToolRetrieverImpl classes from
+Tests the ToolImpl and ToolProviderImpl classes from
 fivcplayground.implements.tools_strands module.
 """
 
@@ -10,15 +10,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from fivcglue.implements.utils import ComponentSite
-from fivcplayground.implements import ToolImpl, ToolRetrieverImpl
+from fivcplayground.implements import ToolImpl, ToolProviderImpl
 from fivcplayground.interfaces import (
     ITool,
-    IToolRetriever,
+    IToolProvider,
     ISetting,
     ISettingProvider,
     IEmbeddingDBProvider,
     IEmbeddingDB,
-    IEmbeddingResult,
+    EmbeddingResult,
 )
 
 
@@ -110,117 +110,220 @@ class TestToolImpl:
         assert isinstance(tool, ITool)
 
 
-class TestToolRetrieverImpl:
-    """Tests for ToolRetrieverImpl class."""
+class TestToolProviderImpl:
+    """Tests for ToolProviderImpl class."""
 
-    def test_init(self, mock_setting):
-        """Test ToolRetrieverImpl initialization."""
+    def test_init(self, mock_component_site, mock_setting):
+        """Test ToolProviderImpl initialization."""
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
+
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
         mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
 
-        assert retriever._embedding is mock_embedding
-        assert retriever._settings == {"calculator": mock_setting}
-        assert retriever._tools_cache == {}
+        provider = ToolProviderImpl(mock_component_site)
 
-    def test_implements_itoolretriever(self, mock_setting):
-        """Test that ToolRetrieverImpl implements IToolRetriever interface."""
+        assert provider._embedding is mock_embedding
+        assert provider._settings == {"calculator": mock_setting}
+        assert provider._tools_cache == {}
+
+    def test_implements_itoolprovider(self, mock_component_site, mock_setting):
+        """Test that ToolProviderImpl implements IToolProvider interface."""
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
+
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
         mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        assert isinstance(retriever, IToolRetriever)
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
 
-    def test_get_tool_existing(self, mock_setting):
+        provider = ToolProviderImpl(mock_component_site)
+        assert isinstance(provider, IToolProvider)
+
+    def test_get_tool_existing(self, mock_component_site, mock_setting):
         """Test getting an existing tool."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tool = retriever.get_tool("calculator")
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tool = provider.get_tool("calculator")
 
         assert tool is not None
         assert tool.name == "calculator"
         assert tool.description == "Perform mathematical calculations"
 
-    def test_get_tool_nonexistent(self, mock_setting):
+    def test_get_tool_nonexistent(self, mock_component_site, mock_setting):
         """Test getting a non-existent tool returns None."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tool = retriever.get_tool("nonexistent")
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tool = provider.get_tool("nonexistent")
 
         assert tool is None
 
-    def test_get_tool_caching(self, mock_setting):
+    def test_get_tool_caching(self, mock_component_site, mock_setting):
         """Test that ToolImpl instances are cached after first retrieval."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
 
         # First call
-        tool1 = retriever.get_tool("calculator")
+        tool1 = provider.get_tool("calculator")
         # Second call
-        tool2 = retriever.get_tool("calculator")
+        tool2 = provider.get_tool("calculator")
 
         # Should be the same cached ToolImpl instance
         assert tool1 is tool2
 
-    def test_get_tool_with_kwargs_override(self, mock_setting):
+    def test_get_tool_with_kwargs_override(self, mock_component_site, mock_setting):
         """Test that kwargs override setting values."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        settings = [mock_setting]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tool = retriever.get_tool("calculator", description="Override description")
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tool = provider.get_tool("calculator", description="Override description")
 
         # Verify description was overridden
         assert tool.description == "Override description"
         assert tool.name == "calculator"
 
-    def test_get_tool_creation_error_value_error(self, mock_setting):
+    def test_get_tool_creation_error_value_error(
+        self, mock_component_site, mock_setting
+    ):
         """Test that ValueError in configuration is raised."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
         # Simulate ValueError in setting.list()
         mock_setting.list.side_effect = ValueError("Invalid setting")
-        settings = [mock_setting]
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
 
         with pytest.raises(ValueError, match="Invalid setting"):
-            retriever.get_tool("calculator")
+            provider.get_tool("calculator")
 
-    def test_get_tool_creation_error_type_error(self, mock_setting):
+    def test_get_tool_creation_error_type_error(
+        self, mock_component_site, mock_setting
+    ):
         """Test that TypeError in configuration is raised."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
         # Simulate TypeError in setting.list()
         mock_setting.list.side_effect = TypeError("Invalid type")
-        settings = [mock_setting]
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
 
         with pytest.raises(TypeError, match="Invalid type"):
-            retriever.get_tool("calculator")
+            provider.get_tool("calculator")
 
-    def test_get_tool_creation_error_attribute_error(self, mock_setting):
+    def test_get_tool_creation_error_attribute_error(
+        self, mock_component_site, mock_setting
+    ):
         """Test that AttributeError in configuration is raised."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
         # Simulate AttributeError in setting.list()
         mock_setting.list.side_effect = AttributeError("Missing attribute")
-        settings = [mock_setting]
+        mock_setting_provider.list_settings.return_value = [mock_setting]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
 
         with pytest.raises(AttributeError, match="Missing attribute"):
-            retriever.get_tool("calculator")
+            provider.get_tool("calculator")
 
-    def test_list_tools_all(self):
+    def test_list_tools_all(self, mock_component_site):
         """Test listing all available tools."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-
         # Create multiple mock settings
         setting1 = MagicMock(spec=ISetting)
         setting1.name = "calculator"
@@ -236,19 +339,29 @@ class TestToolRetrieverImpl:
             ("description", "Weather tool"),
         ]
 
-        settings = [setting1, setting2]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1, setting2]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.list_tools())
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.list_tools())
 
         assert len(tools) == 2
         assert tools[0].name == "calculator"
         assert tools[1].name == "weather"
 
-    def test_list_tools_with_names(self):
+    def test_list_tools_with_names(self, mock_component_site):
         """Test listing specific tools by name."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-
         setting1 = MagicMock(spec=ISetting)
         setting1.name = "calculator"
         setting1.list.return_value = [
@@ -263,20 +376,30 @@ class TestToolRetrieverImpl:
             ("description", "Weather tool"),
         ]
 
-        settings = [setting1, setting2]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1, setting2]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.list_tools(names=["calculator", "weather"]))
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.list_tools(names=["calculator", "weather"]))
 
         assert len(tools) == 2
         tool_names = [t.name for t in tools]
         assert "calculator" in tool_names
         assert "weather" in tool_names
 
-    def test_list_tools_with_partial_failures(self):
+    def test_list_tools_with_partial_failures(self, mock_component_site):
         """Test that list_tools returns successfully configured tools."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-
         setting1 = MagicMock(spec=ISetting)
         setting1.name = "calculator"
         setting1.list.return_value = [
@@ -291,17 +414,29 @@ class TestToolRetrieverImpl:
             ("description", "Weather tool"),
         ]
 
-        settings = [setting1, setting2]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1, setting2]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.list_tools())
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.list_tools())
 
         # Both tools should be returned
         assert len(tools) == 2
         assert tools[0].name == "calculator"
         assert tools[1].name == "weather"
 
-    def test_search_tools_with_embeddings(self, mock_embedding):
+    def test_search_tools_with_embeddings(self, mock_component_site):
         """Test semantic search using embeddings."""
         # Setup settings
         setting1 = MagicMock(spec=ISetting)
@@ -318,17 +453,28 @@ class TestToolRetrieverImpl:
             ("description", "Get weather information"),
         ]
 
-        settings = [setting1, setting2]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1, setting2]
 
         # Setup embedding search results
-        result1 = MagicMock(spec=IEmbeddingResult)
+        result1 = MagicMock(spec=EmbeddingResult)
         result1.metadata = {"tool_name": "calculator"}
         result1.score = 0.9
 
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
         mock_embedding.search_documents.return_value = [result1]
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.search_tools("math"))
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.search_tools(query="math"))
 
         # Verify search was performed
         mock_embedding.search_documents.assert_called_once_with(
@@ -339,12 +485,8 @@ class TestToolRetrieverImpl:
         assert len(tools) == 1
         assert tools[0].name == "calculator"
 
-    def test_search_tools_fallback_to_keyword_search(self):
+    def test_search_tools_fallback_to_keyword_search(self, mock_component_site):
         """Test fallback to keyword search when embeddings are not available."""
-        # Create embedding that returns no results (simulating no embeddings)
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        mock_embedding.search_documents.return_value = []
-
         # Setup settings
         setting1 = MagicMock(spec=ISetting)
         setting1.name = "calculator"
@@ -360,20 +502,31 @@ class TestToolRetrieverImpl:
             ("description", "Get weather information"),
         ]
 
-        settings = [setting1, setting2]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1, setting2]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.search_tools("math"))
+        # Create embedding that returns no results (simulating no embeddings)
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding.search_documents.return_value = []
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.search_tools(query="math"))
 
         # Verify keyword search found the tool
         assert len(tools) == 1
         assert tools[0].name == "calculator"
 
-    def test_search_tools_keyword_search_case_insensitive(self):
+    def test_search_tools_keyword_search_case_insensitive(self, mock_component_site):
         """Test keyword search is case-insensitive."""
-        mock_embedding = MagicMock(spec=IEmbeddingDB)
-        mock_embedding.search_documents.return_value = []
-
         setting1 = MagicMock(spec=ISetting)
         setting1.name = "calculator"
         setting1.list.return_value = [
@@ -381,10 +534,23 @@ class TestToolRetrieverImpl:
             ("description", "Perform mathematical calculations"),
         ]
 
-        settings = [setting1]
+        mock_setting_provider = MagicMock(spec=ISettingProvider)
+        mock_setting_provider.list_settings.return_value = [setting1]
 
-        retriever = ToolRetrieverImpl(mock_embedding, settings)
-        tools = list(retriever.search_tools("MATH"))
+        mock_embedding_provider = MagicMock(spec=IEmbeddingDBProvider)
+        mock_embedding = MagicMock(spec=IEmbeddingDB)
+        mock_embedding.search_documents.return_value = []
+        mock_embedding_provider.get_embedding_db.return_value = mock_embedding
+
+        mock_component_site.register_component(
+            ISettingProvider, mock_setting_provider, "tools"
+        )
+        mock_component_site.register_component(
+            IEmbeddingDBProvider, mock_embedding_provider, "embeddings"
+        )
+
+        provider = ToolProviderImpl(mock_component_site)
+        tools = list(provider.search_tools(query="MATH"))
 
         # Verify case-insensitive search found the tool
         assert len(tools) == 1

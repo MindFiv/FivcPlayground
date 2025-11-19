@@ -1,14 +1,13 @@
 """
 Tool implementations for FivcPlayground using Strands framework.
 
-This module provides implementations of ITool, IToolRetriever, and IToolRetrieverProvider
+This module provides implementations of ITool, IToolProvider, and related
 interfaces, enabling flexible tool creation and management through the component architecture.
 
 Classes:
     ToolImpl: Implementation of ITool interface for Strands tools
     ToolBundleImpl: Implementation of IToolBundle interface for tool bundles
-    ToolRetrieverImpl: Implementation of IToolRetriever interface for tool retrieval from embeddings and settings
-    ToolRetrieverProviderImpl: Implementation of IToolRetrieverProvider interface for creating tool retrievers
+    ToolProviderImpl: Implementation of IToolProvider interface for tool retrieval from embeddings and settings
     CalculatorToolImpl: Implementation of ITool interface for calculator tool
     ClockToolImpl: Implementation of ITool interface for clock tool
 """
@@ -16,8 +15,7 @@ Classes:
 __all__ = [
     "ToolImpl",
     "ToolBundleImpl",
-    "ToolRetrieverImpl",
-    "ToolRetrieverProviderImpl",
+    "ToolProviderImpl",
     "CalculatorToolImpl",
     "ClockToolImpl",
 ]
@@ -36,13 +34,12 @@ from strands.tools.mcp import MCPClient
 from fivcplayground.interfaces import (
     ITool,
     IToolBundle,
-    IToolRetriever,
-    IToolRetrieverProvider,
-    ISetting,
+    IToolProvider,
+    # ISetting,
     ISettingProvider,
     IEmbeddingDBProvider,
-    IEmbeddingDB,
-    IEmbeddingDoc,
+    # IEmbeddingDB,
+    EmbeddingDoc,
 )
 
 # Import tool implementations
@@ -264,9 +261,9 @@ class ToolBundleImpl(IToolBundle):
         return tool.tool_spec.get("description") or ""
 
 
-class ToolRetrieverImpl(IToolRetriever):
+class ToolProviderImpl(IToolProvider):
     """
-    Implementation of IToolRetriever interface for MCP server tool bundles.
+    Implementation of IToolProvider interface for MCP server tool bundles.
 
     This class provides access to tool bundles from MCP servers configured in settings.
     Each setting represents an MCP server configuration. The retriever creates ToolBundleImpl
@@ -277,8 +274,12 @@ class ToolRetrieverImpl(IToolRetriever):
     The embedding is used for semantic search over tool bundles.
 
     Example:
-        >>> retriever = ToolRetrieverImpl(embedding, settings)
-        >>> bundle = retriever.get_tool("weather_server")
+        >>> from fivcglue.implements.utils import ComponentSite
+        >>> from fivcplayground.interfaces import ISettingProvider, IEmbeddingDBProvider
+        >>> site = ComponentSite()
+        >>> # Register providers...
+        >>> provider = ToolProviderImpl(site)
+        >>> bundle = provider.get_tool("weather_server")
         >>> if bundle:
         ...     print(f"Bundle: {bundle.name}")
         ...     async with bundle.setup_async() as tools:
@@ -288,19 +289,58 @@ class ToolRetrieverImpl(IToolRetriever):
 
     def __init__(
         self,
-        embedding: IEmbeddingDB,
-        settings: List[ISetting],
+        component_site: IComponentSite,
         **kwargs: Any,
     ):
         """
-        Initialize the tool retriever.
+        Initialize the tool provider.
 
         Args:
-            embedding: An IEmbeddingDB instance for semantic search
-            settings: A list of ISetting instances containing tool configurations
+            component_site: An IComponentSite instance for component registration and resolution
             **kwargs: Additional keyword arguments (unused, for compatibility)
         """
-        self._embedding = embedding
+        # Try to get named setting provider first, fall back to default
+        self._setting_provider = query_component(
+            component_site,
+            ISettingProvider,
+            "tools",
+        )
+        if self._setting_provider is None:
+            self._setting_provider = query_component(
+                component_site,
+                ISettingProvider,
+            )
+
+        # Try to get named embedding provider first, fall back to default
+        self._embedding_provider = query_component(
+            component_site,
+            IEmbeddingDBProvider,
+            "embeddings",
+        )
+        if self._embedding_provider is None:
+            self._embedding_provider = query_component(
+                component_site,
+                IEmbeddingDBProvider,
+            )
+
+        # Retrieve embeddings and settings
+        self._embedding = None
+        if self._embedding_provider is not None:
+            self._embedding = self._embedding_provider.get_embedding_db(
+                "tools",
+                user_id=None,
+                **kwargs,
+            )
+
+        settings = []
+        if self._setting_provider is not None:
+            settings = list(
+                self._setting_provider.list_settings(
+                    user_id=None,
+                    **kwargs,
+                )
+            )
+
         self._settings = {s.name: s for s in settings}  # Index settings by name
         self._tools_cache = {}  # Cache for created tools
         self._tools_indexed = False  # Track if tools have been indexed in embeddings
@@ -313,7 +353,7 @@ class ToolRetrieverImpl(IToolRetriever):
         # Get all tools and index them
         for tool in self.list_tools():
             self._embedding.add_document(
-                IEmbeddingDoc(
+                EmbeddingDoc(
                     text=f"{tool.name}: {tool.description}",
                     metadata={"tool_name": tool.name},
                 )
@@ -375,6 +415,7 @@ class ToolRetrieverImpl(IToolRetriever):
 
     def list_tools(
         self,
+        user_id: str | None = None,
         names: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Iterable[ITool]:
@@ -382,6 +423,7 @@ class ToolRetrieverImpl(IToolRetriever):
         List all tool bundles or specific bundles by name.
 
         Args:
+            user_id: Optional user ID for multi-user support (unused in this implementation)
             names: Optional list of MCP server names to retrieve. If None, returns all bundles.
             **kwargs: Additional keyword arguments (unused)
 
@@ -404,6 +446,7 @@ class ToolRetrieverImpl(IToolRetriever):
     def search_tools(
         self,
         query: str,
+        user_id: str | None = None,
         **kwargs: Any,
     ) -> Iterable[ITool]:
         """
@@ -414,6 +457,7 @@ class ToolRetrieverImpl(IToolRetriever):
         names and descriptions.
 
         Args:
+            user_id: Optional user ID for multi-user support (unused in this implementation)
             query: The search query string
             **kwargs: Additional keyword arguments (unused)
 
@@ -449,48 +493,3 @@ class ToolRetrieverImpl(IToolRetriever):
             tool = self.get_tool(tool_name)
             if tool is not None:
                 yield tool
-
-
-class ToolRetrieverProviderImpl(IToolRetrieverProvider):
-    """
-    Implementation of IToolRetrieverProvider interface.
-    """
-
-    def __init__(self, component_site: IComponentSite, **kwargs: Any):
-        """
-        Initialize the tool retriever provider.
-
-        Args:
-            component_site: An IComponentSite instance for component registration
-            **kwargs: Additional keyword arguments (unused, for compatibility)
-        """
-        self._setting_provider = query_component(
-            component_site,
-            ISettingProvider,
-            "tools",
-        )
-        self._embedding_provider = query_component(
-            component_site,
-            IEmbeddingDBProvider,
-            "embeddings",
-        )
-
-    def get_retriever(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> IToolRetriever | None:
-        settings = self._setting_provider.list_settings(
-            user_id=user_id,
-            **kwargs,
-        )
-        settings = list(s for s in settings)
-        embeddings = self._embedding_provider.get_embedding_db(
-            "tools",
-            user_id=user_id,
-            **kwargs,
-        )
-        if not embeddings or not settings:
-            return None
-
-        return ToolRetrieverImpl(embeddings, settings, **kwargs)

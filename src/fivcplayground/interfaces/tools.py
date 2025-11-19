@@ -42,12 +42,13 @@ class IToolBundle(ITool):
         raise NotImplementedError("IToolBundle.get_underlying not implemented")
 
 
-class IToolRetriever(IComponent):
+class IToolProvider(IComponent):
     """Interface for tools storage and retrieval."""
 
     @abstractmethod
     def list_tools(
         self,
+        user_id: str | None = None,
         names: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Iterable[ITool]:
@@ -65,18 +66,7 @@ class IToolRetriever(IComponent):
     def search_tools(
         self,
         query: str,
+        user_id: str | None = None,
         **kwargs: Any,
     ) -> Iterable[ITool]:
         """Search for tools."""
-
-
-class IToolRetrieverProvider(IComponent):
-    """Interface for tool retriever creation."""
-
-    @abstractmethod
-    def get_retriever(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> IToolRetriever | None:
-        """Get the tool retriever."""

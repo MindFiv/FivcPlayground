@@ -23,9 +23,14 @@ from fivcplayground.utils import (
     DefaultKwargs,
     LazyValue,
 )
-from fivcplayground.interfaces import ISettingProvider, IEmbeddingDBProvider
+from fivcplayground.interfaces import (
+    ISettingProvider,
+    IEmbeddingDBProvider,
+    IModelProvider,
+    IToolProvider,
+    IAgentProvider,
+)
 from fivcplayground.legacies.settings.types import Config, ConfigSession, ConfigSetting
-from fivcplayground.implements import EmbeddingsProviderImpl
 
 
 def _load_component_site() -> IComponentSite:
@@ -37,11 +42,21 @@ def _load_component_site() -> IComponentSite:
     - configs.IConfig (fivcglue's configuration interface)
     - ISettingProvider (FivcPlayground's settings provider interface)
 
-    The EmbeddingsProviderImpl is registered for:
-    - IEmbeddingProvider (FivcPlayground's embeddings provider interface)
+    The following providers are registered:
+    - EmbeddingsProviderImpl for IEmbeddingDBProvider
+    - ModelProviderImpl for IModelProvider
+    - ToolProviderImpl for IToolProvider
+    - AgentProviderImpl for IAgentProvider
 
     This enables backward compatibility while supporting the new interface-based architecture.
     """
+    # Import here to avoid circular imports
+    from fivcplayground.implements import (
+        EmbeddingsProviderImpl,
+        ModelProviderImpl,
+        ToolProviderImpl,
+        AgentProviderImpl,
+    )
 
     site = ComponentSite()
 
@@ -57,6 +72,18 @@ def _load_component_site() -> IComponentSite:
     # Register embeddings provider
     embeddings_provider = EmbeddingsProviderImpl(site)
     site.register_component(IEmbeddingDBProvider, embeddings_provider)
+
+    # Register model provider
+    model_provider = ModelProviderImpl(site)
+    site.register_component(IModelProvider, model_provider)
+
+    # Register tool provider
+    tool_provider = ToolProviderImpl(site)
+    site.register_component(IToolProvider, tool_provider)
+
+    # Register agent provider
+    agent_provider = AgentProviderImpl(site)
+    site.register_component(IAgentProvider, agent_provider)
 
     return site
 

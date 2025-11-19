@@ -14,7 +14,12 @@ from typing import Any, Iterable
 from fivcglue import IComponentSite
 from fivcglue.interfaces.utils import query_component
 
-from fivcplayground.interfaces import IModel, IModelProvider, ISettingProvider
+from fivcplayground.interfaces import (
+    IModel,
+    IModelProvider,
+    ISettingProvider,
+    ModelConfig,
+)
 
 
 def _openai_model(
@@ -139,6 +144,16 @@ class ModelImpl(IModel):
         """Get the name of the model."""
         return self._name
 
+    @property
+    def config(self) -> ModelConfig:
+        """
+        Get the model configuration.
+
+        Returns:
+            ModelConfig instance with provider, model, api_key, base_url, and temperature.
+        """
+        return ModelConfig(**self._config)
+
     def get_underlying(self) -> Any:
         """
         Get the underlying model object with lazy loading.
@@ -197,12 +212,12 @@ class ModelProviderImpl(IModelProvider):
         """
         self._models_cache = {}  # Cache for created models
         self._component_site = component_site
+        # Try to get named setting provider first, fall back to default
         self._setting_provider = query_component(
             component_site, ISettingProvider, "models"
         )
-
         if self._setting_provider is None:
-            raise ValueError("No setting provider found")
+            self._setting_provider = query_component(component_site, ISettingProvider)
 
     def get_model(
         self,

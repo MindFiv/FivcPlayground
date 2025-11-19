@@ -1,11 +1,12 @@
 """
 LangChain model implementations for FivcPlayground.
 
-This module provides implementations of IModel and IModelProvider interfaces,
-enabling flexible LangChain model creation and management through the component architecture.
+This module provides implementations of IModel and IModelProvider interfaces
+using LangChain as the backend, enabling flexible model creation and management
+through the component architecture.
 
 Classes:
-    ModelImpl: Implementation of IModel interface for LangChain models
+    ModelImpl: Implementation of IModel interface for LangChain LLM models
     ModelProviderImpl: Implementation of IModelProvider interface for model creation
 """
 
@@ -14,7 +15,12 @@ from typing import Any, Iterable
 from fivcglue import IComponentSite
 from fivcglue.interfaces.utils import query_component
 
-from fivcplayground.interfaces import IModel, IModelProvider, ISettingProvider
+from fivcplayground.interfaces import (
+    IModel,
+    IModelProvider,
+    ISettingProvider,
+    ModelConfig,
+)
 
 
 def _openai_model(
@@ -54,17 +60,15 @@ def _ollama_model(
     model: str = "llama2",
     base_url: str = "http://localhost:11434",
     temperature: float = 0.5,
-    reasoning: bool = False,
     **kwargs,
 ) -> Any:
     """
-    Create a ChatOllama model instance.
+    Create an Ollama model instance.
 
     Args:
         model: Model name (e.g., "llama2", "mistral")
         base_url: Ollama server URL (default: http://localhost:11434)
         temperature: Temperature for sampling (0-2)
-        reasoning: Whether to enable reasoning mode
         **kwargs: Additional arguments (ignored)
 
     Returns:
@@ -76,7 +80,6 @@ def _ollama_model(
         model=model,
         base_url=base_url,
         temperature=temperature,
-        reasoning=reasoning,
     )
 
 
@@ -106,9 +109,9 @@ def _create_model(provider: str = "openai", **kwargs: Any) -> Any:
 
 class ModelImpl(IModel):
     """
-    Implementation of IModel interface with lazy loading support for LangChain models.
+    Implementation of IModel interface with lazy loading support for LangChain.
 
-    This class represents a single LangChain model instance with metadata and
+    This class represents a single LangChain LLM model instance with metadata and
     lazy-loaded access to the underlying model object. The actual model
     instantiation is deferred until get_underlying() is first called.
 
@@ -138,6 +141,16 @@ class ModelImpl(IModel):
         """Get the name of the model."""
         return self._name
 
+    @property
+    def config(self) -> ModelConfig:
+        """
+        Get the model configuration.
+
+        Returns:
+            ModelConfig instance with provider, model, api_key, base_url, and temperature.
+        """
+        return ModelConfig(**self._config)
+
     def get_underlying(self) -> Any:
         """
         Get the underlying model object with lazy loading.
@@ -157,7 +170,7 @@ class ModelProviderImpl(IModelProvider):
     """
     Implementation of IModelProvider interface for LangChain models.
 
-    This class provides access to LangChain models configured through the settings provider.
+    This class provides access to LangChain LLM models configured through the settings provider.
     It loads model configurations from settings and creates model instances on demand.
 
     The provider expects settings to be organized with model names as keys and
@@ -194,11 +207,14 @@ class ModelProviderImpl(IModelProvider):
             component_site: An IComponentSite instance for component registration
             **kwargs: Additional keyword arguments (unused, for compatibility)
         """
+        self._models_cache = {}  # Cache for created models
         self._component_site = component_site
         self._setting_provider = query_component(
             component_site, ISettingProvider, "models"
         )
-        self._models_cache = {}  # Cache for created models
+
+        if self._setting_provider is None:
+            raise ValueError("No setting provider found")
 
     def get_model(
         self,
@@ -220,15 +236,21 @@ class ModelProviderImpl(IModelProvider):
             **kwargs: Additional configuration parameters (overrides settings)
 
         Returns:
-            A ModelImpl instance if the model exists and can be configured, None otherwise.
-            Returns None if the model name is not found in settings or if configuration
-            retrieval fails.
+            A ModelImpl instance if the model exists, None otherwise.
+            Returns None if the model name is not found in settings.
+
+        Example:
+            >>> provider = ModelProviderImpl(component_site)
+            >>> model = provider.get_model("default_llm")
+            >>> if model:
+            ...     underlying = model.get_underlying()
         """
         # Check cache first
-        if name in self._models_cache:
-            return self._models_cache[name]
+        cache_key = (name, user_id)
+        if cache_key in self._models_cache:
+            return self._models_cache[cache_key]
 
-        # Get model configuration from settings
+        # Get setting from provider
         setting = self._setting_provider.get_setting(name, user_id)
         if setting is None:
             return None
@@ -242,18 +264,15 @@ class ModelProviderImpl(IModelProvider):
             # Override with any provided kwargs
             config.update(kwargs)
 
-            # Create ModelImpl with lazy loading (model creation deferred)
+            # Create ModelImpl with configuration
             model = ModelImpl(name, **config)
 
-            # Cache the ModelImpl instance
-            self._models_cache[name] = model
+            # Cache the model
+            self._models_cache[cache_key] = model
 
             return model
-        except (AttributeError, TypeError, ValueError):
-            # Graceful failure: return None on configuration errors
-            # AttributeError: setting doesn't have list() method
-            # TypeError: iteration over setting.list() fails
-            # ValueError: invalid configuration values
+        except (ValueError, TypeError, AttributeError):
+            # Return None gracefully on configuration errors
             return None
 
     def list_models(
