@@ -50,8 +50,9 @@ class ToolRetriever(object):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
         self.tools: dict[str, Tool] = {}
-        db = db or embeddings.default_embedding_db
-        self.collection = db.get_collection("tools")
+        db = db or embeddings.create_embedding_db()
+        # Use dynamic attribute access to get the tools collection (EmbeddingTable)
+        self.collection = db.tools
         self.collection.clear()  # clean up any old data
 
     def __str__(self):

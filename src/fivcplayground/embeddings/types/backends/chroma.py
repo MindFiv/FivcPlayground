@@ -1,26 +1,54 @@
-from typing import Optional, Any, Dict
+from typing import Dict, Any
 
 import chromadb
-from chromadb.utils.embedding_functions import EmbeddingFunction
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.utils import OutputDir
 
 
+def _create_embedding_function(
+    embedding_config: EmbeddingConfig,
+) -> chromadb.EmbeddingFunction:
+    if embedding_config.provider == "openai":
+        from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
+        return OpenAIEmbeddingFunction(
+            api_key=embedding_config.api_key,
+            api_base=embedding_config.base_url,
+            model_name=embedding_config.model_id,
+        )
+
+    elif embedding_config.provider == "ollama":
+        from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
+
+        return OllamaEmbeddingFunction(
+            url=embedding_config.base_url,
+            model_name=embedding_config.model_id,
+        )
+
+    else:
+        raise ValueError(f"Unknown provider {embedding_config.provider}")
+
+
 class EmbeddingDB(object):
+    """
+    EmbeddingDB is a wrapper around the ChromaDB embedding database.
+    """
+
     def __init__(
         self,
-        function: Optional[EmbeddingFunction] = None,
-        output_dir: Optional[OutputDir] = None,
-        **kwargs,
+        embedding_config: EmbeddingConfig,
+        output_dir: OutputDir | None = None,
+        **kwargs,  # ignore additional kwargs
     ):
-        assert function is not None
-        self.function = function
-        self.output_dir = output_dir or OutputDir().subdir("db")
-        self.db = chromadb.PersistentClient(path=str(self.output_dir))
+        output_dir = output_dir or OutputDir().subdir("db")
+        self.db = chromadb.PersistentClient(path=str(output_dir))
+        self.function = _create_embedding_function(embedding_config)
 
-    def get_collection(self, name: str) -> "EmbeddingCollection":
-        return EmbeddingCollection(
+    def __getattr__(self, name: str) -> "EmbeddingTable":
+        return EmbeddingTable(
             self.db.get_or_create_collection(
                 name,
                 embedding_function=self.function,
@@ -28,14 +56,18 @@ class EmbeddingDB(object):
         )
 
 
-class EmbeddingCollection(object):
+class EmbeddingTable(object):
+    """
+    EmbeddingTable is a wrapper around a ChromaDB collection.
+    """
+
     def __init__(self, collection: chromadb.Collection):
-        self.collection = collection
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2000, chunk_overlap=100
         )
+        self.collection = collection
 
-    def add(self, text: str, metadata: Optional[Dict[str, Any]] = None):
+    def add(self, text: str, metadata: Dict[str, Any] | None = None):
         """Add text to the collection."""
         chunks = self.text_splitter.split_text(text)
         self.collection.add(

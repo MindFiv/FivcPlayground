@@ -29,12 +29,21 @@ class TestToolRetriever:
     def mock_embedding_db(self):
         """Create a mock embedding database."""
         mock_db = Mock()
-        mock_collection = Mock()
-        mock_collection.clear = Mock()
-        mock_collection.count = Mock(return_value=0)
-        mock_collection.add = Mock()
-        mock_collection.search = Mock(return_value=[])
-        mock_db.get_collection = Mock(return_value=mock_collection)
+        # Create mock EmbeddingTable (self.collection)
+        mock_embedding_table = Mock()
+        mock_embedding_table.clear = Mock()
+        mock_embedding_table.count = Mock(return_value=0)
+        mock_embedding_table.add = Mock()
+        mock_embedding_table.search = Mock(return_value=[])
+
+        # Create mock underlying ChromaDB collection (self.collection.collection)
+        mock_chroma_collection = Mock()
+        mock_chroma_collection.get = Mock(return_value={"ids": [], "metadatas": []})
+        mock_chroma_collection.delete = Mock()
+        mock_embedding_table.collection = mock_chroma_collection
+
+        # Use dynamic attribute access for the new API (db.tools instead of db.get_collection("tools"))
+        mock_db.tools = mock_embedding_table
         return mock_db
 
     @pytest.fixture
@@ -50,7 +59,8 @@ class TestToolRetriever:
         assert retriever.min_score == 0.0
         assert isinstance(retriever.tools, dict)
         assert len(retriever.tools) == 0
-        mock_embedding_db.get_collection.assert_called_once_with("tools")
+        # Verify that the collection was accessed via dynamic attribute (db.tools)
+        assert retriever.collection == mock_embedding_db.tools
 
     def test_str(self, mock_embedding_db):
         """Test string representation."""
@@ -332,7 +342,7 @@ class TestToolRetriever:
         assert "test_tool" in retriever.tools
 
         # Mock the collection.get() to return documents with the tool's metadata
-        mock_embedding_db.get_collection.return_value.collection.get = Mock(
+        mock_embedding_db.tools.collection.get = Mock(
             return_value={
                 "ids": ["id1", "id2"],
                 "metadatas": [
@@ -346,7 +356,7 @@ class TestToolRetriever:
 
         assert "test_tool" not in retriever.tools
         # Verify delete was called on the collection
-        mock_embedding_db.get_collection.return_value.collection.delete.assert_called_once_with(
+        mock_embedding_db.tools.collection.delete.assert_called_once_with(
             ids=["id1", "id2"]
         )
 
@@ -366,7 +376,7 @@ class TestToolRetriever:
         retriever.add(tool)
 
         # Mock the collection.get() to return no matching documents
-        mock_embedding_db.get_collection.return_value.collection.get = Mock(
+        mock_embedding_db.tools.collection.get = Mock(
             return_value={
                 "ids": ["id1"],
                 "metadatas": [{"__tool__": "other_tool"}],
@@ -377,7 +387,7 @@ class TestToolRetriever:
 
         assert "test_tool" not in retriever.tools
         # delete should not be called if no matching docs
-        mock_embedding_db.get_collection.return_value.collection.delete.assert_not_called()
+        mock_embedding_db.tools.collection.delete.assert_not_called()
 
 
 if __name__ == "__main__":

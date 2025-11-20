@@ -85,9 +85,21 @@ class TestExecutionTaskIntegration:
         assert "kwargs" in params
 
         # Check it's callable and returns a Runnable
-        # Mock model creation to avoid needing actual model configs
-        with patch("fivcplayground.agents.create_model") as mock_create_model:
+        # Mock model creation and embedding database to avoid needing actual configs
+        with patch("fivcplayground.agents.create_model") as mock_create_model, patch(
+            "fivcplayground.embeddings.create_embedding_db"
+        ) as mock_create_db:
             mock_create_model.return_value = Mock()
+            # Mock the embedding database
+            mock_db = Mock()
+            mock_embedding_table = Mock()
+            mock_embedding_table.clear = Mock()
+            mock_embedding_table.count = Mock(return_value=0)
+            mock_embedding_table.add = Mock()
+            mock_embedding_table.search = Mock(return_value=[])
+            mock_db.tools = mock_embedding_table
+            mock_create_db.return_value = mock_db
+
             task = tasks.create_planning_task("Test query")
             assert hasattr(task, "run")
             assert hasattr(task, "run_async")

@@ -1,0 +1,265 @@
+#!/usr/bin/env python3
+"""
+Tests for FileEmbeddingConfigRepository functionality and EmbeddingDB/EmbeddingTable integration.
+"""
+
+import json
+import tempfile
+
+from fivcplayground.embeddings.types.base import EmbeddingConfig
+from fivcplayground.embeddings.types.repositories.files import (
+    FileEmbeddingConfigRepository,
+)
+from fivcplayground.embeddings import create_embedding_db, EmbeddingDB, EmbeddingTable
+from fivcplayground.utils import OutputDir
+
+
+class TestFileEmbeddingConfigRepository:
+    """Tests for FileEmbeddingConfigRepository class"""
+
+    def test_initialization_with_output_dir(self):
+        """Test repository initialization with custom output directory"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            assert repo.output_dir == output_dir
+            assert repo.base_path.exists()
+            assert repo.base_path.is_dir()
+
+    def test_initialization_without_output_dir(self):
+        """Test repository initialization with default output directory"""
+        repo = FileEmbeddingConfigRepository()
+        assert repo.base_path.exists()
+        assert repo.base_path.is_dir()
+
+    def test_update_and_get_embedding_config(self):
+        """Test creating and retrieving an embedding configuration"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create an embedding config
+            embedding_config = EmbeddingConfig(
+                id="openai-ada",
+                provider="openai",
+                model_id="text-embedding-ada-002",
+                api_key="sk-test-key",
+                base_url="https://api.openai.com/v1",
+                dimension=1536,
+            )
+
+            # Save embedding config
+            repo.update_embedding_config(embedding_config)
+
+            # Verify embedding file exists
+            embedding_file = repo._get_embedding_file("openai-ada")
+            assert embedding_file.exists()
+
+            # Retrieve embedding config
+            retrieved_config = repo.get_embedding_config("openai-ada")
+            assert retrieved_config is not None
+            assert retrieved_config.model_id == "text-embedding-ada-002"
+            assert retrieved_config.provider == "openai"
+            assert retrieved_config.api_key == "sk-test-key"
+            assert retrieved_config.dimension == 1536
+
+    def test_update_existing_embedding_config(self):
+        """Test updating an existing embedding configuration"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create initial embedding config
+            embedding_config = EmbeddingConfig(
+                id="test-embedding",
+                provider="openai",
+                model_id="text-embedding-3-small",
+                dimension=1536,
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Update embedding config
+            updated_config = EmbeddingConfig(
+                id="test-embedding",
+                provider="openai",
+                model_id="text-embedding-3-large",
+                dimension=3072,
+            )
+            repo.update_embedding_config(updated_config)
+
+            # Verify updated config
+            retrieved_config = repo.get_embedding_config("test-embedding")
+            assert retrieved_config.model_id == "text-embedding-3-large"
+            assert retrieved_config.dimension == 3072
+
+    def test_list_embedding_configs(self):
+        """Test listing all embedding configurations"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create multiple embedding configs
+            embeddings = [
+                EmbeddingConfig(
+                    id="openai-ada",
+                    provider="openai",
+                    model_id="text-embedding-ada-002",
+                ),
+                EmbeddingConfig(
+                    id="ollama-nomic", provider="ollama", model_id="nomic-embed-text"
+                ),
+                EmbeddingConfig(
+                    id="sentence-transformer",
+                    provider="huggingface",
+                    model_id="all-MiniLM-L6-v2",
+                ),
+            ]
+
+            for embedding in embeddings:
+                repo.update_embedding_config(embedding)
+
+            # List all embeddings
+            listed_embeddings = repo.list_embedding_configs()
+            assert len(listed_embeddings) == 3
+            assert all(isinstance(e, EmbeddingConfig) for e in listed_embeddings)
+
+    def test_list_empty_repository(self):
+        """Test listing embeddings from empty repository"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # List embeddings from empty repository
+            embeddings = repo.list_embedding_configs()
+            assert embeddings == []
+
+    def test_delete_embedding_config(self):
+        """Test deleting an embedding configuration"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create an embedding config
+            embedding_config = EmbeddingConfig(
+                id="test-embedding",
+                provider="openai",
+                model_id="text-embedding-ada-002",
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Verify embedding exists
+            assert repo.get_embedding_config("test-embedding") is not None
+
+            # Delete embedding
+            repo.delete_embedding_config("test-embedding")
+
+            # Verify embedding is deleted
+            assert repo.get_embedding_config("test-embedding") is None
+            assert not repo._get_embedding_file("test-embedding").exists()
+
+    def test_delete_nonexistent_embedding(self):
+        """Test deleting an embedding that doesn't exist (should be safe)"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Delete non-existent embedding (should not raise error)
+            repo.delete_embedding_config("nonexistent-embedding")
+
+    def test_filter_repository(self):
+        """Test filter_repository returns self"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Filter repository
+            filtered_repo = repo.filter_repository(some_filter="value")
+            assert filtered_repo is repo
+
+    def test_json_file_format(self):
+        """Test that embedding configs are stored in correct JSON format"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create and save embedding config
+            embedding_config = EmbeddingConfig(
+                id="test-embedding",
+                description="Test embedding",
+                provider="openai",
+                model_id="text-embedding-ada-002",
+                api_key="sk-test",
+                base_url="https://api.openai.com/v1",
+                dimension=1536,
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Read JSON file directly
+            embedding_file = repo._get_embedding_file("test-embedding")
+            with open(embedding_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Verify JSON structure
+            assert data["id"] == "test-embedding"
+            assert data["description"] == "Test embedding"
+            assert data["provider"] == "openai"
+            assert data["model_id"] == "text-embedding-ada-002"
+            assert data["api_key"] == "sk-test"
+            assert data["dimension"] == 1536
+
+
+class TestEmbeddingDBIntegration:
+    """Tests for EmbeddingDB and EmbeddingTable integration with new API"""
+
+    def test_create_embedding_db_with_config(self):
+        """Test creating EmbeddingDB with EmbeddingConfig"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create and save embedding config
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            embedding_config = EmbeddingConfig(
+                id="default",
+                provider="openai",
+                model_id="text-embedding-ada-002",
+                api_key="sk-test-key",
+                base_url="https://api.openai.com/v1",
+                dimension=1536,
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Create EmbeddingDB using factory function
+            db = create_embedding_db(
+                embedding_config_repository=repo,
+                embedding_config_id="default",
+            )
+
+            assert isinstance(db, EmbeddingDB)
+
+    def test_embedding_table_dynamic_access(self):
+        """Test accessing EmbeddingTable via dynamic attribute access"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create and save embedding config
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            embedding_config = EmbeddingConfig(
+                id="default",
+                provider="openai",
+                model_id="text-embedding-ada-002",
+                api_key="sk-test-key",
+                base_url="https://api.openai.com/v1",
+                dimension=1536,
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Create EmbeddingDB and access collection via dynamic attribute
+            db = create_embedding_db(
+                embedding_config_repository=repo,
+                embedding_config_id="default",
+            )
+
+            # Access collection using dynamic attribute (e.g., db.my_collection)
+            collection = db.my_collection
+            assert isinstance(collection, EmbeddingTable)
