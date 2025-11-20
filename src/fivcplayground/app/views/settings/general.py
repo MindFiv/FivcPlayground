@@ -13,7 +13,6 @@ allowing users to configure application-wide settings. The view handles:
 
 import streamlit as st
 
-from fivcplayground import settings
 from fivcplayground.app.views.base import ViewBase, ViewNavigation
 
 
@@ -59,16 +58,11 @@ class GeneralSettingView(ViewBase):
             Args:
                 enabled (bool): Whether tasks should be enabled.
             """
-            # This is a placeholder - actual implementation would need to
-            # persist the setting through the proper Config API
+            # TODO: Implement task persistence through proper Config API
             pass
 
-        # Get the default component site and retrieve the config
-        component_site = settings.default_component_site()
-        config = component_site.get_component(settings.configs.IConfig)
-        session = config.get_session("default")
-        enable_tasks_str = session.get_value("enable_tasks") if session else None
-        enable_tasks = enable_tasks_str == "True" if enable_tasks_str else False
+        # Use default value for enable_tasks toggle
+        enable_tasks = False
         _ = st.toggle(
             "Enable Tasks",
             enable_tasks,
