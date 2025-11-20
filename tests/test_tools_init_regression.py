@@ -15,7 +15,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from fivcplayground import __backend__
 from fivcplayground.tools import _load_retriever
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.tools.types.backends import get_tool_name
 
 
@@ -43,10 +43,10 @@ class TestToolsInitRegression:
         - LangChain: 'name' and 'description'
         - Strands: 'tool_name' and 'tool_spec'
         """
-        with patch("fivcplayground.tools.ToolsLoader") as mock_loader_class:
-            with patch("fivcplayground.tools.ToolsRetriever") as mock_retriever_class:
+        with patch("fivcplayground.tools.ToolLoader") as mock_loader_class:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
                 # Setup mock retriever
-                mock_retriever = MagicMock(spec=ToolsRetriever)
+                mock_retriever = MagicMock(spec=ToolRetriever)
 
                 # Create mock tools with correct attributes for current backend
                 mock_tool1 = create_mock_tool(
@@ -71,12 +71,12 @@ class TestToolsInitRegression:
 
     def test_get_all_returns_tools_with_name_attribute(self):
         """
-        Test that ToolsRetriever.get_all() returns tools with correct attributes.
+        Test that ToolRetriever.get_all() returns tools with correct attributes.
 
         This ensures that tools returned from get_all() have the correct
         attributes for the current backend (name for LangChain, tool_name for Strands).
         """
-        from fivcplayground.tools.types.retrievers import ToolsRetriever
+        from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
 
         # Create mock embedding DB
@@ -84,7 +84,7 @@ class TestToolsInitRegression:
         mock_collection = Mock()
         mock_db.get_collection.return_value = mock_collection
 
-        retriever = ToolsRetriever(db=mock_db)
+        retriever = ToolRetriever(db=mock_db)
 
         # Create tools with correct attributes for current backend
         tool1 = create_mock_tool("tool1", "Tool 1 description")
@@ -110,10 +110,10 @@ class TestToolsInitRegression:
         This test captures the print output and verifies that tool names are
         correctly extracted using the backend-agnostic get_tool_name function.
         """
-        with patch("fivcplayground.tools.ToolsLoader") as mock_loader_class:
-            with patch("fivcplayground.tools.ToolsRetriever") as mock_retriever_class:
+        with patch("fivcplayground.tools.ToolLoader") as mock_loader_class:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
                 # Setup mock retriever
-                mock_retriever = MagicMock(spec=ToolsRetriever)
+                mock_retriever = MagicMock(spec=ToolRetriever)
 
                 # Create mock tools with correct attributes for current backend
                 mock_tool1 = create_mock_tool("calculator", "Calculate math")
@@ -139,13 +139,13 @@ class TestToolsInitRegression:
     )
     def test_tools_retriever_get_all_with_langchain_tools(self):
         """
-        Test that ToolsRetriever.get_all() works with actual LangChain Tool objects.
+        Test that ToolRetriever.get_all() works with actual LangChain Tool objects.
 
         This test uses real LangChain tools to ensure compatibility.
         Only runs when backend is set to "langchain".
         """
         from langchain_core.tools import tool as make_tool
-        from fivcplayground.tools.types.retrievers import ToolsRetriever
+        from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
 
         # Create mock embedding DB
@@ -153,7 +153,7 @@ class TestToolsInitRegression:
         mock_collection = Mock()
         mock_db.get_collection.return_value = mock_collection
 
-        retriever = ToolsRetriever(db=mock_db)
+        retriever = ToolRetriever(db=mock_db)
 
         # Create a real LangChain tool
         @make_tool

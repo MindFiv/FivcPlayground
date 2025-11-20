@@ -1,7 +1,6 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Optional, List
 
-from fivcglue.interfaces import IComponent
 from fivcplayground.agents.types import (
     AgentsRuntimeMeta,
     AgentsRuntime,
@@ -9,7 +8,7 @@ from fivcplayground.agents.types import (
 )
 
 
-class AgentsRuntimeRepository(IComponent):
+class AgentsRuntimeRepository(ABC):
     """
     Abstract base class for agent runtime data repositories.
 

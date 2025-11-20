@@ -46,7 +46,7 @@ class TestAgentsMonitorManager:
             assert isinstance(monitor, AgentsMonitor)
             assert monitor._repo is not None
 
-            # Note: Full implementation should accept query, agent_id, tools_retriever,
+            # Note: Full implementation should accept query, agent_id, tool_retriever,
             # and agent_creator parameters and return the created agent instance.
             # See REFACTORING_ISSUES.md for details on what needs to be implemented.
 

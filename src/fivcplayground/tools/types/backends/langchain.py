@@ -5,7 +5,7 @@ __all__ = [
     "set_tool_description",
     "Tool",
     "FuncTool",
-    "ToolsBundle",
+    "ToolBundle",
 ]
 
 from contextlib import asynccontextmanager
@@ -17,22 +17,54 @@ from langchain_core.tools import (
     Tool as FuncTool,
 )
 
-# from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.sessions import create_session
 from langchain_mcp_adapters.tools import load_mcp_tools
 
+from fivcplayground.tools.types.base import ToolConfig
 
-class ToolsBundle(FuncTool):
+
+class ToolBundle(FuncTool):
     """MCP tools bundle"""
 
-    def __init__(self, name: str, conn: dict):
-        super().__init__(name=name, func=None, description="")
+    def __init__(self, tool_config: ToolConfig):
+        super().__init__(
+            name=tool_config.id,
+            func=None,
+            description=tool_config.description,
+        )
         # Store tools using object.__setattr__ to bypass Pydantic validation
-        object.__setattr__(self, "_conn", conn)
+        object.__setattr__(self, "_config", tool_config)
 
     @asynccontextmanager
     async def load_async(self) -> AsyncGenerator[List[Tool], None]:
-        async with create_session(self.conn) as session:
+        config = object.__getattribute__(self, "_config")
+        if config.transport == "stdio":
+            from langchain_mcp_adapters.sessions import StdioConnection
+
+            conn = StdioConnection(
+                transport="stdio",
+                command=config.command,
+                args=config.args,
+                env=config.env,
+            )
+        elif config.transport == "sse":
+            from langchain_mcp_adapters.sessions import SSEConnection
+
+            conn = SSEConnection(
+                transport="sse",
+                url=config.url,
+            )
+        elif config.transport == "streamable_http":
+            from langchain_mcp_adapters.sessions import StreamableHttpConnection
+
+            conn = StreamableHttpConnection(
+                transport="streamable_http",
+                url=config.url,
+            )
+        else:
+            raise ValueError(f"Unsupported transport: {config.transport}")
+
+        async with create_session(conn) as session:
             await session.initialize()
             yield await load_mcp_tools(session)
 

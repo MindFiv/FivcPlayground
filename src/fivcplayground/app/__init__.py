@@ -45,7 +45,7 @@ def main():
     # agent_runtime_repo = FileAgentsRuntimeRepository()
     chat_manager = ChatManager(
         agent_runtime_repo=agent_runtime_repo,
-        tools_retriever=default_retriever,
+        tool_retriever=default_retriever,
     )
 
     # Create navigation instance

@@ -266,7 +266,7 @@ class AgentsMonitorManager(object):
     Note:
         The current implementation of create_agent_runtime() is incomplete.
         It only returns an empty AgentsMonitor instance. The full implementation
-        should accept query, agent_id, tools_retriever, and agent_creator parameters
+        should accept query, agent_id, tool_retriever, and agent_creator parameters
         to create and monitor agent executions.
 
     Usage:
@@ -331,7 +331,7 @@ class AgentsMonitorManager(object):
 
         Note:
             This implementation is incomplete. The full implementation should:
-            - Accept query, agent_id, tools_retriever, and agent_creator parameters
+            - Accept query, agent_id, tool_retriever, and agent_creator parameters
             - Retrieve tools based on the query
             - Generate a unique agent ID if not provided
             - Load previous agent messages from the repository for conversation continuity

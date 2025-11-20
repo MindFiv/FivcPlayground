@@ -213,71 +213,75 @@ FivcPlayground uses a flexible tool management system:
 
 ### Tool Configuration
 
-The `ToolsConfig` class manages MCP server configurations with automatic validation:
+Tool configurations are managed using the `ToolConfig` Pydantic model and `ToolConfigRepository` pattern:
 
 ```python
-from fivcplayground.tools.types.configs import ToolsConfig, ToolsConfigValue
+from fivcplayground.tools.types.base import ToolConfig
+from fivcplayground.tools.types.repositories import FileToolConfigRepository
 
-# Load configuration from YAML or JSON
-config = ToolsConfig("mcp.yaml")
+# Create a repository for storing tool configurations
+repo = FileToolConfigRepository()
 
-# Check for errors during loading
-errors = config.get_errors()
+# Create a tool configuration
+tool_config = ToolConfig(
+    id="my_server",
+    description="My MCP server",
+    transport="stdio",  # or "sse" or "streamable_http"
+    command="python",
+    args=["server.py"],
+    env={"VAR": "value"}  # optional
+)
 
-# Save configuration changes
-config.save()  # Save to original file
-config.save("new_config.yaml")  # Save to new file
+# Store the configuration
+repo.update_tool_config(tool_config)
 
-# Load a different configuration file
-config.load("other_config.yaml")
+# Retrieve a configuration
+config = repo.get_tool_config("my_server")
 
-# Manage configurations programmatically
-# set() accepts both dict and ToolsConfigValue, with automatic validation
-config.set("my_server", {"command": "python", "args": ["server.py"]})
-config.set("my_sse_server", {"url": "http://localhost:8000"})
-config.delete("my_server")
+# List all configurations
+all_configs = repo.list_tool_configs()
 
-# List all configured servers
-servers = config.list()
-
-# Get a specific server configuration
-server_config = config.get("my_server")
-
-# Get connection object for a server
-connection = server_config.value
+# Delete a configuration
+repo.delete_tool_config("my_server")
 ```
 
-**Configuration Value Validation:**
+**Configuration Types:**
 
-Each MCP server configuration is a `ToolsConfigValue` that supports two types:
+The `ToolConfig` model supports two types of MCP server configurations:
 
 1. **Command-based** (stdio):
 
 ```python
-config = ToolsConfigValue({
-    "command": "python",
-    "args": ["server.py"],
-    "env": {"VAR": "value"}  # optional
-})
-connection = config.value  # Returns StdioConnection
+tool_config = ToolConfig(
+    id="my_server",
+    description="My command-based server",
+    transport="stdio",
+    command="python",
+    args=["server.py"],
+    env={"VAR": "value"}  # optional
+)
 ```
 
 2. **URL-based** (SSE):
 
 ```python
-config = ToolsConfigValue({
-    "url": "http://localhost:8000"
-})
-connection = config.value  # Returns SSEConnection
+tool_config = ToolConfig(
+    id="my_sse_server",
+    description="My SSE-based server",
+    transport="sse",
+    url="http://localhost:8000"
+)
 ```
 
 **API Details:**
 
-- `validate(raise_exception=False)` - Validates configuration structure and required fields
-- `connection` - Property that returns a Connection object (StdioConnection or SSEConnection)
-- `set(name, config)` - Adds/updates a configuration (accepts dict or ToolsConfigValue)
-- `get(name)` - Retrieves a specific configuration
-- `delete(name)` - Removes a configuration
+- `ToolConfig` - Pydantic model for tool configuration with validation
+- `ToolConfigRepository` - Abstract base class for tool configuration storage
+- `FileToolConfigRepository` - File-based implementation using JSON storage
+- `update_tool_config(config)` - Stores or updates a tool configuration
+- `get_tool_config(tool_id)` - Retrieves a specific configuration
+- `list_tool_configs()` - Lists all stored configurations
+- `delete_tool_config(tool_id)` - Removes a configuration
 - `list()` - Returns all configuration names
 - `load(filename)` - Loads configurations from file (validates all entries)
 - `save(filename)` - Saves configurations to file
@@ -288,7 +292,7 @@ Supported configuration formats:
 
 ### Tool Retrieval
 
-The `ToolsRetriever` provides semantic search over available tools:
+The `ToolRetriever` provides semantic search over available tools:
 
 ```python
 from fivcplayground import tools
@@ -446,7 +450,7 @@ app/__init__.py (Main Application)
 ├── ChatManager (Multi-chat orchestration)
 │   └── Chat Instances (Individual conversations)
 │       ├── AgentsRuntimeRepository (Persistence)
-│       ├── ToolsRetriever (Tool access)
+│       ├── ToolRetriever (Tool access)
 │       └── Agent Execution (Strands agents)
 ├── Views (ViewBase implementations)
 │   ├── base.py (ViewBase, ViewNavigation)

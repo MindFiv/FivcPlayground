@@ -111,7 +111,7 @@ App Shutdown
 
 ### Key Components
 
-1. **ToolsLoader** - Manages MCP connections
+1. **ToolLoader** - Manages MCP connections
    - `load()` - Synchronous loading
    - `load_async()` - Asynchronous loading
    - `cleanup()` - Resource cleanup
@@ -159,7 +159,7 @@ streamlit run src/fivcplayground/app/__init__.py --logger.level=debug
 **Solution**:
 ```bash
 # Test MCP connection
-python -c "from fivcplayground.tools import default_loader; default_loader.load()"
+python -c "from fivcplayground.app.utils import default_mcp_loader; default_mcp_loader.load()"
 
 # Check logs for errors
 # Look for "Error loading tools from" messages

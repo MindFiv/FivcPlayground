@@ -64,7 +64,7 @@ class TaskManager(object):
     async def create_task(
         self,
         query: str,
-        tools_retriever: Optional[tools.ToolsRetriever] = None,
+        tool_retriever: Optional[tools.ToolRetriever] = None,
     ) -> None:
         """
         Create and execute a task from a user query.
@@ -76,7 +76,7 @@ class TaskManager(object):
 
         Args:
             query: User query to process
-            tools_retriever: Optional tools retriever (defaults to default_retriever)
+            tool_retriever: Optional tools retriever (defaults to default_retriever)
 
         Returns:
             Task ID of the created task
@@ -84,12 +84,12 @@ class TaskManager(object):
         Raises:
             Exception: If task creation or execution fails
         """
-        assert tools_retriever is not None
+        assert tool_retriever is not None
 
         # Create task with monitoring (planning is done internally)
         task = await self.monitor_manager.create_task(
             query=query,
-            tools_retriever=tools_retriever,
+            tool_retriever=tool_retriever,
             on_event=self._on_task_event,
         )
         # Execute the task asynchronously (fire and forget)

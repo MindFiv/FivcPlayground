@@ -1,9 +1,9 @@
 __all__ = [
     "Tool",
-    "ToolsBundle",
+    "ToolBundle",
 ]
 
 from fivcplayground.tools.types.backends import (
     Tool,
-    ToolsBundle,
+    ToolBundle,
 )

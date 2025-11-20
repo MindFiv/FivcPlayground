@@ -21,13 +21,13 @@
 └─────────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      ToolsLoader Instance                           │
+│                      ToolLoader Instance                           │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ Attributes:                                                  │  │
-│  │ • config: ToolsConfig                                        │  │
-│  │ • tools_retriever: ToolsRetriever                            │  │
-│  │ • tools_bundles: Dict[str, Set[str]]                         │  │
+│  │ • tool_config_repository: ToolConfigRepository               │  │
+│  │ • tool_retriever: ToolRetriever                             │  │
+│  │ • tool_bundles: Dict[str, Set[str]]                          │  │
 │  │ • client: MultiServerMCPClient ← PERSISTENT                 │  │
 │  │ • sessions: Dict[str, Session] ← PERSISTENT                 │  │
 │  └──────────────────────────────────────────────────────────────┘  │
@@ -141,7 +141,7 @@ App Start
        │ invoke_tool(tool_name, args)
        ↓
 ┌──────────────────────────────┐
-│ ToolsRetriever               │
+│ ToolRetriever               │
 │ (Tool Registry)              │
 └──────┬───────────────────────┘
        │ get_tool(tool_name)

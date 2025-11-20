@@ -72,8 +72,10 @@ src/fivcplayground/
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
 ├── models/          # LLM model factories and providers
-│   ├── __init__.py  # Model creation functions
-│   └── providers.py # Provider implementations
+│   └── types/       # Model types and implementations
+│       ├── backends/      # Backend implementations (langchain, strands)
+│       ├── repositories/  # Model configuration repositories
+│       └── base.py        # ModelConfig data model
 ├── schemas.py       # Pydantic data schemas
 ├── settings/        # Configuration management
 ├── tasks.py         # Task execution functions

@@ -18,11 +18,11 @@ Successfully implemented persistent MCP client and session management to resolve
 
 ## Implementation Overview
 
-### 1. ToolsLoader Enhancement (`src/fivcplayground/tools/types/loaders.py`)
+### 1. ToolLoader Enhancement (`src/fivcplayground/tools/types/loaders.py`)
 
 **Added Persistent Connection Management**:
 ```python
-class ToolsLoader:
+class ToolLoader:
     # New attributes for persistent connections
     client: Optional[MultiServerMCPClient] = None
     sessions: Dict[str, Any] = {}
@@ -171,12 +171,12 @@ To verify the implementation:
 uv run pytest tests/ -q
 # Result: 510 passed ✅
 
-# Run ToolsLoader tests
+# Run ToolLoader tests
 uv run pytest tests/test_tools_loader.py -xvs
 # Result: 15 passed ✅
 
 # Run persistent connection tests
-uv run pytest tests/test_tools_loader.py::TestToolsLoaderPersistentConnections -xvs
+uv run pytest tests/test_tools_loader.py::TestToolLoaderPersistentConnections -xvs
 # Result: 3 passed ✅
 ```
 

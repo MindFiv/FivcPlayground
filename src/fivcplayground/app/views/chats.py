@@ -154,7 +154,7 @@ class ChatView(ViewBase):
 
             # assessment_task = create_assessing_task(
             #     user_query,
-            #     tools_retriever=self.chat.tools_retriever,
+            #     tool_retriever=self.chat.tool_retriever,
             # )
             # # Assess query
             # assessment = asyncio.run(assessment_task.run_async())

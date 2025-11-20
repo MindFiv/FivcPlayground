@@ -385,10 +385,11 @@ class MCPSettingView(ViewBase):
 
         # Convert current configs to YAML
         current_config = {}
-        for name in default_mcp_loader.config.list():
-            config_value = default_mcp_loader.config.get(name)
-            # Convert ToolsConfigValue (dict subclass) to regular dict for YAML serialization
-            current_config[name] = dict(config_value) if config_value else {}
+        tool_configs = default_mcp_loader.tool_config_repository.list_tool_configs()
+        for tool_config in tool_configs:
+            # Convert ToolConfig to dict for YAML serialization
+            config_dict = tool_config.model_dump(exclude={"id", "description"})
+            current_config[tool_config.id] = config_dict
 
         yaml_content = yaml.safe_dump(current_config, default_flow_style=False)
 
@@ -406,6 +407,8 @@ class MCPSettingView(ViewBase):
                 self.BTN_SAVE_CONFIG, type="primary", use_container_width=True
             ):
                 try:
+                    from fivcplayground.tools.types.base import ToolConfig
+
                     new_config = yaml.safe_load(edited_yaml) or {}
 
                     # Validate all configs first before making any changes
@@ -413,23 +416,38 @@ class MCPSettingView(ViewBase):
                         if not isinstance(cfg, dict):
                             st.error(self.ERR_INVALID_CONFIG.format(name=name))
                             return
-                        # Try to create a ToolsConfigValue to validate
-                        from fivcplayground.tools.types.configs import ToolsConfigValue
-
+                        # Try to create a ToolConfig to validate
                         try:
-                            ToolsConfigValue(cfg)
+                            # Add id and description if not present
+                            cfg_with_id = cfg.copy()
+                            cfg_with_id["id"] = name
+                            if "description" not in cfg_with_id:
+                                cfg_with_id["description"] = f"MCP server: {name}"
+                            ToolConfig.model_validate(cfg_with_id)
                         except ValueError as e:
                             st.error(f"Invalid config for '{name}': {str(e)}")
                             return
 
                     # Clear all existing configs and set new ones
                     # This handles both updates and deletions
-                    default_mcp_loader.config._configs.clear()
+                    existing_configs = (
+                        default_mcp_loader.tool_config_repository.list_tool_configs()
+                    )
+                    for existing_config in existing_configs:
+                        default_mcp_loader.tool_config_repository.delete_tool_config(
+                            existing_config.id
+                        )
 
                     for name, cfg in new_config.items():
-                        default_mcp_loader.config.set(name, cfg)
+                        cfg_with_id = cfg.copy()
+                        cfg_with_id["id"] = name
+                        if "description" not in cfg_with_id:
+                            cfg_with_id["description"] = f"MCP server: {name}"
+                        tool_config = ToolConfig.model_validate(cfg_with_id)
+                        default_mcp_loader.tool_config_repository.update_tool_config(
+                            tool_config
+                        )
 
-                    default_mcp_loader.config.save()
                     st.success(self.SUCCESS_SAVED)
                     st.rerun()
                 except yaml.YAMLError as e:
@@ -634,10 +652,17 @@ class MCPSettingView(ViewBase):
                 return
             config = {self.KEY_URL: url}
 
-        # Use ToolsConfig.set() which validates automatically
-        if default_mcp_loader.config.set(server_name, config):
-            default_mcp_loader.config.save()
+        # Validate and store the configuration
+        try:
+            from fivcplayground.tools.types.base import ToolConfig
+
+            cfg_with_id = config.copy()
+            cfg_with_id["id"] = server_name
+            if "description" not in cfg_with_id:
+                cfg_with_id["description"] = f"MCP server: {server_name}"
+            tool_config = ToolConfig.model_validate(cfg_with_id)
+            default_mcp_loader.tool_config_repository.update_tool_config(tool_config)
             st.success(self.ERR_ADDED.format(name=server_name))
             st.rerun()
-        else:
-            st.error(self.ERR_INVALID_CONFIG.format(name=server_name))
+        except ValueError as e:
+            st.error(f"Invalid config for '{server_name}': {str(e)}")

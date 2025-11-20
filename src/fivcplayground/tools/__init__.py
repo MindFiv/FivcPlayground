@@ -1,12 +1,10 @@
 __all__ = [
     "setup_tools",
     "default_retriever",
-    "default_loader",
     "Tool",
-    "ToolsBundle",
-    "ToolsConfig",
-    "ToolsRetriever",
-    "ToolsLoader",
+    "ToolBundle",
+    "ToolRetriever",
+    "ToolLoader",
 ]
 
 from contextlib import asynccontextmanager, AsyncExitStack
@@ -14,25 +12,24 @@ from typing import AsyncGenerator, List
 
 from fivcplayground.utils import LazyValue
 from fivcplayground.tools.types import (
-    ToolsRetriever,
-    ToolsConfig,
-    ToolsLoader,
+    ToolRetriever,
+    ToolLoader,
 )
 from fivcplayground.tools.types.backends import (
     Tool,
-    ToolsBundle,
+    ToolBundle,
     get_tool_name,
 )
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
 
 
-def _load_retriever() -> ToolsRetriever:
+def _load_retriever() -> ToolRetriever:
     """Load and initialize the default tools retriever.
 
-    This creates a ToolsRetriever and loads MCP tools from configured servers.
+    This creates a ToolRetriever and loads MCP tools from configured servers.
     """
-    retriever = ToolsRetriever()
+    retriever = ToolRetriever()
     retriever.add_batch([clock, calculator])
 
     print(f"Registered Tools: {[get_tool_name(t) for t in retriever.get_all()]}")
@@ -45,7 +42,7 @@ async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
     async with AsyncExitStack() as stack:  # noqa
         tools_expanded = []
         for tool in tools:
-            if isinstance(tool, ToolsBundle):
+            if isinstance(tool, ToolBundle):
                 bundle_tools = await stack.enter_async_context(tool.load_async())
                 tools_expanded.append(bundle_tools)
             else:
@@ -55,4 +52,3 @@ async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
 
 
 default_retriever = LazyValue(_load_retriever)
-default_loader = LazyValue(lambda: ToolsLoader(tools_retriever=default_retriever))

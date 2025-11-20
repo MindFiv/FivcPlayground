@@ -210,7 +210,7 @@ class TaskMonitorManager(object):
         >>> # Create a task with monitoring (planning is done automatically)
         >>> swarm = await manager.create_task(
         ...     query="Your query here",
-        ...     tools_retriever=tools.default_retriever
+        ...     tool_retriever=tools.default_retriever
         ... )
         >>>
         >>> # Execute task (automatically tracked and persisted)
@@ -237,7 +237,7 @@ class TaskMonitorManager(object):
     async def create_task(
         self,
         query: str,
-        tools_retriever: Optional["tools.ToolsRetriever"] = None,
+        tool_retriever: Optional["tools.ToolRetriever"] = None,
         on_event: Optional[Callable[[TaskRuntime], None]] = None,
         **kwargs: Any,
     ) -> Any:
@@ -246,7 +246,7 @@ class TaskMonitorManager(object):
 
         Args:
             query: User query to process
-            tools_retriever: Optional tools retriever for agent tools
+            tool_retriever: Optional tools retriever for agent tools
             on_event: Optional callback invoked with TaskRuntime after each task event
             **kwargs: Additional arguments to pass to the swarm
 
@@ -258,7 +258,7 @@ class TaskMonitorManager(object):
 
         task_team = create_planning_task(
             query,
-            tools_retriever=tools_retriever,
+            tool_retriever=tool_retriever,
             **kwargs,
         )
         task_team = await task_team.run_async()
@@ -273,7 +273,7 @@ class TaskMonitorManager(object):
         )
         task = agents.create_generic_agent_swarm(
             team=task_team,
-            tools_retriever=tools_retriever,
+            tool_retriever=tool_retriever,
             hooks=[task_monitor],
             **kwargs,
         )

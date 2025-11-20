@@ -23,7 +23,7 @@ dotenv.load_dotenv()
 @pytest.fixture
 def mock_tools_retriever():
     """Create a mock tools retriever."""
-    retriever = Mock(spec=tools.ToolsRetriever)
+    retriever = Mock(spec=tools.ToolRetriever)
     retriever.retrieve.return_value = []
     # Mock to_tool() to return a valid tool spec
     mock_tool = Mock()
@@ -50,7 +50,7 @@ class TestChatMonitorIntegration:
 
     def test_chat_creates_monitor_manager(self, mock_tools_retriever):
         """Test that Chat creates an AgentsMonitorManager instance."""
-        manager = Chat(tools_retriever=mock_tools_retriever)
+        manager = Chat(tool_retriever=mock_tools_retriever)
 
         assert hasattr(manager, "monitor_manager")
         from fivcplayground.agents.types import AgentsMonitorManager
@@ -61,7 +61,7 @@ class TestChatMonitorIntegration:
     async def test_multiple_executions(self, mock_tools_retriever, mock_repo):
         """Test that monitor works correctly across multiple executions."""
         manager = Chat(
-            agent_runtime_repo=mock_repo, tools_retriever=mock_tools_retriever
+            agent_runtime_repo=mock_repo, tool_retriever=mock_tools_retriever
         )
 
         # Mock the agent creation and execution
@@ -111,7 +111,7 @@ class TestMonitorWithMockAgent:
         """Test that monitor captures streaming events during execution."""
         from fivcplayground.agents.types.base import AgentsEvent
 
-        _ = Chat(agent_runtime_repo=mock_repo, tools_retriever=mock_tools_retriever)
+        _ = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_tools_retriever)
 
         captured_runtimes = []
 
@@ -262,7 +262,7 @@ class TestMonitorErrorHandling:
     ):
         """Test that callback exceptions don't break agent execution."""
         manager = Chat(
-            agent_runtime_repo=mock_repo, tools_retriever=mock_tools_retriever
+            agent_runtime_repo=mock_repo, tool_retriever=mock_tools_retriever
         )
 
         def failing_callback(runtime):

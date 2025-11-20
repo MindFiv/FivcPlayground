@@ -61,7 +61,7 @@ from fivcplayground.tasks.types import (
     TaskStatus,
     TaskMonitorManager,
 )
-from fivcplayground.tools import ToolsRetriever
+from fivcplayground.tools import ToolRetriever
 from fivcplayground.utils import (
     Runnable,
     ProxyRunnable,
@@ -70,7 +70,7 @@ from fivcplayground.utils import (
 
 
 def create_tooling_task(
-    query: str, tools_retriever: Optional[ToolsRetriever] = None, **kwargs: Any
+    query: str, tool_retriever: Optional[ToolRetriever] = None, **kwargs: Any
 ) -> Runnable:
     """
     Create a tooling task to identify required tools for a query.
@@ -89,7 +89,7 @@ def create_tooling_task(
     Args:
         query: The user query to analyze for tool requirements.
                Example: "Calculate the average of [1, 2, 3, 4, 5]"
-        tools_retriever: Optional ToolsRetriever instance to provide available
+        tool_retriever: Optional ToolRetriever instance to provide available
                         tools to the agent. If provided, the tools will be
                         automatically added to the agent's toolkit.
         **kwargs: Additional keyword arguments passed to create_tooling_agent,
@@ -115,8 +115,8 @@ def create_tooling_task(
         conversion from LLM output to TaskRequirement model automatically.
         The query is prepended with "Retrieve the best tools for the following task:"
     """
-    if "tools" not in kwargs and tools_retriever is not None:
-        kwargs["tools"] = [tools_retriever.to_tool()]
+    if "tools" not in kwargs and tool_retriever is not None:
+        kwargs["tools"] = [tool_retriever.to_tool()]
 
     # Extract response_model before passing to agent
     kwargs["response_model"] = TaskRequirement
@@ -129,7 +129,7 @@ def create_tooling_task(
 
 
 def create_briefing_task(
-    query: str, tools_retriever: Optional[ToolsRetriever] = None, **kwargs: Any
+    query: str, tool_retriever: Optional[ToolRetriever] = None, **kwargs: Any
 ) -> Runnable:
     """
     Create a briefing task to summarize content into a concise title.
@@ -149,7 +149,7 @@ def create_briefing_task(
         query: The content to summarize. Can be a long description, query,
                or any text that needs to be condensed into a brief title.
                Example: "I need to analyze sales data from Q1 and Q2..."
-        tools_retriever: Optional ToolsRetriever instance to provide available
+        tool_retriever: Optional ToolRetriever instance to provide available
                         tools to the agent. If provided, the tools will be
                         automatically added to the agent's toolkit.
         **kwargs: Additional keyword arguments passed to create_consultant_agent,
@@ -176,8 +176,8 @@ def create_briefing_task(
         so that it can be set as a title:"
         The response is typically a string suitable for use as a title.
     """
-    if "tools" not in kwargs and tools_retriever is not None:
-        kwargs["tools"] = [tools_retriever.to_tool()]
+    if "tools" not in kwargs and tool_retriever is not None:
+        kwargs["tools"] = [tool_retriever.to_tool()]
 
     return ProxyRunnable(
         agents.create_consultant_agent(**kwargs),
@@ -189,7 +189,7 @@ def create_briefing_task(
 
 def create_assessing_task(
     query: str,
-    tools_retriever: Optional[ToolsRetriever] = None,
+    tool_retriever: Optional[ToolRetriever] = None,
     **kwargs: Any,
 ) -> Runnable:
     """
@@ -210,7 +210,7 @@ def create_assessing_task(
     Args:
         query: The user query to assess for complexity and planning needs.
                Example: "Analyze sales trends and create a forecast model"
-        tools_retriever: Optional ToolsRetriever instance to provide available
+        tool_retriever: Optional ToolRetriever instance to provide available
                         tools to the agent. If provided, the tools will be
                         automatically added to the agent's toolkit.
         **kwargs: Additional keyword arguments passed to create_consultant_agent,
@@ -239,8 +239,8 @@ def create_assessing_task(
         - require_planning: Boolean indicating if planning is needed
         - reasoning: Explanation of the assessment decision
     """
-    if "tools" not in kwargs and tools_retriever is not None:
-        kwargs["tools"] = [tools_retriever.to_tool()]
+    if "tools" not in kwargs and tool_retriever is not None:
+        kwargs["tools"] = [tool_retriever.to_tool()]
 
     # Extract response_model before passing to agent
     kwargs["response_model"] = TaskAssessment
@@ -258,7 +258,7 @@ def create_assessing_task(
 
 def create_planning_task(
     query: str,
-    tools_retriever: Optional[ToolsRetriever] = None,
+    tool_retriever: Optional[ToolRetriever] = None,
     **kwargs,
 ) -> Runnable:
     """
@@ -279,7 +279,7 @@ def create_planning_task(
     Args:
         query: The complex query to plan and decompose into specialist tasks.
                Example: "Analyze market trends, create forecast, and generate report"
-        tools_retriever: Optional ToolsRetriever instance to provide available
+        tool_retriever: Optional ToolRetriever instance to provide available
                         tools to the agent. If provided, the tools will be
                         automatically added to the agent's toolkit.
         **kwargs: Additional keyword arguments passed to create_planning_agent,
@@ -312,8 +312,8 @@ def create_planning_task(
         - Each specialist has: name, backstory, tools
         The backstory serves as the system prompt for the specialist agent.
     """
-    if "tools" not in kwargs and tools_retriever is not None:
-        kwargs["tools"] = [tools_retriever.to_tool()]
+    if "tools" not in kwargs and tool_retriever is not None:
+        kwargs["tools"] = [tool_retriever.to_tool()]
 
     # Extract response_model before passing to agent
     kwargs["response_model"] = TaskTeam

@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from strands.multiagent import Swarm
 
 from fivcplayground.tasks.types import TaskEvent, TaskRuntime
-from fivcplayground.tools import ToolsRetriever
+from fivcplayground.tools import ToolRetriever
 from fivcplayground.utils import Runnable
 
 
@@ -26,14 +26,14 @@ class TaskRunnable(Runnable):
         self,
         task_id: str | None = None,
         task_name: str | None = None,
-        tools_retriever: ToolsRetriever | None = None,
+        tool_retriever: ToolRetriever | None = None,
         response_model: Type[BaseModel] | None = None,
         callback_handler: Callable[[TaskEvent, TaskRuntime], None] | None = None,
         **kwargs,
     ):
         self._id = task_id or str(uuid4())
         self._name = task_name or "Default"
-        self._tools_retriever = tools_retriever
+        self._tools_retriever = tool_retriever
         self._response_model = response_model
         self._callback_handler = callback_handler
 

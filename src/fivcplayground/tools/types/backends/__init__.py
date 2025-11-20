@@ -5,7 +5,7 @@ __all__ = [
     "set_tool_description",
     "Tool",
     "FuncTool",
-    "ToolsBundle",
+    "ToolBundle",
 ]
 
 from fivcplayground import __backend__
@@ -18,7 +18,7 @@ if __backend__ == "langchain":
         set_tool_description,
         Tool,
         FuncTool,
-        ToolsBundle,
+        ToolBundle,
     )
 
 elif __backend__ == "strands":
@@ -29,5 +29,5 @@ elif __backend__ == "strands":
         set_tool_description,
         Tool,
         FuncTool,
-        ToolsBundle,
+        ToolBundle,
     )

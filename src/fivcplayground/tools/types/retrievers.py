@@ -10,17 +10,17 @@ from fivcplayground.tools.types.backends import (
 )
 
 
-class ToolsRetriever(object):
+class ToolRetriever(object):
     """A semantic search-based retriever for tools.
 
-    ToolsRetriever manages a collection of tools and provides semantic search capabilities
+    ToolRetriever manages a collection of tools and provides semantic search capabilities
     to find the most relevant tools for a given query. It uses embeddings to create a
-    searchable index of tool descriptions and supports both individual tools and ToolsBundle
+    searchable index of tool descriptions and supports both individual tools and ToolBundle
     objects.
 
     Key Features:
         - Semantic search using embeddings to find relevant tools
-        - Support for both individual tools and ToolsBundle objects
+        - Support for both individual tools and ToolBundle objects
         - Optional bundle expansion to get individual tools from bundles
         - Configurable search parameters (max_num, min_score)
         - Proper error handling for duplicate tools and missing descriptions
@@ -36,7 +36,7 @@ class ToolsRetriever(object):
         collection: EmbeddingCollection for semantic search
 
     Example:
-        >>> retriever = ToolsRetriever()
+        >>> retriever = ToolRetriever()
         >>> retriever.add(my_tool)
         >>> tools = retriever.retrieve("get weather information")
         >>> tools_expanded = retriever.retrieve("get weather", expand=True)
@@ -55,7 +55,7 @@ class ToolsRetriever(object):
         self.collection.clear()  # clean up any old data
 
     def __str__(self):
-        return f"ToolsRetriever(num_tools={len(self.tools)})"
+        return f"ToolRetriever(num_tools={len(self.tools)})"
 
     def cleanup(self):
         self.max_num = 10  # top k
@@ -78,7 +78,7 @@ class ToolsRetriever(object):
         )
         self.tools[tool_name] = tool
 
-        print(f"Total Docs {self.collection.count()} in ToolsRetriever")
+        print(f"Total Docs {self.collection.count()} in ToolRetriever")
 
     def add_batch(self, tools: List[Tool], **kwargs):
         """Add multiple tools to the retriever.
@@ -138,7 +138,7 @@ class ToolsRetriever(object):
             self.collection.collection.delete(ids=ids_to_delete)
 
         print(
-            f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever"
+            f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolRetriever"
         )
 
     @property
@@ -166,17 +166,17 @@ class ToolsRetriever(object):
 
         Performs semantic search on tool descriptions using embeddings to find the most
         relevant tools for the given query. Supports optional bundle expansion to get
-        individual tools from ToolsBundle objects.
+        individual tools from ToolBundle objects.
 
         Search Process:
             1. Searches the embedding collection for similar tool descriptions
             2. Filters results by minimum score threshold (retrieve_min_score)
             3. Limits results to maximum number (retrieve_max_num)
-            4. Optionally expands ToolsBundle objects into individual tools
+            4. Optionally expands ToolBundle objects into individual tools
 
         Args:
             query: The query string describing the desired tool functionality
-            expand: Whether to expand ToolsBundle objects into individual tools
+            expand: Whether to expand ToolBundle objects into individual tools
                    - False (default): Returns bundles as-is
                    - True: Expands bundles to return all contained tools
             **kwargs: Additional keyword arguments (ignored)
@@ -228,7 +228,7 @@ class ToolsRetriever(object):
             A LangChain tool that can be used in agent systems
 
         Example:
-            >>> retriever = ToolsRetriever()
+            >>> retriever = ToolRetriever()
             >>> tool = retriever.to_tool()
             >>> # Use tool in an agent
             >>> agent.tools.append(tool)
@@ -240,11 +240,11 @@ class ToolsRetriever(object):
         """
 
         @make_tool
-        def tools_retriever(query: str) -> str:
+        def tool_retriever(query: str) -> str:
             """Use this tool to retrieve the best tools for a given task"""
             # Use __call__ to get tool metadata (name and description) instead of
             # the full BaseTool objects, which can cause infinite recursion when
             # converting to string due to circular references in Pydantic models
             return str(self(query))
 
-        return tools_retriever
+        return tool_retriever

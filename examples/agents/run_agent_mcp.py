@@ -3,7 +3,7 @@ Agent Example - MCP Tools Integration
 
 This example demonstrates how to use FivcPlayground agents with MCP (Model Context Protocol) tools.
 It shows:
-1. Loading MCP tools (chrome-devtools) from configured servers using ToolsLoader
+1. Loading MCP tools (chrome-devtools) from configured servers using ToolLoader
 2. Creating an agent with MCP tools
 3. Invoking the agent with a query that requires tool usage
 4. Handling agent responses with tool calls
@@ -25,15 +25,15 @@ Expected Output:
     - Agent attempts to use chrome-devtools to navigate and search
 
 Note:
-    This example uses ToolsLoader for framework-agnostic tool loading, ensuring compatibility
+    This example uses ToolLoader for framework-agnostic tool loading, ensuring compatibility
     with both Strands and LangChain frameworks.
 """
 
 import asyncio
 import dotenv
 
-from fivcplayground.tools.types.loaders import ToolsLoader
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.loaders import ToolLoader
+from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
 from fivcplayground import agents
 from fivcplayground.agents.types import AgentsMonitor
@@ -43,7 +43,7 @@ dotenv.load_dotenv()
 
 async def main():
     """
-    Run agent example demonstrating MCP tools integration using ToolsLoader.
+    Run agent example demonstrating MCP tools integration using ToolLoader.
 
     This example demonstrates framework-agnostic tool loading that works with both
     Strands and LangChain frameworks.
@@ -52,18 +52,18 @@ async def main():
     print("FivcPlayground - Agent with MCP Tools Example")
     print("\n" + "=" * 70)
 
-    # Step 1: Load MCP tools using ToolsLoader
+    # Step 1: Load MCP tools using ToolLoader
     print("Step 1: Loading MCP tools from configured servers...")
     print("-" * 70)
 
     try:
-        # Create a ToolsRetriever to manage tools
+        # Create a ToolRetriever to manage tools
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tools_retriever = ToolsRetriever()
+        tools_retriever = ToolRetriever()
 
-        # Create a ToolsLoader with the retriever
-        # ToolsLoader handles loading tools from MCP servers configured in mcp.yaml
-        loader = ToolsLoader(
+        # Create a ToolLoader with the retriever
+        # ToolLoader handles loading tools from MCP servers configured in mcp.yaml
+        loader = ToolLoader(
             tools_retriever=tools_retriever,
             config_file="configs/mcp.yaml"
         )
@@ -152,8 +152,8 @@ async def main():
         print("\n" + "=" * 70)
         print("Example completed!")
         print("\nKey Takeaways:")
-        print("1. MCP tools were successfully loaded using ToolsLoader")
-        print("2. ToolsLoader provides framework-agnostic tool loading (Strands & LangChain)")
+        print("1. MCP tools were successfully loaded using ToolLoader")
+        print("2. ToolLoader provides framework-agnostic tool loading (Strands & LangChain)")
         print("3. Agent was created with access to these tools")
         print("4. Agent attempted to use the tools to fulfill the user's request")
         print("5. Tool execution can be monitored and debugged using AgentsMonitor")

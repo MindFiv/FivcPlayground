@@ -1,7 +1,7 @@
 """
 Tool Retriever Example
 
-This example demonstrates how to use the ToolsRetriever to:
+This example demonstrates how to use the ToolRetriever to:
 1. Load MCP tools from configured servers
 2. Retrieve tools based on semantic search
 3. Use retrieved tools with agents
@@ -12,8 +12,8 @@ import dotenv
 
 from fivcplayground.utils import OutputDir
 from fivcplayground.tools import (
-    ToolsRetriever,
-    ToolsLoader,
+    ToolRetriever,
+    ToolLoader,
 )
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
@@ -30,16 +30,16 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a retriever instance
-    retriever = ToolsRetriever()
+    retriever = ToolRetriever()
 
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
         # Add default tools to retriever
         retriever.add_batch([clock, calculator])
 
-        # Load MCP tools using ToolsLoader
+        # Load MCP tools using ToolLoader
         print("Loading MCP tools...")
-        loader = ToolsLoader(tools_retriever=retriever)
+        loader = ToolLoader(tools_retriever=retriever)
         await loader.load_async()
 
         print("Tools loaded successfully!")

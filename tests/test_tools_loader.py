@@ -2,8 +2,8 @@
 """
 Tests for the tools/types/loaders module.
 
-This module contains tests for the ToolsLoader class which manages loading
-tools from MCP servers and registering them with a ToolsRetriever.
+This module contains tests for the ToolLoader class which manages loading
+tools from MCP servers and registering them with a ToolRetriever.
 """
 
 import os
@@ -11,8 +11,9 @@ import tempfile
 import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from fivcplayground import __backend__
-from fivcplayground.tools.types.loaders import ToolsLoader
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.loaders import ToolLoader
+from fivcplayground.tools.types.retrievers import ToolRetriever
+from fivcplayground.tools.types.repositories import ToolConfigRepository
 
 
 def create_mock_tool(name: str, description: str):
@@ -27,12 +28,13 @@ def create_mock_tool(name: str, description: str):
     return tool
 
 
-class TestToolsLoaderInit:
-    """Test ToolsLoader initialization."""
+class TestToolLoaderInit:
+    """Test ToolLoader initialization."""
 
     def test_init_with_retriever(self):
-        """Test initialization with a ToolsRetriever."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        """Test initialization with a ToolRetriever."""
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -40,24 +42,27 @@ class TestToolsLoaderInit:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
-            assert loader.tools_retriever == mock_retriever
-            assert loader.tools_bundles == {}
-            assert loader.config is not None
+            assert loader.tool_retriever == mock_retriever
+            assert loader.tool_config_repository == mock_repo
+            assert loader.tool_bundles == {}
         finally:
             os.unlink(config_path)
 
     def test_init_without_retriever_raises_assertion(self):
         """Test that initialization without retriever raises AssertionError."""
         with pytest.raises(AssertionError):
-            ToolsLoader(tools_retriever=None)
+            ToolLoader(tool_retriever=None)
 
     def test_init_with_default_config_file(self):
         """Test initialization with default config file from environment."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "mcp.yaml")
@@ -68,8 +73,10 @@ class TestToolsLoaderInit:
             old_env = os.environ.get("MCP_FILE")
             try:
                 os.environ["MCP_FILE"] = config_path
-                loader = ToolsLoader(tools_retriever=mock_retriever)
-                assert loader.config is not None
+                loader = ToolLoader(
+                    tool_retriever=mock_retriever, tool_config_repository=mock_repo
+                )
+                assert loader.tool_config_repository == mock_repo
             finally:
                 if old_env is not None:
                     os.environ["MCP_FILE"] = old_env
@@ -77,12 +84,13 @@ class TestToolsLoaderInit:
                     os.environ.pop("MCP_FILE", None)
 
 
-class TestToolsLoaderLoad:
-    """Test ToolsLoader load methods."""
+class TestToolLoaderLoad:
+    """Test ToolLoader load methods."""
 
     def test_load_calls_load_async(self):
         """Test that load() calls load_async()."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -90,8 +98,10 @@ class TestToolsLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             with patch.object(
@@ -105,7 +115,9 @@ class TestToolsLoaderLoad:
     @pytest.mark.asyncio
     async def test_load_async_with_no_servers(self):
         """Test load_async with no configured servers."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+        mock_repo.list_tool_configs.return_value = []
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("")  # Empty config
@@ -113,8 +125,10 @@ class TestToolsLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             await loader.load_async()
@@ -127,7 +141,20 @@ class TestToolsLoaderLoad:
     @pytest.mark.asyncio
     async def test_load_async_with_tools(self):
         """Test load_async successfully loads tools."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+
+        # Create mock tool config
+        from fivcplayground.tools.types.base import ToolConfig
+
+        mock_tool_config = ToolConfig(
+            id="test_server",
+            description="Test server",
+            transport="stdio",
+            command="python",
+            args=["test.py"],
+        )
+        mock_repo.list_tool_configs.return_value = [mock_tool_config]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -135,13 +162,15 @@ class TestToolsLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
-            # Mock the ToolsBundle to avoid actual MCP connections
+            # Mock the ToolBundle to avoid actual MCP connections
             with patch(
-                "fivcplayground.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -162,17 +191,30 @@ class TestToolsLoaderLoad:
                 # Verify bundle was added
                 mock_retriever.add.assert_called_once()
 
-                # Verify tools_bundles was updated
-                assert "test_server" in loader.tools_bundles
-                assert "tool1" in loader.tools_bundles["test_server"]
-                assert "tool2" in loader.tools_bundles["test_server"]
+                # Verify tool_bundles was updated
+                assert "test_server" in loader.tool_bundles
+                assert "tool1" in loader.tool_bundles["test_server"]
+                assert "tool2" in loader.tool_bundles["test_server"]
         finally:
             os.unlink(config_path)
 
     @pytest.mark.asyncio
     async def test_load_async_handles_errors(self):
         """Test load_async handles errors gracefully."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+
+        # Create mock tool config
+        from fivcplayground.tools.types.base import ToolConfig
+
+        mock_tool_config = ToolConfig(
+            id="test_server",
+            description="Test server",
+            transport="stdio",
+            command="python",
+            args=["test.py"],
+        )
+        mock_repo.list_tool_configs.return_value = [mock_tool_config]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -180,12 +222,14 @@ class TestToolsLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             with patch(
-                "fivcplayground.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolBundle"
             ) as mock_bundle_class:
                 # Make the bundle raise an error when loading
                 mock_bundle_class.side_effect = Exception("Connection failed")
@@ -199,12 +243,13 @@ class TestToolsLoaderLoad:
             os.unlink(config_path)
 
 
-class TestToolsLoaderCleanup:
-    """Test ToolsLoader cleanup method."""
+class TestToolLoaderCleanup:
+    """Test ToolLoader cleanup method."""
 
     def test_cleanup_removes_all_tools(self):
         """Test cleanup removes all tracked bundles."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -212,12 +257,14 @@ class TestToolsLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             # Simulate tools being loaded in bundles
-            loader.tools_bundles = {"bundle1": {"tool1", "tool2"}, "bundle2": {"tool3"}}
+            loader.tool_bundles = {"bundle1": {"tool1", "tool2"}, "bundle2": {"tool3"}}
 
             loader.cleanup()
 
@@ -227,14 +274,15 @@ class TestToolsLoaderCleanup:
             mock_retriever.remove.assert_any_call("bundle1")
             mock_retriever.remove.assert_any_call("bundle2")
 
-            # Verify tools_bundles was cleared
-            assert loader.tools_bundles == {}
+            # Verify tool_bundles was cleared
+            assert loader.tool_bundles == {}
         finally:
             os.unlink(config_path)
 
     def test_cleanup_with_no_tools(self):
         """Test cleanup with no tools loaded."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -242,8 +290,10 @@ class TestToolsLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             loader.cleanup()
@@ -255,7 +305,8 @@ class TestToolsLoaderCleanup:
 
     def test_cleanup_calls_remove_method(self):
         """Test that cleanup uses the remove() method with bundle names."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -263,10 +314,12 @@ class TestToolsLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
-            loader.tools_bundles = {"bundle1": {"tool1"}}
+            loader.tool_bundles = {"bundle1": {"tool1"}}
 
             loader.cleanup()
 
@@ -276,13 +329,26 @@ class TestToolsLoaderCleanup:
             os.unlink(config_path)
 
 
-class TestToolsLoaderIncrementalUpdates:
-    """Test ToolsLoader incremental bundle updates."""
+class TestToolLoaderIncrementalUpdates:
+    """Test ToolLoader incremental bundle updates."""
 
     @pytest.mark.asyncio
     async def test_load_async_adds_new_bundles(self):
         """Test load_async adds new bundles."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+
+        # Create mock tool config
+        from fivcplayground.tools.types.base import ToolConfig
+
+        mock_tool_config = ToolConfig(
+            id="server1",
+            description="Server 1",
+            transport="stdio",
+            command="python",
+            args=["test.py"],
+        )
+        mock_repo.list_tool_configs.return_value = [mock_tool_config]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("server1:\n  command: python\n  args:\n    - test.py\n")
@@ -290,15 +356,17 @@ class TestToolsLoaderIncrementalUpdates:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             # Create mock tools with correct attributes for current backend
             mock_tool1 = create_mock_tool("tool1", "Tool 1 description")
 
             with patch(
-                "fivcplayground.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -312,15 +380,28 @@ class TestToolsLoaderIncrementalUpdates:
                 await loader.load_async()
 
                 # Verify bundle was added
-                assert "server1" in loader.tools_bundles
-                assert "tool1" in loader.tools_bundles["server1"]
+                assert "server1" in loader.tool_bundles
+                assert "tool1" in loader.tool_bundles["server1"]
         finally:
             os.unlink(config_path)
 
     @pytest.mark.asyncio
     async def test_load_async_removes_old_bundles(self):
         """Test load_async removes bundles that are no longer configured."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+
+        # Create mock tool config
+        from fivcplayground.tools.types.base import ToolConfig
+
+        mock_tool_config = ToolConfig(
+            id="server1",
+            description="Server 1",
+            transport="stdio",
+            command="python",
+            args=["test.py"],
+        )
+        mock_repo.list_tool_configs.return_value = [mock_tool_config]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("server1:\n  command: python\n  args:\n    - test.py\n")
@@ -328,15 +409,17 @@ class TestToolsLoaderIncrementalUpdates:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             # Simulate previously loaded bundle
-            loader.tools_bundles = {"old_server": {"old_tool"}}
+            loader.tool_bundles = {"old_server": {"old_tool"}}
 
             with patch(
-                "fivcplayground.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -349,18 +432,31 @@ class TestToolsLoaderIncrementalUpdates:
 
                 # Verify old bundle was removed by bundle name
                 mock_retriever.remove.assert_called_once_with("old_server")
-                assert "old_server" not in loader.tools_bundles
+                assert "old_server" not in loader.tool_bundles
         finally:
             os.unlink(config_path)
 
 
-class TestToolsLoaderPersistentConnections:
-    """Test persistent MCP connections in ToolsLoader."""
+class TestToolLoaderPersistentConnections:
+    """Test persistent MCP connections in ToolLoader."""
 
     @pytest.mark.asyncio
     async def test_load_async_uses_async_with(self):
         """Test that load_async uses async with for proper session lifecycle."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
+
+        # Create mock tool config
+        from fivcplayground.tools.types.base import ToolConfig
+
+        mock_tool_config = ToolConfig(
+            id="test_server",
+            description="Test server",
+            transport="stdio",
+            command="python",
+            args=["test.py"],
+        )
+        mock_repo.list_tool_configs.return_value = [mock_tool_config]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -368,12 +464,14 @@ class TestToolsLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             with patch(
-                "fivcplayground.tools.types.loaders.ToolsBundle"
+                "fivcplayground.tools.types.loaders.ToolBundle"
             ) as mock_bundle_class:
                 mock_bundle = MagicMock()
                 mock_bundle_class.return_value = mock_bundle
@@ -389,7 +487,7 @@ class TestToolsLoaderPersistentConnections:
                 await loader.load_async()
 
                 # Verify tools are loaded and registered
-                assert "test_server" in loader.tools_bundles
+                assert "test_server" in loader.tool_bundles
                 mock_retriever.add.assert_called_once()
         finally:
             os.unlink(config_path)
@@ -397,7 +495,8 @@ class TestToolsLoaderPersistentConnections:
     @pytest.mark.asyncio
     async def test_cleanup_async_removes_tools(self):
         """Test that cleanup_async removes all tools and clears state."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -405,12 +504,14 @@ class TestToolsLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             # Set up tools
-            loader.tools_bundles = {
+            loader.tool_bundles = {
                 "server1": {"tool1", "tool2"},
                 "server2": {"tool3"},
             }
@@ -423,13 +524,14 @@ class TestToolsLoaderPersistentConnections:
             mock_retriever.remove.assert_any_call("server2")
 
             # Verify state was cleared
-            assert loader.tools_bundles == {}
+            assert loader.tool_bundles == {}
         finally:
             os.unlink(config_path)
 
     def test_cleanup_sync_wrapper(self):
         """Test that cleanup() synchronously calls cleanup_async()."""
-        mock_retriever = Mock(spec=ToolsRetriever)
+        mock_retriever = Mock(spec=ToolRetriever)
+        mock_repo = Mock(spec=ToolConfigRepository)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
@@ -437,8 +539,10 @@ class TestToolsLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolsLoader(
-                tools_retriever=mock_retriever, config_file=config_path
+            loader = ToolLoader(
+                tool_retriever=mock_retriever,
+                tool_config_repository=mock_repo,
+                config_file=config_path,
             )
 
             with patch.object(

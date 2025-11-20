@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import Mock
 
 from fivcplayground import __backend__
-from fivcplayground.tools.types.retrievers import ToolsRetriever
+from fivcplayground.tools.types.retrievers import ToolRetriever
 
 
 def create_mock_tool(name: str, description: str):
@@ -22,8 +22,8 @@ def create_mock_tool(name: str, description: str):
     return tool
 
 
-class TestToolsRetriever:
-    """Test the ToolsRetriever class."""
+class TestToolRetriever:
+    """Test the ToolRetriever class."""
 
     @pytest.fixture
     def mock_embedding_db(self):
@@ -43,8 +43,8 @@ class TestToolsRetriever:
         return create_mock_tool("test_tool", "A test tool")
 
     def test_init(self, mock_embedding_db):
-        """Test ToolsRetriever initialization."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        """Test ToolRetriever initialization."""
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         assert retriever.max_num == 10
         assert retriever.min_score == 0.0
@@ -54,13 +54,13 @@ class TestToolsRetriever:
 
     def test_str(self, mock_embedding_db):
         """Test string representation."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
-        assert str(retriever) == "ToolsRetriever(num_tools=0)"
+        assert str(retriever) == "ToolRetriever(num_tools=0)"
 
     def test_cleanup(self, mock_embedding_db):
         """Test cleanup method."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
         retriever.tools["tool1"] = Mock()
         retriever.max_num = 5
         retriever.min_score = 0.5
@@ -74,7 +74,7 @@ class TestToolsRetriever:
 
     def test_add_tool(self, mock_embedding_db, mock_tool):
         """Test adding a tool."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         retriever.add(mock_tool)
 
@@ -84,7 +84,7 @@ class TestToolsRetriever:
 
     def test_add_duplicate_tool(self, mock_embedding_db, mock_tool):
         """Test that adding duplicate tool raises ValueError."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
         retriever.add(mock_tool)
 
         with pytest.raises(ValueError, match="Duplicate tool name"):
@@ -92,7 +92,7 @@ class TestToolsRetriever:
 
     def test_add_tool_without_description(self, mock_embedding_db):
         """Test that adding tool without description raises ValueError."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
         tool = create_mock_tool("bad_tool", "")
 
         with pytest.raises(ValueError, match="Tool description is empty"):
@@ -100,7 +100,7 @@ class TestToolsRetriever:
 
     def test_add_batch(self, mock_embedding_db):
         """Test adding multiple tools."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool1 = create_mock_tool("tool1", "Tool 1")
         tool2 = create_mock_tool("tool2", "Tool 2")
@@ -113,7 +113,7 @@ class TestToolsRetriever:
 
     def test_get_tool(self, mock_embedding_db, mock_tool):
         """Test getting a tool by name."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
         retriever.add(mock_tool)
 
         result = retriever.get("test_tool")
@@ -122,7 +122,7 @@ class TestToolsRetriever:
 
     def test_get_nonexistent_tool(self, mock_embedding_db):
         """Test getting a nonexistent tool returns None."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         result = retriever.get("nonexistent")
 
@@ -130,7 +130,7 @@ class TestToolsRetriever:
 
     def test_get_batch(self, mock_embedding_db):
         """Test getting multiple tools."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool1 = create_mock_tool("tool1", "Tool 1")
         tool2 = create_mock_tool("tool2", "Tool 2")
@@ -145,7 +145,7 @@ class TestToolsRetriever:
 
     def test_get_all(self, mock_embedding_db):
         """Test getting all tools."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool1 = create_mock_tool("tool1", "Tool 1")
         tool2 = create_mock_tool("tool2", "Tool 2")
@@ -160,7 +160,7 @@ class TestToolsRetriever:
 
     def test_retrieve_min_score_property(self, mock_embedding_db):
         """Test retrieve_min_score property."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         assert retriever.retrieve_min_score == 0.0
 
@@ -171,7 +171,7 @@ class TestToolsRetriever:
 
     def test_retrieve_max_num_property(self, mock_embedding_db):
         """Test retrieve_max_num property."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         assert retriever.retrieve_max_num == 10
 
@@ -182,7 +182,7 @@ class TestToolsRetriever:
 
     def test_retrieve(self, mock_embedding_db):
         """Test retrieving tools by query."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool1 = create_mock_tool("calculator", "Calculate math")
         tool2 = create_mock_tool("search", "Search the web")
@@ -213,7 +213,7 @@ class TestToolsRetriever:
 
     def test_retrieve_with_min_score(self, mock_embedding_db):
         """Test retrieving tools with minimum score filter."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
         retriever.retrieve_min_score = 0.8
 
         tool1 = create_mock_tool("calculator", "Calculate math")
@@ -246,7 +246,7 @@ class TestToolsRetriever:
 
     def test_call(self, mock_embedding_db):
         """Test calling retriever as a function."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool1 = create_mock_tool("calculator", "Calculate math")
 
@@ -271,7 +271,7 @@ class TestToolsRetriever:
 
     def test_to_tool(self, mock_embedding_db):
         """Test converting retriever to a tool."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool = retriever.to_tool()
 
@@ -285,10 +285,10 @@ class TestToolsRetriever:
         """Test that to_tool() result can be invoked without recursion error.
 
         Regression test for issue where str(self.retrieve(query)) caused infinite
-        recursion when ToolsBundle objects were in the results due to circular
+        recursion when ToolBundle objects were in the results due to circular
         references in Pydantic models.
         """
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         # Create mock tools
         tool1 = create_mock_tool("tool1", "Tool 1")
@@ -324,7 +324,7 @@ class TestToolsRetriever:
 
     def test_remove_tool(self, mock_embedding_db):
         """Test removing a tool."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool = create_mock_tool("test_tool", "A test tool")
 
@@ -352,14 +352,14 @@ class TestToolsRetriever:
 
     def test_remove_nonexistent_tool(self, mock_embedding_db):
         """Test removing a nonexistent tool raises ValueError."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         with pytest.raises(ValueError, match="Tool not found"):
             retriever.remove("nonexistent")
 
     def test_remove_tool_with_no_embedding_docs(self, mock_embedding_db):
         """Test removing a tool that has no embedding documents."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
+        retriever = ToolRetriever(db=mock_embedding_db)
 
         tool = create_mock_tool("test_tool", "A test tool")
 

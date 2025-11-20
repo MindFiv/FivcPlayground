@@ -1,11 +1,9 @@
 __all__ = [
-    "ToolsRetriever",
-    "ToolsConfig",
-    "ToolsBundle",
-    "ToolsLoader",
+    "ToolRetriever",
+    "ToolBundle",
+    "ToolLoader",
 ]
 
-from .retrievers import ToolsRetriever
-from .configs import ToolsConfig
-from .loaders import ToolsLoader
-from .bundles import ToolsBundle
+from .retrievers import ToolRetriever
+from .loaders import ToolLoader
+from .bundles import ToolBundle

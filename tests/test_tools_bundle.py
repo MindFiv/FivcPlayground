@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Tests for the ToolsBundle class.
+Tests for the ToolBundle class.
 
-ToolsBundle is an MCP (Model Context Protocol) tools bundle that wraps
+ToolBundle is an MCP (Model Context Protocol) tools bundle that wraps
 MCP server connections and provides async loading of tools.
 """
 
@@ -10,49 +10,61 @@ import pytest
 from unittest.mock import Mock, patch
 
 from fivcplayground import __backend__
-from fivcplayground.tools.types.backends import ToolsBundle, get_tool_name
+from fivcplayground.tools.types.backends import ToolBundle, get_tool_name
+from fivcplayground.tools.types.base import ToolConfig
 
 
 class TestToolsBundleInit:
-    """Test ToolsBundle initialization."""
+    """Test ToolBundle initialization."""
 
     def test_init_with_command_config(self):
-        """Test ToolsBundle initialization with command-based MCP config."""
-        conn = {
-            "command": "python",
-            "args": ["-m", "mcp_server"],
-        }
-        bundle = ToolsBundle("test_bundle", conn)
+        """Test ToolBundle initialization with command-based MCP config."""
+        tool_config = ToolConfig(
+            id="test_bundle",
+            description="Test bundle",
+            transport="stdio",
+            command="python",
+            args=["-m", "mcp_server"],
+        )
+        bundle = ToolBundle(tool_config)
 
         # Use backend-agnostic function to get tool name
         assert get_tool_name(bundle) == "test_bundle"
-        # Check that connection is stored (implementation-specific)
+        # Check that config is stored
         if __backend__ == "strands":
-            assert bundle._conn == conn
+            assert bundle._config == tool_config
         else:  # langchain
-            # In LangChain, _conn is set via object.__setattr__
-            assert hasattr(bundle, "_conn")
+            # In LangChain, _config is set via object.__setattr__
+            assert hasattr(bundle, "_config")
 
     def test_init_with_url_config(self):
-        """Test ToolsBundle initialization with URL-based MCP config."""
-        conn = {
-            "url": "http://localhost:8000/sse",
-        }
-        bundle = ToolsBundle("test_bundle", conn)
+        """Test ToolBundle initialization with URL-based MCP config."""
+        tool_config = ToolConfig(
+            id="test_bundle",
+            description="Test bundle",
+            transport="sse",
+            url="http://localhost:8000/sse",
+        )
+        bundle = ToolBundle(tool_config)
 
         # Use backend-agnostic function to get tool name
         assert get_tool_name(bundle) == "test_bundle"
-        # Check that connection is stored (implementation-specific)
+        # Check that config is stored
         if __backend__ == "strands":
-            assert bundle._conn == conn
+            assert bundle._config == tool_config
         else:  # langchain
-            # In LangChain, _conn is set via object.__setattr__
-            assert hasattr(bundle, "_conn")
+            # In LangChain, _config is set via object.__setattr__
+            assert hasattr(bundle, "_config")
 
     def test_bundle_has_tool_name_attribute(self):
-        """Test that ToolsBundle has a tool_name attribute (or name for LangChain)."""
-        conn = {"command": "python"}
-        bundle = ToolsBundle("my_bundle", conn)
+        """Test that ToolBundle has a tool_name attribute (or name for LangChain)."""
+        tool_config = ToolConfig(
+            id="my_bundle",
+            description="My bundle",
+            transport="stdio",
+            command="python",
+        )
+        bundle = ToolBundle(tool_config)
 
         # Check for backend-specific attributes
         if __backend__ == "strands":
@@ -67,7 +79,7 @@ class TestToolsBundleInit:
 
 
 class TestToolsBundleAsync:
-    """Test ToolsBundle async loading."""
+    """Test ToolBundle async loading."""
 
     @pytest.mark.skipif(
         __backend__ != "strands", reason="Only test with Strands backend"
@@ -75,11 +87,14 @@ class TestToolsBundleAsync:
     @pytest.mark.asyncio
     async def test_load_async_with_command_config(self):
         """Test async loading with command-based config."""
-        conn = {
-            "command": "python",
-            "args": ["-m", "mcp_server"],
-        }
-        bundle = ToolsBundle("test_bundle", conn)
+        tool_config = ToolConfig(
+            id="test_bundle",
+            description="Test bundle",
+            transport="stdio",
+            command="python",
+            args=["-m", "mcp_server"],
+        )
+        bundle = ToolBundle(tool_config)
 
         # Mock the MCPClient and tools
         mock_tool = Mock()
@@ -104,10 +119,13 @@ class TestToolsBundleAsync:
     @pytest.mark.asyncio
     async def test_load_async_with_url_config(self):
         """Test async loading with URL-based config."""
-        conn = {
-            "url": "http://localhost:8000/sse",
-        }
-        bundle = ToolsBundle("test_bundle", conn)
+        tool_config = ToolConfig(
+            id="test_bundle",
+            description="Test bundle",
+            transport="sse",
+            url="http://localhost:8000/sse",
+        )
+        bundle = ToolBundle(tool_config)
 
         # Mock the MCPClient and tools
         mock_tool = Mock()

@@ -15,14 +15,16 @@ __all__ = [
 ]
 
 from fivcplayground import utils, tools
+from fivcplayground.tools.types.repositories import FileToolConfigRepository
 from .chats import Chat, ChatManager
 from .tasks import TaskManager
 
 
 def _load_mcp_config():
     with utils.OutputDir():
-        return tools.ToolsLoader(
-            tools_retriever=tools.default_retriever,
+        return tools.ToolLoader(
+            tool_retriever=tools.default_retriever,
+            tool_config_repository=FileToolConfigRepository(),
             config_file="mcp.yml",
         )
 

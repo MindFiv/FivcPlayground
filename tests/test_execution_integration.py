@@ -7,6 +7,7 @@ Tests the complete workflow integration without requiring actual LLM calls.
 
 import sys
 import dotenv
+from unittest.mock import patch, Mock
 
 from fivcplayground import tasks, agents
 
@@ -80,13 +81,16 @@ class TestExecutionTaskIntegration:
         params = list(sig.parameters.keys())
 
         assert "query" in params
-        assert "tools_retriever" in params
+        assert "tool_retriever" in params
         assert "kwargs" in params
 
         # Check it's callable and returns a Runnable
-        task = tasks.create_planning_task("Test query")
-        assert hasattr(task, "run")
-        assert hasattr(task, "run_async")
+        # Mock model creation to avoid needing actual model configs
+        with patch("fivcplayground.agents.create_model") as mock_create_model:
+            mock_create_model.return_value = Mock()
+            task = tasks.create_planning_task("Test query")
+            assert hasattr(task, "run")
+            assert hasattr(task, "run_async")
 
     def test_workflow_components(self):
         """Test that all workflow components exist"""

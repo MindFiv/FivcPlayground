@@ -21,7 +21,7 @@ from fivcplayground import (
     utils,
 )
 from fivcplayground.models import (
-    create_default_model,
+    create_model,
     create_chat_model,
     create_reasoning_model,
 )
@@ -49,7 +49,7 @@ def create_default_agent(**kwargs) -> AgentsRunnable:
         kwargs["tools"] = tools.default_retriever.get_all()
 
     if "model" not in kwargs:
-        kwargs["model"] = create_default_model()
+        kwargs["model"] = create_model()
 
     return AgentsRunnable(**kwargs)
 
