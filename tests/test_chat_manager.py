@@ -468,10 +468,15 @@ class TestChatManager:
 
     def test_init_with_defaults(self):
         """Test ChatManager initialization with default settings."""
-        manager = ChatManager()
+        with patch("fivcplayground.app.utils.chats.tools.create_tool_retriever") as mock_create:
+            mock_retriever = Mock(spec=tools.ToolRetriever)
+            mock_create.return_value = mock_retriever
 
-        assert manager.runtime_repo is not None
-        assert manager.tool_retriever is not None
+            manager = ChatManager()
+
+            assert manager.runtime_repo is not None
+            assert manager.tool_retriever is not None
+            mock_create.assert_called_once()
 
     def test_init_with_custom_settings(self):
         """Test ChatManager initialization with custom settings."""
@@ -540,14 +545,18 @@ class TestChatManager:
 
     def test_add_chat_creates_independent_instances(self):
         """Test add_chat creates independent Chat instances."""
-        manager = ChatManager()
+        with patch("fivcplayground.app.utils.chats.tools.create_tool_retriever") as mock_create:
+            mock_retriever = Mock(spec=tools.ToolRetriever)
+            mock_create.return_value = mock_retriever
 
-        chat1 = manager.add_chat()
-        chat2 = manager.add_chat()
+            manager = ChatManager()
 
-        assert chat1 is not chat2
-        assert chat1.runtime_repo is chat2.runtime_repo  # Shared repo
-        assert chat1.tool_retriever is chat2.tool_retriever  # Shared tools
+            chat1 = manager.add_chat()
+            chat2 = manager.add_chat()
+
+            assert chat1 is not chat2
+            assert chat1.runtime_repo is chat2.runtime_repo  # Shared repo
+            assert chat1.tool_retriever is chat2.tool_retriever  # Shared tools
 
 
 class TestAgentExecutionMethodRegression:

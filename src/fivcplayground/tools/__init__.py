@@ -5,6 +5,7 @@ __all__ = [
     "ToolBundle",
     "ToolRetriever",
     "ToolLoader",
+    "ToolConfigRepository",
 ]
 
 from contextlib import asynccontextmanager, AsyncExitStack
@@ -14,11 +15,10 @@ from fivcplayground.embeddings import EmbeddingConfigRepository
 from fivcplayground.tools.types import (
     ToolRetriever,
     ToolLoader,
-)
-from fivcplayground.tools.types.backends import (
     Tool,
     ToolBundle,
 )
+from fivcplayground.tools.types.repositories import ToolConfigRepository
 
 
 def create_tool_retriever(
@@ -40,6 +40,18 @@ def create_tool_retriever(
 
     return retriever
 
+
+def create_tool_loader(
+    tool_retriever: ToolRetriever | None = None,
+    tool_config_repository: ToolConfigRepository | None = None,
+    **kwargs,
+) -> ToolLoader:
+    """Create a new ToolLoader instance."""
+    return ToolLoader(
+        tool_retriever=tool_retriever,
+        tool_config_repository=tool_config_repository,
+        **kwargs,
+    )
 
 @asynccontextmanager
 async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
