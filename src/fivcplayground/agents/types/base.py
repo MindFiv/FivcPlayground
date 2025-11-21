@@ -7,10 +7,10 @@ system, providing structured data for agent configuration, execution state,
 and tool invocations.
 
 Core Models:
-    - AgentsRuntimeMeta: Agent configuration and metadata
-    - AgentsRuntime: Overall agent execution state and runtime data
-    - AgentsRuntimeToolCall: Individual tool call record
-    - AgentsStatus: Execution status enumeration
+    - AgentRunMeta: Agent configuration and metadata
+    - AgentRun: Overall agent execution state and runtime data
+    - AgentRunToolCall: Individual tool call record
+    - AgentRunStatus: Execution status enumeration
 
 These models use Pydantic for validation and serialization, making them
 suitable for:
@@ -21,28 +21,28 @@ suitable for:
 
 Example:
     >>> from fivcplayground.agents.types import (
-    ...     AgentsRuntimeMeta,
-    ...     AgentsRuntime,
-    ...     AgentsRuntimeToolCall,
-    ...     AgentsStatus
+    ...     AgentRunMeta,
+    ...     AgentRun,
+    ...     AgentRunToolCall,
+    ...     AgentRunStatus
     ... )
     >>>
     >>> # Create agent metadata
-    >>> agent_meta = AgentsRuntimeMeta(
+    >>> agent_meta = AgentRunMeta(
     ...     agent_id="my-agent",
     ...     agent_name="MyAgent",
     ...     system_prompt="You are a helpful assistant"
     ... )
     >>>
     >>> # Create runtime instance
-    >>> runtime = AgentsRuntime(
+    >>> runtime = AgentRun(
     ...     agent_id="my-agent",
     ...     agent_name="MyAgent",
-    ...     status=AgentsStatus.EXECUTING
+    ...     status=AgentRunStatus.EXECUTING
     ... )
 
 Note:
-    For agent execution, see AgentsRunnable in fivcadvisor.agents.types.backends
+    For agent execution, see AgentRunnable in fivcadvisor.agents.types.backends
 """
 
 from datetime import datetime
@@ -56,7 +56,34 @@ from pydantic import (
 )
 
 
-class AgentsStatus(str, Enum):
+class AgentConfig(BaseModel):
+    """Agent configuration."""
+
+    id: str = Field(..., description="Unique identifier for the agent")
+
+    @computed_field
+    @property
+    def name(self) -> str:
+        return self.id  # id and name are the same for agents
+
+    description: str | None = Field(
+        default=None, description="Description of the agent"
+    )
+    system_prompt: str | None = Field(
+        default=None, description="System prompt/instructions for the agent"
+    )
+
+
+class AgentRunContent(BaseModel):
+    text: str | None = Field(default=None, description="Text content")
+
+    # TODO: add other content types as needed
+
+    def __str__(self):
+        return self.text
+
+
+class AgentRunStatus(str, Enum):
     """
     Agent execution status enumeration.
 
@@ -70,13 +97,13 @@ class AgentsStatus(str, Enum):
         FAILED: Agent encountered an error and stopped
 
     Example:
-        >>> runtime = AgentsRuntime(
+        >>> runtime = AgentRun(
         ...     agent_id="my-agent",
-        ...     status=AgentsStatus.PENDING
+        ...     status=AgentRunStatus.PENDING
         ... )
-        >>> runtime.status = AgentsStatus.EXECUTING
+        >>> runtime.status = AgentRunStatus.EXECUTING
         >>> # ... agent processes ...
-        >>> runtime.status = AgentsStatus.COMPLETED
+        >>> runtime.status = AgentRunStatus.COMPLETED
 
     Note:
         This enum inherits from str, making it JSON-serializable and
@@ -89,7 +116,7 @@ class AgentsStatus(str, Enum):
     FAILED = "failed"
 
 
-class AgentsEvent(str, Enum):
+class AgentRunEvent(str, Enum):
     START = "start"
     FINISH = "finish"
     UPDATE = "update"
@@ -97,12 +124,7 @@ class AgentsEvent(str, Enum):
     TOOL = "tool"  # tool call
 
 
-class AgentsContent(BaseModel):
-    text: Optional[str] = Field(description="Text content")
-    # TODO: add other content types as needed
-
-
-class AgentsRuntimeMeta(BaseModel):
+class AgentRunMeta(BaseModel):
     """
     Agent metadata and configuration.
 
@@ -118,7 +140,7 @@ class AgentsRuntimeMeta(BaseModel):
         description: Description of the agent's purpose and capabilities (optional)
 
     Example:
-        >>> agent_meta = AgentsRuntimeMeta(
+        >>> agent_meta = AgentRunMeta(
         ...     agent_id="customer-support-agent",
         ...     agent_name="Customer Support Agent",
         ...     system_prompt="You are a helpful customer support assistant.",
@@ -162,7 +184,7 @@ class AgentsRuntimeMeta(BaseModel):
     )
 
 
-class AgentsRuntimeToolCall(BaseModel):
+class AgentRunToolCall(BaseModel):
     """
     Single tool call record.
 
@@ -186,7 +208,7 @@ class AgentsRuntimeToolCall(BaseModel):
 
     Example:
         >>> # Create a pending tool call
-        >>> tool_call = AgentsRuntimeToolCall(
+        >>> tool_call = AgentRunToolCall(
         ...     tool_use_id="call-123",
         ...     tool_name="calculator",
         ...     tool_input={"expression": "2+2"},
@@ -276,7 +298,7 @@ class AgentsRuntimeToolCall(BaseModel):
         return self.status in ("success", "error")
 
 
-class AgentsRuntime(BaseModel):
+class AgentRun(BaseModel):
     """
     Agent execution state and runtime metadata.
 
@@ -284,7 +306,7 @@ class AgentsRuntime(BaseModel):
     everything from initialization through completion. This includes execution
     status, timing information, tool calls, streaming output, and final results.
 
-    Each AgentsRuntime instance represents one execution of an agent, identified
+    Each AgentRun instance represents one execution of an agent, identified
     by a unique timestamp-based agent_run_id. Multiple runtimes can exist for
     the same agent (identified by agent_id).
 
@@ -297,7 +319,7 @@ class AgentsRuntime(BaseModel):
         started_at: Timestamp when execution started
         completed_at: Timestamp when execution finished
         query: User query that initiated this agent run
-        tool_calls: Dictionary mapping tool_use_id to AgentsRuntimeToolCall instances
+        tool_calls: Dictionary mapping tool_use_id to AgentRunToolCall instances
         reply: Final agent reply message
         streaming_text: Accumulated streaming text output from the agent
         error: Error message if execution failed
@@ -310,19 +332,19 @@ class AgentsRuntime(BaseModel):
 
     Example:
         >>> # Create a new runtime
-        >>> runtime = AgentsRuntime(
+        >>> runtime = AgentRun(
         ...     agent_id="my-agent",
         ...     agent_name="MyAgent",
         ...     query="What is 2+2?",
-        ...     status=AgentsStatus.PENDING
+        ...     status=AgentRunStatus.PENDING
         ... )
         >>>
         >>> # Start execution
-        >>> runtime.status = AgentsStatus.EXECUTING
+        >>> runtime.status = AgentRunStatus.EXECUTING
         >>> runtime.started_at = datetime.now()
         >>>
         >>> # Add tool call
-        >>> tool_call = AgentsRuntimeToolCall(
+        >>> tool_call = AgentRunToolCall(
         ...     tool_use_id="call-1",
         ...     tool_name="calculator",
         ...     tool_input={"expression": "2+2"}
@@ -330,7 +352,7 @@ class AgentsRuntime(BaseModel):
         >>> runtime.tool_calls[tool_call.tool_use_id] = tool_call
         >>>
         >>> # Complete execution
-        >>> runtime.status = AgentsStatus.COMPLETED
+        >>> runtime.status = AgentRunStatus.COMPLETED
         >>> runtime.completed_at = datetime.now()
         >>> print(f"Duration: {runtime.duration}s")
         >>> print(f"Tool calls: {runtime.tool_call_count}")
@@ -339,7 +361,7 @@ class AgentsRuntime(BaseModel):
         - agent_run_id is auto-generated as a timestamp if not provided
         - tool_calls are stored separately in repositories (not in run.json)
         - The id property is a computed field that mirrors agent_run_id
-        - Use AgentsStatus enum for status values
+        - Use AgentRunStatus enum for status values
         - Computed fields are automatically included in serialization
     """
 
@@ -364,8 +386,8 @@ class AgentsRuntime(BaseModel):
         default=None, description="ID of the agent being executed"
     )
     agent_name: Optional[str] = Field(default=None, description="Name of the agent")
-    status: AgentsStatus = Field(
-        default=AgentsStatus.PENDING,
+    status: AgentRunStatus = Field(
+        default=AgentRunStatus.PENDING,
         description="Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)",
     )
     started_at: Optional[datetime] = Field(
@@ -374,14 +396,14 @@ class AgentsRuntime(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Timestamp when execution finished"
     )
-    query: Optional[AgentsContent] = Field(
+    query: Optional[AgentRunContent] = Field(
         default=None, description="User query that initiated this agent run"
     )
-    tool_calls: Dict[str, AgentsRuntimeToolCall] = Field(
+    tool_calls: Dict[str, AgentRunToolCall] = Field(
         default_factory=dict,
-        description="Dictionary mapping tool_use_id to AgentsRuntimeToolCall instances",
+        description="Dictionary mapping tool_use_id to AgentRunToolCall instances",
     )
-    reply: Optional[AgentsContent] = Field(
+    reply: Optional[AgentRunContent] = Field(
         default=None, description="Final agent reply message"
     )
     streaming_text: str = Field(
@@ -422,11 +444,11 @@ class AgentsRuntime(BaseModel):
             True if status is EXECUTING, False otherwise
 
         Example:
-            >>> runtime.status = AgentsStatus.EXECUTING
+            >>> runtime.status = AgentRunStatus.EXECUTING
             >>> runtime.is_running
             True
         """
-        return self.status == AgentsStatus.EXECUTING
+        return self.status == AgentRunStatus.EXECUTING
 
     @computed_field
     @property
@@ -438,14 +460,14 @@ class AgentsRuntime(BaseModel):
             True if status is COMPLETED or FAILED, False otherwise
 
         Example:
-            >>> runtime.status = AgentsStatus.COMPLETED
+            >>> runtime.status = AgentRunStatus.COMPLETED
             >>> runtime.is_completed
             True
-            >>> runtime.status = AgentsStatus.FAILED
+            >>> runtime.status = AgentRunStatus.FAILED
             >>> runtime.is_completed
             True
         """
-        return self.status in (AgentsStatus.COMPLETED, AgentsStatus.FAILED)
+        return self.status in (AgentRunStatus.COMPLETED, AgentRunStatus.FAILED)
 
     @computed_field
     @property

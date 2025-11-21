@@ -20,7 +20,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
 
-from fivcplayground.agents.types import AgentsContent
+from fivcplayground.agents.types import AgentRunContent
 
 
 class TaskStatus(str, Enum):
@@ -133,7 +133,7 @@ class TaskRuntimeStep(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Step completion timestamp"
     )
-    messages: List[AgentsContent] = Field(
+    messages: List[AgentRunContent] = Field(
         default_factory=list, description="Messages during execution"
     )
     error: Optional[str] = Field(default=None, description="Error message if failed")

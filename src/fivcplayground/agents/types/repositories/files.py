@@ -1,16 +1,16 @@
 """
 File-based agent runtime repository implementation.
 
-This module provides FileAgentsRuntimeRepository, a file-based implementation
-of AgentsRuntimeRepository that stores agent data in a hierarchical directory
+This module provides FileAgentRunRepository, a file-based implementation
+of AgentRunRepository that stores agent data in a hierarchical directory
 structure with JSON files.
 
 Storage Structure:
     /<output_dir>/
     └── agent_<agent_id>/
-        ├── agent.json               # Agent metadata (AgentsRuntimeMeta)
+        ├── agent.json               # Agent metadata (AgentRunMeta)
         └── run_<agent_run_id>/
-            ├── run.json             # Agent Runtime metadata (AgentsRuntime)
+            ├── run.json             # Agent Runtime metadata (AgentRun)
             └── tool_calls/
                 ├── tool_call_<tool_call_id>.json  # Tool call data
                 └── tool_call_<tool_call_id>.json
@@ -24,15 +24,15 @@ This structure allows for:
     - Cascading deletes (deleting an agent removes all its runtimes)
 
 Example:
-    >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
-    >>> from fivcplayground.agents.types import AgentsRuntimeMeta, AgentsRuntime
+    >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
+    >>> from fivcplayground.agents.types import AgentRunMeta, AgentRun
     >>> from fivcplayground.utils import OutputDir
     >>>
     >>> # Create repository
-    >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))
+    >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agents"))
     >>>
     >>> # Store agent metadata
-    >>> agent_meta = AgentsRuntimeMeta(
+    >>> agent_meta = AgentRunMeta(
     ...     agent_id="my-agent",
     ...     agent_name="MyAgent",
     ...     system_prompt="You are a helpful assistant"
@@ -40,7 +40,7 @@ Example:
     >>> repo.update_agent(agent_meta)
     >>>
     >>> # Create and store a runtime
-    >>> runtime = AgentsRuntime(agent_id="my-agent", agent_name="MyAgent")
+    >>> runtime = AgentRun(agent_id="my-agent", agent_name="MyAgent")
     >>> repo.update_agent_runtime("my-agent", runtime)
     >>>
     >>> # List all agents
@@ -52,17 +52,17 @@ import shutil
 from pathlib import Path
 from typing import Optional, List
 
-from fivcplayground.agents.types import AgentsRuntimeMeta
+from fivcplayground.agents.types import AgentRunMeta
 from fivcplayground.utils import OutputDir
 
 from fivcplayground.agents.types.repositories import (
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsRuntimeRepository,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunRepository,
 )
 
 
-class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
+class FileAgentRunRepository(AgentRunRepository):
     """
     File-based repository for agent runtime data.
 
@@ -188,7 +188,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             / f"tool_call_{tool_call_id}.json"
         )
 
-    def update_agent(self, agent: AgentsRuntimeMeta) -> None:
+    def update_agent(self, agent: AgentRunMeta) -> None:
         """
         Create or update an agent's metadata.
 
@@ -197,10 +197,10 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         doesn't exist.
 
         Args:
-            agent: AgentsRuntimeMeta instance containing agent configuration
+            agent: AgentRunMeta instance containing agent configuration
 
         Example:
-            >>> agent_meta = AgentsRuntimeMeta(
+            >>> agent_meta = AgentRunMeta(
             ...     agent_id="my-agent",
             ...     agent_name="MyAgent",
             ...     system_prompt="You are helpful"
@@ -222,7 +222,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         with open(agent_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent(self, agent_id: str) -> Optional[AgentsRuntimeMeta]:
+    def get_agent(self, agent_id: str) -> Optional[AgentRunMeta]:
         """
         Retrieve an agent's metadata by ID.
 
@@ -232,7 +232,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             agent_id: Unique identifier for the agent
 
         Returns:
-            AgentsRuntimeMeta instance if found, None if agent doesn't exist
+            AgentRunMeta instance if found, None if agent doesn't exist
             or if the agent.json file is corrupted
 
         Example:
@@ -252,14 +252,14 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             with open(agent_file, "r", encoding="utf-8") as f:
                 agent_data = json.load(f)
 
-            # Reconstruct AgentsRuntimeMeta from JSON
-            return AgentsRuntimeMeta.model_validate(agent_data)
+            # Reconstruct AgentRunMeta from JSON
+            return AgentRunMeta.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(f"Error loading agent {agent_id}: {e}")
             return None
 
-    def list_agents(self) -> List[AgentsRuntimeMeta]:
+    def list_agents(self) -> List[AgentRunMeta]:
         """
         List all agents in the repository.
 
@@ -267,7 +267,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         agent files are skipped.
 
         Returns:
-            List of AgentsRuntimeMeta instances sorted by agent_id.
+            List of AgentRunMeta instances sorted by agent_id.
             Returns empty list if no agents exist or repository is empty.
 
         Example:
@@ -326,7 +326,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         if agent_dir.exists():
             shutil.rmtree(agent_dir)
 
-    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentsRuntime) -> None:
+    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentRun) -> None:
         """
         Create or update an agent runtime.
 
@@ -336,13 +336,13 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
 
         Args:
             agent_id: Agent ID that owns this runtime
-            agent_runtime: AgentsRuntime instance to persist
+            agent_runtime: AgentRun instance to persist
 
         Example:
-            >>> runtime = AgentsRuntime(
+            >>> runtime = AgentRun(
             ...     agent_id="my-agent",
             ...     agent_name="MyAgent",
-            ...     status=AgentsStatus.EXECUTING
+            ...     status=AgentRunStatus.EXECUTING
             ... )
             >>> repo.update_agent_runtime("my-agent", runtime)
 
@@ -362,9 +362,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         with open(run_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent_runtime(
-        self, agent_id: str, agent_run_id: str
-    ) -> Optional[AgentsRuntime]:
+    def get_agent_runtime(self, agent_id: str, agent_run_id: str) -> Optional[AgentRun]:
         """
         Retrieve an agent runtime by agent ID and run ID.
 
@@ -376,7 +374,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             agent_run_id: Unique identifier for the runtime instance
 
         Returns:
-            AgentsRuntime instance if found, None if runtime doesn't exist
+            AgentRun instance if found, None if runtime doesn't exist
             or if the run.json file is corrupted
 
         Example:
@@ -397,9 +395,9 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             with open(run_file, "r", encoding="utf-8") as f:
                 agent_data = json.load(f)
 
-            # Reconstruct AgentsRuntime from JSON
+            # Reconstruct AgentRun from JSON
             # Note: tool_calls are loaded separately via list_agent_runtime_tool_calls
-            return AgentsRuntime.model_validate(agent_data)
+            return AgentRun.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(f"Error loading agent {agent_id} run {agent_run_id}: {e}")
@@ -430,7 +428,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         if run_dir.exists():
             shutil.rmtree(run_dir)
 
-    def list_agent_runtimes(self, agent_id: str) -> List[AgentsRuntime]:
+    def list_agent_runtimes(self, agent_id: str) -> List[AgentRun]:
         """
         List all agent runtimes for a specific agent in chronological order.
 
@@ -441,7 +439,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             agent_id: Agent ID to list runtimes for
 
         Returns:
-            List of AgentsRuntime instances sorted by agent_run_id (timestamp)
+            List of AgentRun instances sorted by agent_run_id (timestamp)
             in increasing order. Returns empty list if no runtimes exist.
 
         Example:
@@ -479,7 +477,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
 
     def get_agent_runtime_tool_call(
         self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Optional[AgentsRuntimeToolCall]:
+    ) -> Optional[AgentRunToolCall]:
         """
         Retrieve a specific tool call by IDs.
 
@@ -492,7 +490,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             tool_call_id: Unique identifier for the tool call
 
         Returns:
-            AgentsRuntimeToolCall instance if found, None if tool call doesn't
+            AgentRunToolCall instance if found, None if tool call doesn't
             exist or if the JSON file is corrupted
 
         Example:
@@ -514,8 +512,8 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             with open(tool_call_file, "r", encoding="utf-8") as f:
                 tool_call_data = json.load(f)
 
-            # Reconstruct AgentsRuntimeToolCall from JSON
-            return AgentsRuntimeToolCall.model_validate(tool_call_data)
+            # Reconstruct AgentRunToolCall from JSON
+            return AgentRunToolCall.model_validate(tool_call_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(
@@ -524,7 +522,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             return None
 
     def update_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call: AgentsRuntimeToolCall
+        self, agent_id: str, agent_run_id: str, tool_call: AgentRunToolCall
     ) -> None:
         """
         Create or update a tool call for an agent runtime.
@@ -535,10 +533,10 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
         Args:
             agent_id: Agent ID that owns the runtime
             agent_run_id: Runtime ID that contains the tool call
-            tool_call: AgentsRuntimeToolCall instance to persist
+            tool_call: AgentRunToolCall instance to persist
 
         Example:
-            >>> tool_call = AgentsRuntimeToolCall(
+            >>> tool_call = AgentRunToolCall(
             ...     tool_use_id="tool-call-1",
             ...     tool_name="calculator",
             ...     tool_input={"expression": "2+2"},
@@ -568,7 +566,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
 
     def list_agent_runtime_tool_calls(
         self, agent_id: str, agent_run_id: str
-    ) -> List[AgentsRuntimeToolCall]:
+    ) -> List[AgentRunToolCall]:
         """
         List all tool calls for an agent runtime.
 
@@ -580,7 +578,7 @@ class FileAgentsRuntimeRepository(AgentsRuntimeRepository):
             agent_run_id: Runtime ID to list tool calls for
 
         Returns:
-            List of AgentsRuntimeToolCall instances for the specified runtime.
+            List of AgentRunToolCall instances for the specified runtime.
             Returns empty list if no tool calls exist.
 
         Example:

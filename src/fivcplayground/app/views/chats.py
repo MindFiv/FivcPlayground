@@ -11,7 +11,7 @@ The view handles:
 - Streaming agent responses in real-time
 - Rendering tool calls and thinking processes
 
-The chat uses the Chat utility for state management and the AgentsRuntime
+The chat uses the Chat utility for state management and the AgentRun
 system for tracking execution state and persistence.
 """
 
@@ -24,7 +24,7 @@ from fivcplayground.app.utils import (
     # default_running_config,
 )
 from fivcplayground.app.components import ChatMessage
-from fivcplayground.agents.types import AgentsRuntime, AgentsContent
+from fivcplayground.agents.types import AgentRun, AgentRunContent
 
 # from fivcplayground.tasks import create_assessing_task
 from .base import ViewBase, ViewNavigation
@@ -80,7 +80,7 @@ class ChatView(ViewBase):
         5. **Streaming Responses**: Uses a callback to render streaming text
            and tool calls in real-time as the agent processes the query.
 
-        The chat interface uses AgentsRuntime objects to track both completed
+        The chat interface uses AgentRun objects to track both completed
         messages (from history) and streaming responses (during active agent
         execution). All conversation state is automatically persisted to the
         repository.
@@ -143,8 +143,8 @@ class ChatView(ViewBase):
             logo_placeholder.empty()
 
             ChatMessage(
-                AgentsRuntime(
-                    query=AgentsContent(text=user_query),
+                AgentRun(
+                    query=AgentRunContent(text=user_query),
                     # agent_id=self.chat.id,
                 )
             ).render(msg_new_placeholder)

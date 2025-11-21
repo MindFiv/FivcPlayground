@@ -1,13 +1,13 @@
 """
 Runnable wrapper for LangChain agents.
 
-This module provides the AgentsRunnable class, which wraps LangChain's native
+This module provides the AgentRunnable class, which wraps LangChain's native
 agent creation functions to provide a consistent Runnable interface for FivcPlayground
 agents. It handles both synchronous and asynchronous invocation with proper message
 formatting and output extraction.
 
 Core Classes:
-    - AgentsRunnable: Runnable wrapper for LangChain agents
+    - AgentRunnable: Runnable wrapper for LangChain agents
 
 Features:
     - Synchronous and asynchronous execution
@@ -21,14 +21,14 @@ Return Types:
     - If response_model is None: Returns string content from agent response
 
 Example:
-    >>> from fivcplayground.agents.types import AgentsRunnable
+    >>> from fivcplayground.agents.types import AgentRunnable
     >>> from langchain_openai import ChatOpenAI
     >>>
     >>> # Create a model
     >>> model = ChatOpenAI(model="gpt-4o-mini")
     >>>
     >>> # Create an agent
-    >>> agent = AgentsRunnable(
+    >>> agent = AgentRunnable(
     ...     model=model,
     ...     tools=[],
     ...     agent_name="MyAgent",
@@ -56,17 +56,17 @@ from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
 from fivcplayground.agents.types.base import (
-    AgentsContent,
-    AgentsStatus,
-    AgentsEvent,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
+    AgentRunContent,
+    AgentRunStatus,
+    AgentRunEvent,
+    AgentRun,
+    AgentRunToolCall,
 )
 from fivcplayground.tools import setup_tools, Tool
 from fivcplayground.utils import Runnable
 
 
-class AgentsRunnable(Runnable):
+class AgentRunnable(Runnable):
     """
     Stateless runnable wrapper for LangChain agents.
 
@@ -92,7 +92,7 @@ class AgentsRunnable(Runnable):
         _messages: List of messages accumulated during execution
 
     Example:
-        >>> from fivcplayground.agents.types import AgentsRunnable
+        >>> from fivcplayground.agents.types import AgentRunnable
         >>> from langchain_openai import ChatOpenAI
         >>> from langchain_core.messages import HumanMessage, AIMessage
         >>>
@@ -100,7 +100,7 @@ class AgentsRunnable(Runnable):
         >>> model = ChatOpenAI(model="gpt-4o-mini")
         >>>
         >>> # Create an agent
-        >>> agent = AgentsRunnable(
+        >>> agent = AgentRunnable(
         ...     model=model,
         ...     tools=[],
         ...     agent_name="MyAgent",
@@ -129,7 +129,7 @@ class AgentsRunnable(Runnable):
         >>> from pydantic import BaseModel
         >>> class Answer(BaseModel):
         ...     value: int
-        >>> agent = AgentsRunnable(
+        >>> agent = AgentRunnable(
         ...     model=model,
         ...     tools=[],
         ...     response_model=Answer
@@ -145,13 +145,13 @@ class AgentsRunnable(Runnable):
         agent_id: str | None = None,
         agent_name: str = "Default",
         system_prompt: str | None = None,
-        messages: List[AgentsRuntime] | None = None,
+        messages: List[AgentRun] | None = None,
         response_model: Type[BaseModel] | None = None,
-        callback_handler: Callable[[AgentsEvent, AgentsRuntime], None] | None = None,
+        callback_handler: Callable[[AgentRunEvent, AgentRun], None] | None = None,
         **kwargs,
     ):
         """
-        Initialize AgentsRunnable.
+        Initialize AgentRunnable.
 
         Args:
             model: LangChain chat model
@@ -174,7 +174,7 @@ class AgentsRunnable(Runnable):
             ...     confidence: float
             >>>
             >>> model = ChatOpenAI(model="gpt-4o-mini")
-            >>> agent = AgentsRunnable(
+            >>> agent = AgentRunnable(
             ...     model=model,
             ...     tools=[],
             ...     agent_name="MyAgent",
@@ -211,7 +211,7 @@ class AgentsRunnable(Runnable):
             The unique identifier string
 
         Example:
-            >>> agent = AgentsRunnable(model=model, tools=[], agent_id="my-agent")
+            >>> agent = AgentRunnable(model=model, tools=[], agent_id="my-agent")
             >>> print(agent.id)
             'my-agent'
         """
@@ -226,7 +226,7 @@ class AgentsRunnable(Runnable):
             The runnable name
 
         Example:
-            >>> agent = AgentsRunnable(agent_name="MyAgent", model=model, tools=[])
+            >>> agent = AgentRunnable(agent_name="MyAgent", model=model, tools=[])
             >>> print(agent.name)
             'MyAgent'
         """
@@ -242,21 +242,21 @@ class AgentsRunnable(Runnable):
 
     def run(
         self,
-        query: str | AgentsContent = "",
+        query: str | AgentRunContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, AgentsContent]:
+    ) -> Union[BaseModel, AgentRunContent]:
         return asyncio.run(self.run_async(query, **kwargs))
 
     async def run_async(
         self,
-        query: str | AgentsContent = "",
+        query: str | AgentRunContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, AgentsContent]:
+    ) -> Union[BaseModel, AgentRunContent]:
         if query:
             if isinstance(query, str):
-                query = AgentsContent(text=query)
+                query = AgentRunContent(text=query)
 
-            if isinstance(query, AgentsContent):
+            if isinstance(query, AgentRunContent):
                 self._messages.append(HumanMessage(content=query.text))
 
         async with setup_tools(self._tools) as tools_expanded:
@@ -267,41 +267,41 @@ class AgentsRunnable(Runnable):
                 system_prompt=self._system_prompt,
                 response_format=self._response_model,
             )
-            runtime = AgentsRuntime(
+            runtime = AgentRun(
                 agent_id=self._id,
                 agent_name=self._name,
-                status=AgentsStatus.EXECUTING,
+                status=AgentRunStatus.EXECUTING,
                 query=query or None,
                 started_at=datetime.now(),
             )
             outputs = {}
             if self._callback_handler:
-                self._callback_handler(AgentsEvent.START, runtime)
+                self._callback_handler(AgentRunEvent.START, runtime)
 
             try:
                 async for mode, event_data in agent.astream(
                     agent.InputType(messages=self._messages),
                     stream_mode=["messages", "values", "updates"],
                 ):
-                    event = AgentsEvent.START
+                    event = AgentRunEvent.START
 
                     if mode == "values":
                         outputs = event_data
 
                     elif mode == "updates":
-                        event = AgentsEvent.UPDATE
+                        event = AgentRunEvent.UPDATE
                         runtime.streaming_text = ""
 
                     elif mode == "messages":
                         msg, _ = event_data
 
                         if isinstance(msg, AIMessageChunk):
-                            event = AgentsEvent.STREAM
+                            event = AgentRunEvent.STREAM
                             runtime.streaming_text += msg.text
 
                         elif isinstance(msg, ToolMessage):
-                            event = AgentsEvent.TOOL
-                            tool_call = AgentsRuntimeToolCall(
+                            event = AgentRunEvent.TOOL
+                            tool_call = AgentRunToolCall(
                                 tool_use_id=msg.tool_call_id,
                                 tool_name=msg.name,
                                 # tool_input=msg.input,
@@ -312,17 +312,17 @@ class AgentsRunnable(Runnable):
                             )
                             runtime.tool_calls[tool_call.tool_use_id] = tool_call
 
-                    if self._callback_handler and event != AgentsEvent.START:
+                    if self._callback_handler and event != AgentRunEvent.START:
                         self._callback_handler(event, runtime)
 
-                runtime.status = AgentsStatus.COMPLETED
+                runtime.status = AgentRunStatus.COMPLETED
 
             except GraphRecursionError as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
                 outputs = await agent.ainvoke(
                     agent.InputType(messages=[HumanMessage(content=error_msg)])
                 )
-                runtime.status = AgentsStatus.FAILED
+                runtime.status = AgentRunStatus.FAILED
             finally:
                 runtime.completed_at = datetime.now()
 
@@ -337,11 +337,11 @@ class AgentsRunnable(Runnable):
 
             self._messages.append(output)
 
-            output = AgentsContent(text=output.text)
+            output = AgentRunContent(text=output.text)
             runtime.reply = output
 
             if self._callback_handler:
-                self._callback_handler(AgentsEvent.FINISH, runtime)
+                self._callback_handler(AgentRunEvent.FINISH, runtime)
 
             if "structured_response" in outputs:
                 output = outputs["structured_response"]

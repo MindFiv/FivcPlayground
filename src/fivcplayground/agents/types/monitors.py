@@ -4,8 +4,8 @@ Agent execution monitor for tracking single-agent execution.
 This module provides monitoring and management classes for agent execution:
 
 Core Classes:
-    - AgentsMonitor: Tracks single agent execution through callback events
-    - AgentsMonitorManager: Manages multiple agent executions with persistence
+    - AgentMonitor: Tracks single agent execution through callback events
+    - AgentMonitorManager: Manages multiple agent executions with persistence
 
 Features:
     - Real-time streaming text accumulation
@@ -13,50 +13,50 @@ Features:
     - Unified callback pattern for execution events
     - Framework-agnostic design (no UI dependencies)
     - Graceful error handling for callbacks
-    - Automatic persistence via AgentsRuntimeRepository
+    - Automatic persistence via AgentRunRepository
     - Conversation history management
     - Multi-turn agent support
 
 Callback Pattern:
     The monitor uses a unified callback pattern where a single on_event callback
-    receives the complete AgentsRuntime state after each event, allowing UI
+    receives the complete AgentRun state after each event, allowing UI
     components to access all execution data in one place.
 
-Integration with AgentsRunnable:
-    AgentsMonitor integrates with AgentsRunnable through callback_handler parameter,
+Integration with AgentRunnable:
+    AgentMonitor integrates with AgentRunnable through callback_handler parameter,
     capturing execution events and maintaining runtime state. The monitor receives
-    string responses from AgentsRunnable and stores them in the runtime.
+    string responses from AgentRunnable and stores them in the runtime.
 
 Key Features:
-    - Unified callback-based execution tracking via AgentsRuntime
+    - Unified callback-based execution tracking via AgentRun
     - Real-time streaming message accumulation
     - Tool call event capture with status tracking
     - Framework-agnostic design (no UI dependencies)
     - Graceful error handling for callbacks
     - Cleanup method for resetting state between executions
-    - Centralized agent lifecycle management through AgentsMonitorManager
+    - Centralized agent lifecycle management through AgentMonitorManager
     - Automatic agent creation with monitoring integration
 """
 
 from typing import Optional, List, Callable
 
 from fivcplayground.agents.types.base import (
-    AgentsStatus,
-    AgentsEvent,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
+    AgentRunStatus,
+    AgentRunEvent,
+    AgentRun,
+    AgentRunToolCall,
 )
 from fivcplayground.agents.types.repositories import (
-    AgentsRuntimeRepository,
+    AgentRunRepository,
 )
 
 
-class AgentsMonitor(object):
+class AgentMonitor(object):
     """
     Agent execution monitor for tracking single-agent execution.
 
     Tracks agent execution through callback events, capturing streaming text
-    chunks and execution state in an AgentsRuntime object. Provides real-time
+    chunks and execution state in an AgentRun object. Provides real-time
     callbacks for UI updates while maintaining framework-agnostic design.
 
     Integration with Runnable:
@@ -68,7 +68,7 @@ class AgentsMonitor(object):
     - "updates": State updates
     - "finish": Execution completed
 
-    All events are accumulated in an AgentsRuntime object that tracks:
+    All events are accumulated in an AgentRun object that tracks:
     - Streaming text accumulation
     - Tool call execution with status tracking
     - Overall execution status
@@ -81,11 +81,11 @@ class AgentsMonitor(object):
         tool_calls: List of all tool calls from the runtime
 
     Usage:
-        >>> from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
+        >>> from fivcplayground.agents.types import AgentMonitor, AgentRun
         >>> from fivcplayground import agents
         >>>
         >>> # Create monitor with optional event callback
-        >>> def on_event(runtime: AgentsRuntime):
+        >>> def on_event(runtime: AgentRun):
         ...     # Access streaming text
         ...     print(f"Streaming: {runtime.streaming_text}", end="", flush=True)
         ...
@@ -93,7 +93,7 @@ class AgentsMonitor(object):
         ...     if runtime.reply:
         ...         print(f"Reply: {runtime.reply}")
         >>>
-        >>> monitor = AgentsMonitor(on_event=on_event)
+        >>> monitor = AgentMonitor(on_event=on_event)
         >>>
         >>> # Create agent with monitor as callback handler
         >>> agent = agents.create_companion_agent(callback_handler=monitor)
@@ -125,33 +125,33 @@ class AgentsMonitor(object):
         return self._runtime.is_completed
 
     @property
-    def status(self) -> AgentsStatus:
+    def status(self) -> AgentRunStatus:
         return self._runtime.status
 
     def __init__(
         self,
-        runtime: Optional[AgentsRuntime] = None,
-        runtime_repo: Optional[AgentsRuntimeRepository] = None,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
+        runtime: Optional[AgentRun] = None,
+        runtime_repo: Optional[AgentRunRepository] = None,
+        on_event: Optional[Callable[[AgentRun], None]] = None,
     ):
         """
-        Initialize AgentsMonitor.
+        Initialize AgentMonitor.
 
         Args:
-            runtime: Optional AgentsRuntime instance to track execution state.
-                     If not provided, a new AgentsRuntime will be created.
+            runtime: Optional AgentRun instance to track execution state.
+                     If not provided, a new AgentRun will be created.
             runtime_repo: Optional repository for persisting agent runtime state.
-                         If not provided, a default FileAgentsRuntimeRepository will be created.
+                         If not provided, a default FileAgentRunRepository will be created.
             on_event: Optional callback invoked after each event (streaming or tool).
-                      Receives the complete AgentsRuntime state, allowing access to
+                      Receives the complete AgentRun state, allowing access to
                       streaming_text, tool_calls, and other execution metadata.
         """
         from fivcplayground.agents.types.repositories.files import (
-            FileAgentsRuntimeRepository,
+            FileAgentRunRepository,
         )
 
-        self._runtime = runtime or AgentsRuntime()
-        self._repo = runtime_repo or FileAgentsRuntimeRepository()
+        self._runtime = runtime or AgentRun()
+        self._repo = runtime_repo or FileAgentRunRepository()
         self._on_event = on_event
 
         if not runtime:
@@ -161,7 +161,7 @@ class AgentsMonitor(object):
         if self._runtime.agent_id:
             self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
 
-    def _update_agent_runtime_tool_call(self, tool_call: AgentsRuntimeToolCall):
+    def _update_agent_runtime_tool_call(self, tool_call: AgentRunToolCall):
         if self._runtime.agent_id:
             self._repo.update_agent_runtime_tool_call(
                 self._runtime.agent_id, self._runtime.agent_run_id, tool_call
@@ -171,12 +171,12 @@ class AgentsMonitor(object):
         if self._on_event:
             self._on_event(self._runtime)
 
-    def on_start(self, runtime: AgentsRuntime):
+    def on_start(self, runtime: AgentRun):
         self._runtime = runtime
         self._update_agent_runtime()
         self._fire_event()
 
-    def on_finish(self, runtime: AgentsRuntime):
+    def on_finish(self, runtime: AgentRun):
         if self._runtime is not runtime:
             import warnings
 
@@ -190,7 +190,7 @@ class AgentsMonitor(object):
             self._update_agent_runtime_tool_call(tool_call)
         self._fire_event()
 
-    def on_update(self, runtime: AgentsRuntime):
+    def on_update(self, runtime: AgentRun):
         if self._runtime is not runtime:
             import warnings
 
@@ -202,12 +202,12 @@ class AgentsMonitor(object):
         # self._update_agent_runtime()
         self._fire_event()
 
-    def __call__(self, event: AgentsEvent, runtime: AgentsRuntime) -> None:
+    def __call__(self, event: AgentRunEvent, runtime: AgentRun) -> None:
         try:
-            if event == AgentsEvent.START:
+            if event == AgentRunEvent.START:
                 self.on_start(runtime)
 
-            elif event == AgentsEvent.FINISH:
+            elif event == AgentRunEvent.FINISH:
                 self.on_finish(runtime)
 
             else:
@@ -220,20 +220,20 @@ class AgentsMonitor(object):
             print(f"Error in monitor callback: {e} {traceback.format_exc()}")
 
     @property
-    def tool_calls(self) -> List[AgentsRuntimeToolCall]:
+    def tool_calls(self) -> List[AgentRunToolCall]:
         """
         Get list of all tool calls from the runtime.
 
         Returns:
-            List of AgentsRuntimeToolCall instances representing all tool
+            List of AgentRunToolCall instances representing all tool
             invocations during the current execution.
         """
         return list(self._runtime.tool_calls.values())
 
     def cleanup(
         self,
-        runtime: Optional[AgentsRuntime] = None,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
+        runtime: Optional[AgentRun] = None,
+        on_event: Optional[Callable[[AgentRun], None]] = None,
     ) -> None:
         """
         Reset monitor state for a new execution.
@@ -243,43 +243,43 @@ class AgentsMonitor(object):
         before starting a new agent execution to clear previous state.
 
         Args:
-            runtime: Optional new AgentsRuntime instance. If not provided,
-                     a fresh AgentsRuntime will be created.
+            runtime: Optional new AgentRun instance. If not provided,
+                     a fresh AgentRun will be created.
             on_event: Optional new event callback. If not provided, the
                       callback will be cleared (set to None).
         """
-        self._runtime = runtime or AgentsRuntime()
+        self._runtime = runtime or AgentRun()
         self._on_event = on_event
 
 
-class AgentsMonitorManager(object):
+class AgentMonitorManager(object):
     """
     Centralized agent monitor manager for creating and monitoring agent executions.
 
-    AgentsMonitorManager provides a unified interface to:
+    AgentMonitorManager provides a unified interface to:
     - Create agents with automatic monitoring integration
-    - Track agent execution status through AgentsMonitor
-    - Persist agent execution history through AgentsRuntimeRepository
+    - Track agent execution status through AgentMonitor
+    - Persist agent execution history through AgentRunRepository
     - List and retrieve agent execution monitors
     - Delete agent execution records
 
     Note:
         The current implementation of create_agent_runtime() is incomplete.
-        It only returns an empty AgentsMonitor instance. The full implementation
+        It only returns an empty AgentMonitor instance. The full implementation
         should accept query, agent_id, tool_retriever, and agent_creator parameters
         to create and monitor agent executions.
 
     Usage:
-        >>> from fivcplayground.agents.types.monitors import AgentsMonitorManager
-        >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+        >>> from fivcplayground.agents.types.monitors import AgentMonitorManager
+        >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create manager with file-based persistence
-        >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))
-        >>> manager = AgentsMonitorManager(runtime_repo=repo)
+        >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agents"))
+        >>> manager = AgentMonitorManager(runtime_repo=repo)
         >>>
         >>> # View all agent executions for a specific agent
-        >>> monitors = manager.list_agent_runtimes(agent_id)  # Returns list of AgentsMonitor
+        >>> monitors = manager.list_agent_runtimes(agent_id)  # Returns list of AgentMonitor
         >>>
         >>> # Get specific agent execution monitor
         >>> agent_monitor = manager.get_agent_runtime(agent_id, agent_run_id)
@@ -295,14 +295,14 @@ class AgentsMonitorManager(object):
 
     def __init__(
         self,
-        runtime_repo: Optional["AgentsRuntimeRepository"] = None,
+        runtime_repo: Optional["AgentRunRepository"] = None,
         **kwargs,
     ):
         """
-        Initialize AgentsMonitorManager.
+        Initialize AgentMonitorManager.
 
         Args:
-            runtime_repo: AgentsRuntimeRepository instance for persisting agent runtime state.
+            runtime_repo: AgentRunRepository instance for persisting agent runtime state.
                          Required parameter for tracking and storing agent execution history.
             **kwargs: Additional keyword arguments (reserved for future use)
 
@@ -310,11 +310,11 @@ class AgentsMonitorManager(object):
             AssertionError: If runtime_repo is None
 
         Example:
-            >>> from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+            >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
-            >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))
-            >>> manager = AgentsMonitorManager(runtime_repo=repo)
+            >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agents"))
+            >>> manager = AgentMonitorManager(runtime_repo=repo)
         """
         assert runtime_repo is not None, "runtime_repo is required"
 
@@ -322,12 +322,12 @@ class AgentsMonitorManager(object):
 
     def create_agent_runtime(
         self,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
-    ) -> AgentsMonitor:
+        on_event: Optional[Callable[[AgentRun], None]] = None,
+    ) -> AgentMonitor:
         """
         Create an agent runtime monitor.
 
-        Creates a new AgentsMonitor instance for tracking agent execution.
+        Creates a new AgentMonitor instance for tracking agent execution.
 
         Note:
             This implementation is incomplete. The full implementation should:
@@ -335,29 +335,29 @@ class AgentsMonitorManager(object):
             - Retrieve tools based on the query
             - Generate a unique agent ID if not provided
             - Load previous agent messages from the repository for conversation continuity
-            - Create an AgentsRuntime instance to track execution
+            - Create an AgentRun instance to track execution
             - Create an agent using the provided agent_creator
             - Return the created agent (not just the monitor)
 
         Args:
-            on_event: Optional callback invoked with AgentsRuntime after each agent event
+            on_event: Optional callback invoked with AgentRun after each agent event
 
         Returns:
-            AgentsMonitor: A monitor instance for tracking agent execution
+            AgentMonitor: A monitor instance for tracking agent execution
 
         Example:
-            >>> manager = AgentsMonitorManager(runtime_repo=repo)
+            >>> manager = AgentMonitorManager(runtime_repo=repo)
             >>> monitor = manager.create_agent_runtime(on_event=my_callback)
         """
-        return AgentsMonitor(
+        return AgentMonitor(
             on_event=on_event,
-            runtime=AgentsRuntime(),
+            runtime=AgentRun(),
             runtime_repo=self._repo,
         )
 
     def list_agent_runtimes(
-        self, agent_id: str, status: Optional[List[AgentsStatus]] = None
-    ) -> List[AgentsMonitor]:
+        self, agent_id: str, status: Optional[List[AgentRunStatus]] = None
+    ) -> List[AgentMonitor]:
         """
         Get list of all agent runtime monitors.
 
@@ -366,19 +366,19 @@ class AgentsMonitorManager(object):
             status: Optional list of statuses to filter by
 
         Returns:
-            List of AgentsMonitor instances
+            List of AgentMonitor instances
         """
         agent_runtimes = self._repo.list_agent_runtimes(agent_id)
         if status:
             return [
-                AgentsMonitor(runtime=runtime, runtime_repo=self._repo)
+                AgentMonitor(runtime=runtime, runtime_repo=self._repo)
                 for runtime in agent_runtimes
                 if runtime.status in status
             ]
 
         else:
             return [
-                AgentsMonitor(runtime=runtime, runtime_repo=self._repo)
+                AgentMonitor(runtime=runtime, runtime_repo=self._repo)
                 for runtime in agent_runtimes
             ]
 
@@ -386,24 +386,24 @@ class AgentsMonitorManager(object):
         self,
         agent_id: str,
         agent_run_id: str,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
-    ) -> Optional[AgentsMonitor]:
+        on_event: Optional[Callable[[AgentRun], None]] = None,
+    ) -> Optional[AgentMonitor]:
         """
         Get an agent runtime monitor by ID.
 
         Args:
             agent_id: Agent ID to retrieve
             agent_run_id: Agent run ID to retrieve
-            on_event: Optional callback invoked with AgentsRuntime after each agent event
+            on_event: Optional callback invoked with AgentRun after each agent event
 
         Returns:
-            AgentsMonitor instance or None if not found
+            AgentMonitor instance or None if not found
         """
         agent_runtime = self._repo.get_agent_runtime(agent_id, agent_run_id)
         if not agent_runtime:
             return None
 
-        return AgentsMonitor(
+        return AgentMonitor(
             runtime=agent_runtime,
             runtime_repo=self._repo,
             on_event=on_event,

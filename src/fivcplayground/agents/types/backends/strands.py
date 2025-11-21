@@ -15,17 +15,17 @@ from strands.types.content import Message, ContentBlock
 from strands.types.tools import ToolUse, ToolResult
 
 from fivcplayground.agents.types import (
-    AgentsEvent,
-    AgentsStatus,
-    AgentsContent,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
+    AgentRunEvent,
+    AgentRunStatus,
+    AgentRunContent,
+    AgentRun,
+    AgentRunToolCall,
 )
 from fivcplayground.tools import setup_tools, Tool
 from fivcplayground.utils import Runnable
 
 
-class AgentsRunnable(Runnable):
+class AgentRunnable(Runnable):
     def __init__(
         self,
         model: Model | None = None,
@@ -33,9 +33,9 @@ class AgentsRunnable(Runnable):
         agent_id: str | None = None,
         agent_name: str = "Default",
         system_prompt: str | None = None,
-        messages: List[AgentsRuntime] | None = None,
+        messages: List[AgentRun] | None = None,
         response_model: Type[BaseModel] | None = None,
-        callback_handler: Callable[[AgentsEvent, AgentsRuntime], None] | None = None,
+        callback_handler: Callable[[AgentRunEvent, AgentRun], None] | None = None,
         **kwargs,
     ):
         self._id = agent_id or str(uuid4())
@@ -86,21 +86,21 @@ class AgentsRunnable(Runnable):
 
     def run(
         self,
-        query: str | AgentsContent = "",
+        query: str | AgentRunContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, AgentsContent]:
+    ) -> Union[BaseModel, AgentRunContent]:
         return asyncio.run(self.run_async(query, **kwargs))
 
     async def run_async(
         self,
-        query: str | AgentsContent = "",
+        query: str | AgentRunContent = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, AgentsContent]:
+    ) -> Union[BaseModel, AgentRunContent]:
         if query:
             if isinstance(query, str):
-                query = AgentsContent(text=query)
+                query = AgentRunContent(text=query)
 
-            if isinstance(query, AgentsContent):
+            if isinstance(query, AgentRunContent):
                 self._messages.append(
                     Message(role="user", content=[ContentBlock(text=query.text)])
                 )
@@ -114,51 +114,51 @@ class AgentsRunnable(Runnable):
                 system_prompt=self._system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=10),
             )
-            runtime = AgentsRuntime(
+            runtime = AgentRun(
                 agent_id=self._id,
                 agent_name=self._name,
-                status=AgentsStatus.EXECUTING,
+                status=AgentRunStatus.EXECUTING,
                 query=query or None,
                 started_at=datetime.now(),
             )
             output = None
             if self._callback_handler:
-                self._callback_handler(AgentsEvent.START, runtime)
+                self._callback_handler(AgentRunEvent.START, runtime)
 
             try:
                 async for event_data in agent.stream_async(
                     prompt=self._messages,
                     structured_output_model=self._response_model,
                 ):
-                    event = AgentsEvent.START
+                    event = AgentRunEvent.START
                     if "result" in event_data:
                         output = event_data["result"]
 
                     elif "data" in event_data:
-                        event = AgentsEvent.STREAM
+                        event = AgentRunEvent.STREAM
                         runtime.streaming_text += event_data["data"]
 
                     elif "message" in event_data:
-                        event = AgentsEvent.UPDATE
+                        event = AgentRunEvent.UPDATE
                         runtime.streaming_text = ""
 
                         message = event_data["message"]
                         for block in message.get("content", []):
                             if "toolUse" in block:
-                                event = AgentsEvent.TOOL
+                                event = AgentRunEvent.TOOL
                                 tool_use = cast(ToolUse, block["toolUse"])
                                 tool_use_id = tool_use.get("toolUseId")
-                                tool_call = AgentsRuntimeToolCall(
+                                tool_call = AgentRunToolCall(
                                     tool_use_id=tool_use_id,
                                     tool_name=tool_use.get("name"),
                                     tool_input=tool_use.get("input"),
                                     started_at=datetime.now(),
-                                    status=AgentsStatus.EXECUTING,
+                                    status=AgentRunStatus.EXECUTING,
                                 )
                                 runtime.tool_calls[tool_use_id] = tool_call
 
                             if "toolResult" in block:
-                                event = AgentsEvent.TOOL
+                                event = AgentRunEvent.TOOL
                                 tool_result = cast(ToolResult, block["toolResult"])
                                 tool_use_id = tool_result.get("toolUseId")
                                 tool_call = runtime.tool_calls.get(tool_use_id)
@@ -174,16 +174,16 @@ class AgentsRunnable(Runnable):
                                 tool_call.tool_result = tool_result.get("content")
                                 tool_call.completed_at = datetime.now()
 
-                    if self._callback_handler and event != AgentsEvent.START:
+                    if self._callback_handler and event != AgentRunEvent.START:
                         self._callback_handler(event, runtime)
 
-                runtime.status = AgentsStatus.COMPLETED
+                runtime.status = AgentRunStatus.COMPLETED
 
             except Exception as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
                 output = await agent.invoke_async(prompt=error_msg)
 
-                runtime.status = AgentsStatus.FAILED
+                runtime.status = AgentRunStatus.FAILED
 
             finally:
                 runtime.completed_at = datetime.now()
@@ -193,10 +193,10 @@ class AgentsRunnable(Runnable):
 
             self._messages.append(output.message)
 
-            runtime.reply = AgentsContent(text=str(output))
+            runtime.reply = AgentRunContent(text=str(output))
 
             if self._callback_handler:
-                self._callback_handler(AgentsEvent.FINISH, runtime)
+                self._callback_handler(AgentRunEvent.FINISH, runtime)
 
             if output.structured_output:
                 return output.structured_output

@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from streamlit.delta_generator import DeltaGenerator
 
 from fivcplayground.agents.types import (
-    AgentsContent,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
+    AgentRunContent,
+    AgentRun,
+    AgentRunToolCall,
 )
 
 
@@ -35,7 +35,7 @@ class ChatMessage(object):
         - Renders tool calls with status indicators and timing information
 
     Example:
-        >>> runtime = AgentsRuntime(...)
+        >>> runtime = AgentRun(...)
         >>> chat_msg = ChatMessage(runtime)
         >>> chat_msg.render(st.container())
     """
@@ -93,7 +93,7 @@ class ChatMessage(object):
     UNCLOSED_THINK_PATTERN = r"<think\s*>((?:(?!</think\s*>).)*?)$"
     WHITESPACE_CLEANUP_PATTERN = r"\n\s*\n\s*\n+"
 
-    def __init__(self, runtime: AgentsRuntime):
+    def __init__(self, runtime: AgentRun):
         self.runtime = runtime
 
     @classmethod
@@ -158,7 +158,7 @@ class ChatMessage(object):
 
         if self.runtime.query:
             chat_user = placeholder.chat_message("user")
-            # Extract text from AgentsContent
+            # Extract text from AgentRunContent
             query_text = (
                 self.runtime.query.text
                 if hasattr(self.runtime.query, "text")
@@ -181,11 +181,11 @@ class ChatMessage(object):
 
     @staticmethod
     def render_message(
-        message: AgentsContent | BaseModel,
+        message: AgentRunContent | BaseModel,
         placeholder: DeltaGenerator,
     ):
         # Wrap message in adapter for dict-like access
-        if isinstance(message, AgentsContent):
+        if isinstance(message, AgentRunContent):
             msg_text = message.text
         elif isinstance(message, BaseModel):
             msg_text = message.model_dump_json()
@@ -214,7 +214,7 @@ class ChatMessage(object):
 
     @staticmethod
     def render_tool_call(
-        tool_call: AgentsRuntimeToolCall,
+        tool_call: AgentRunToolCall,
         placeholder: DeltaGenerator,
     ):
         try:

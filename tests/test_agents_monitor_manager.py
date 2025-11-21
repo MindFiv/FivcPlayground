@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for AgentsMonitorManager functionality.
+Tests for AgentMonitorManager functionality.
 """
 
 import os
@@ -8,42 +8,42 @@ import tempfile
 from unittest.mock import Mock
 
 from fivcplayground.agents.types import (
-    AgentsMonitorManager,
-    AgentsMonitor,
-    AgentsRuntimeToolCall,
-    AgentsStatus,
+    AgentMonitorManager,
+    AgentMonitor,
+    AgentRunToolCall,
+    AgentRunStatus,
 )
-from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
 from fivcplayground.utils import OutputDir
 
 
 class TestAgentsMonitorManager:
-    """Tests for AgentsMonitorManager class"""
+    """Tests for AgentMonitorManager class"""
 
     def test_initialization(self):
-        """Test AgentsMonitorManager initialization"""
+        """Test AgentMonitorManager initialization"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Manager should have a repository
             assert manager._repo is not None
-            assert isinstance(manager._repo, FileAgentsRuntimeRepository)
+            assert isinstance(manager._repo, FileAgentRunRepository)
 
     def test_create_agent_runtime(self):
         """Test creating an agent runtime monitor (current incomplete implementation)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Current implementation only accepts on_event parameter
             monitor = manager.create_agent_runtime(on_event=None)
 
             # Verify monitor was created
             assert monitor is not None
-            assert isinstance(monitor, AgentsMonitor)
+            assert isinstance(monitor, AgentMonitor)
             assert monitor._repo is not None
 
             # Note: Full implementation should accept query, agent_id, tool_retriever,
@@ -54,8 +54,8 @@ class TestAgentsMonitorManager:
         """Test creating an agent runtime with event callback"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Current implementation accepts on_event parameter
             callback = Mock()
@@ -63,22 +63,22 @@ class TestAgentsMonitorManager:
 
             # Verify callback was passed to monitor
             assert monitor is not None
-            assert isinstance(monitor, AgentsMonitor)
+            assert isinstance(monitor, AgentMonitor)
             assert monitor._on_event == callback
 
     def test_create_agent_runtime_returns_monitor(self):
-        """Test that create_agent_runtime returns AgentsMonitor instance"""
+        """Test that create_agent_runtime returns AgentMonitor instance"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
-            # Current implementation returns AgentsMonitor
+            # Current implementation returns AgentMonitor
             monitor = manager.create_agent_runtime()
 
             # Verify monitor was created
             assert monitor is not None
-            assert isinstance(monitor, AgentsMonitor)
+            assert isinstance(monitor, AgentMonitor)
             assert monitor._repo is repo
 
             # Verify monitor has a runtime with auto-generated IDs
@@ -90,8 +90,8 @@ class TestAgentsMonitorManager:
         """Test listing agent runtimes"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create multiple monitors manually
             agent_id = "test-agent-123"
@@ -112,15 +112,15 @@ class TestAgentsMonitorManager:
             assert len(monitors) == 2
 
             # Verify both agent runtimes are in the list
-            assert all(isinstance(m, AgentsMonitor) for m in monitors)
+            assert all(isinstance(m, AgentMonitor) for m in monitors)
 
     def test_list_agent_runtimes_empty(self):
         """Test listing agent runtimes when repository is empty"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             agents = manager.list_agent_runtimes("nonexistent-agent")
             assert agents == []
@@ -129,9 +129,9 @@ class TestAgentsMonitorManager:
         """Test listing agent runtimes filtered by status"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Use same agent_id for all runtimes
             agent_id = "test-agent-123"
@@ -140,31 +140,31 @@ class TestAgentsMonitorManager:
             monitor1 = manager.create_agent_runtime()
             runtime1 = monitor1._runtime
             runtime1.agent_id = agent_id
-            runtime1.status = AgentsStatus.PENDING
+            runtime1.status = AgentRunStatus.PENDING
             repo.update_agent_runtime(agent_id, runtime1)
 
             monitor2 = manager.create_agent_runtime()
             runtime2 = monitor2._runtime
             runtime2.agent_id = agent_id
-            runtime2.status = AgentsStatus.EXECUTING
+            runtime2.status = AgentRunStatus.EXECUTING
             repo.update_agent_runtime(agent_id, runtime2)
 
             monitor3 = manager.create_agent_runtime()
             runtime3 = monitor3._runtime
             runtime3.agent_id = agent_id
-            runtime3.status = AgentsStatus.COMPLETED
+            runtime3.status = AgentRunStatus.COMPLETED
             repo.update_agent_runtime(agent_id, runtime3)
 
             # Filter by EXECUTING status
             executing_agents = manager.list_agent_runtimes(
-                agent_id, status=[AgentsStatus.EXECUTING]
+                agent_id, status=[AgentRunStatus.EXECUTING]
             )
             assert len(executing_agents) == 1
             assert executing_agents[0]._runtime.agent_run_id == runtime2.agent_run_id
 
             # Filter by multiple statuses
             pending_or_completed = manager.list_agent_runtimes(
-                agent_id, status=[AgentsStatus.PENDING, AgentsStatus.COMPLETED]
+                agent_id, status=[AgentRunStatus.PENDING, AgentRunStatus.COMPLETED]
             )
             assert len(pending_or_completed) == 2
             run_ids = {agent._runtime.agent_run_id for agent in pending_or_completed}
@@ -175,9 +175,9 @@ class TestAgentsMonitorManager:
         """Test getting a specific agent runtime monitor"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create a monitor
             monitor = manager.create_agent_runtime()
@@ -191,16 +191,16 @@ class TestAgentsMonitorManager:
 
             result = manager.get_agent_runtime(agent_id, agent_run_id)
             assert result is not None
-            assert isinstance(result, AgentsMonitor)
+            assert isinstance(result, AgentMonitor)
             assert result._runtime.agent_id == agent_id
 
     def test_get_agent_runtime_nonexistent(self):
         """Test getting a nonexistent agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             result = manager.get_agent_runtime("nonexistent", "nonexistent-run")
             assert result is None
@@ -209,9 +209,9 @@ class TestAgentsMonitorManager:
         """Test getting an agent runtime monitor with event callback"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create a monitor
             monitor = manager.create_agent_runtime()
@@ -234,9 +234,9 @@ class TestAgentsMonitorManager:
         """Test deleting an agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create a monitor
             monitor = manager.create_agent_runtime()
@@ -258,9 +258,9 @@ class TestAgentsMonitorManager:
         """Test deleting a nonexistent agent runtime (should not raise error)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Should not raise error
             manager.delete_agent_runtime("nonexistent", "nonexistent-run")
@@ -269,10 +269,10 @@ class TestAgentsMonitorManager:
         """Test saving and loading agent runtimes"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create manager and add data
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create a monitor
             monitor = manager.create_agent_runtime()
@@ -285,7 +285,7 @@ class TestAgentsMonitorManager:
             repo.update_agent_runtime(agent_id, runtime)
 
             # Add a tool call directly to repository
-            tool_call = AgentsRuntimeToolCall(
+            tool_call = AgentRunToolCall(
                 tool_use_id="tool-1",
                 tool_name="calculator",
                 tool_input={"expression": "2+2"},
@@ -298,7 +298,7 @@ class TestAgentsMonitorManager:
             assert os.path.exists(agent_dir)
 
             # Load in new manager with same repository
-            manager2 = AgentsMonitorManager(runtime_repo=repo)
+            manager2 = AgentMonitorManager(runtime_repo=repo)
 
             monitors = manager2.list_agent_runtimes(agent_id)
             assert len(monitors) == 1
@@ -318,9 +318,9 @@ class TestAgentsMonitorManager:
         """Test listing tool calls for an agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
-            manager = AgentsMonitorManager(runtime_repo=repo)
+            manager = AgentMonitorManager(runtime_repo=repo)
 
             # Create a monitor
             monitor = manager.create_agent_runtime()
@@ -333,10 +333,8 @@ class TestAgentsMonitorManager:
             repo.update_agent_runtime(agent_id, runtime)
 
             # Add some tool calls
-            tool_call1 = AgentsRuntimeToolCall(
-                tool_use_id="tool-1", tool_name="calculator"
-            )
-            tool_call2 = AgentsRuntimeToolCall(tool_use_id="tool-2", tool_name="search")
+            tool_call1 = AgentRunToolCall(tool_use_id="tool-1", tool_name="calculator")
+            tool_call2 = AgentRunToolCall(tool_use_id="tool-2", tool_name="search")
             repo.update_agent_runtime_tool_call(agent_id, agent_run_id, tool_call1)
             repo.update_agent_runtime_tool_call(agent_id, agent_run_id, tool_call2)
 

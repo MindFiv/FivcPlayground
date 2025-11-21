@@ -78,15 +78,15 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 FivcPlayground includes a comprehensive runtime tracking system for agent execution:
 
 **Core Models:**
-- `AgentsRuntimeMeta`: Agent configuration and metadata
-- `AgentsRuntime`: Complete execution state and history
-- `AgentsRuntimeToolCall`: Individual tool invocation records
-- `AgentsStatus`: Execution status (PENDING, EXECUTING, COMPLETED, FAILED)
+- `AgentRunMeta`: Agent configuration and metadata
+- `AgentRun`: Complete execution state and history
+- `AgentRunToolCall`: Individual tool invocation records
+- `AgentRunStatus`: Execution status (PENDING, EXECUTING, COMPLETED, FAILED)
 
 **Repository Pattern:**
-- `AgentsRuntimeRepository`: Abstract interface for persistence
-- `FileAgentsRuntimeRepository`: File-based JSON storage implementation
-- `SqliteAgentsRuntimeRepository`: SQLite database-backed implementation
+- `AgentRunRepository`: Abstract interface for persistence
+- `FileAgentRunRepository`: File-based JSON storage implementation
+- `SqliteAgentRunRepository`: SQLite database-backed implementation
 - Hierarchical directory structure for organized data storage (file-based)
 - Relational database schema with foreign keys and indexes (SQLite)
 - Automatic persistence of all agent interactions
@@ -452,7 +452,7 @@ Web Application
 app/__init__.py (Main Application)
 ├── ChatManager (Multi-chat orchestration)
 │   └── Chat Instances (Individual conversations)
-│       ├── AgentsRuntimeRepository (Persistence)
+│       ├── AgentRunRepository (Persistence)
 │       ├── ToolRetriever (Tool access)
 │       └── Agent Execution (Strands agents)
 ├── Views (ViewBase implementations)
@@ -479,7 +479,7 @@ Streaming Updates → on_event callback
     ↓
 Component Rendering (chat_message)
     ↓
-Repository Persistence (FileAgentsRuntimeRepository)
+Repository Persistence (FileAgentRunRepository)
     ↓
 UI Update (st.rerun)
 ```

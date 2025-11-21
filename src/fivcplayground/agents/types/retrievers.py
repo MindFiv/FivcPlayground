@@ -63,7 +63,7 @@ class FunctionAgentsCreator(BaseAgentsCreator):
         return self._func(*args, **kwargs)
 
 
-class AgentsRetriever(object):
+class AgentRetriever(object):
     """
     A retriever for agents.
     """
@@ -110,7 +110,7 @@ def agents_creator(name: str) -> Callable:
             return Agent(...)
 
         # Then register manually:
-        retriever = AgentsRetriever()
+        retriever = AgentRetriever()
         retriever.add(create_my_agent)
     """
 

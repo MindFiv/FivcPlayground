@@ -14,9 +14,9 @@ from unittest.mock import Mock
 from langchain_core.messages import AIMessage
 from fivcplayground.app.components import ChatMessage
 from fivcplayground.agents.types import (
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsContent,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunContent,
 )
 
 
@@ -32,9 +32,9 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="What is the weather?"),
+            query=AgentRunContent(text="What is the weather?"),
             streaming_text="",
         )
 
@@ -63,11 +63,11 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = AgentsContent(text="The weather is sunny.")
+        message = AgentRunContent(text="The weather is sunny.")
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="What is the weather?"),
+            query=AgentRunContent(text="What is the weather?"),
             reply=message,
             completed_at=datetime.now(),
         )
@@ -89,9 +89,9 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="Tell me a story"),
+            query=AgentRunContent(text="Tell me a story"),
             streaming_text="Once upon a time...",
         )
 
@@ -112,7 +112,7 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.return_value = mock_assistant_msg
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
             streaming_text="Thinking...",
         )
@@ -190,7 +190,7 @@ class TestRenderStreamingMethod:
     def test_render_stream_with_text(self):
         """Test rendering streaming text."""
         mock_placeholder = Mock()
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent", streaming_text="Streaming response..."
         )
 
@@ -205,7 +205,7 @@ class TestRenderStreamingMethod:
     def test_render_stream_with_empty_text(self):
         """Test rendering with empty streaming text."""
         mock_placeholder = Mock()
-        runtime = AgentsRuntime(agent_id="test-agent", streaming_text="")
+        runtime = AgentRun(agent_id="test-agent", streaming_text="")
 
         chat_msg = ChatMessage(runtime)
         chat_msg.render_streaming("", mock_placeholder)
@@ -218,7 +218,7 @@ class TestRenderStreamingMethod:
     def test_render_stream_includes_css_animations(self):
         """Test rendering includes CSS for loading animations."""
         mock_placeholder = Mock()
-        runtime = AgentsRuntime(agent_id="test-agent", streaming_text="Test")
+        runtime = AgentRun(agent_id="test-agent", streaming_text="Test")
 
         chat_msg = ChatMessage(runtime)
         chat_msg.render_streaming("Test", mock_placeholder)
@@ -242,7 +242,7 @@ class TestRenderToolCallMethod:
         )
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -266,7 +266,7 @@ class TestRenderToolCallMethod:
         )
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -288,7 +288,7 @@ class TestRenderToolCallMethod:
         )
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="456",
             tool_name="file_reader",
             tool_input={"path": "/test"},
@@ -315,9 +315,9 @@ class TestIntegration:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="Calculate 2+2"),
+            query=AgentRunContent(text="Calculate 2+2"),
             streaming_text="The answer is 4",
         )
 
@@ -344,11 +344,11 @@ class TestIntegration:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = AgentsContent(text="Here is your answer.")
+        message = AgentRunContent(text="Here is your answer.")
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="Help me"),
+            query=AgentRunContent(text="Help me"),
             reply=message,
             completed_at=datetime.now(),
         )
@@ -375,14 +375,14 @@ class TestIntegration:
         )
         mock_assistant_msg.expander.return_value.__exit__ = Mock(return_value=False)
 
-        tool_call1 = AgentsRuntimeToolCall(
+        tool_call1 = AgentRunToolCall(
             tool_use_id="1",
             tool_name="tool1",
             tool_input={},
             tool_result="result1",
             status="success",
         )
-        tool_call2 = AgentsRuntimeToolCall(
+        tool_call2 = AgentRunToolCall(
             tool_use_id="2",
             tool_name="tool2",
             tool_input={},
@@ -392,11 +392,11 @@ class TestIntegration:
 
         from datetime import datetime
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
-            query=AgentsContent(text="Test query"),
+            query=AgentRunContent(text="Test query"),
             tool_calls={"1": tool_call1, "2": tool_call2},
-            reply=AgentsContent(text="Done"),
+            reply=AgentRunContent(text="Done"),
             completed_at=datetime.now(),
         )
 

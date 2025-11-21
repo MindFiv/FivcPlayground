@@ -14,8 +14,8 @@ import nest_asyncio
 
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.agents.types.repositories import (
-    # FileAgentsRuntimeRepository,
-    SqliteAgentsRuntimeRepository,
+    # FileAgentRunRepository,
+    SqliteAgentRunRepository,
 )
 from fivcplayground.app.utils import ChatManager, default_mcp_loader
 from fivcplayground.app.views import (
@@ -41,8 +41,8 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    agent_runtime_repo = SqliteAgentsRuntimeRepository()
-    # agent_runtime_repo = FileAgentsRuntimeRepository()
+    agent_runtime_repo = SqliteAgentRunRepository()
+    # agent_runtime_repo = FileAgentRunRepository()
     chat_manager = ChatManager(
         agent_runtime_repo=agent_runtime_repo,
         tool_retriever=create_tool_retriever(),

@@ -1,14 +1,51 @@
 from abc import abstractmethod, ABC
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from fivcplayground.agents.types import (
-    AgentsRuntimeMeta,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
+    AgentRunMeta,
+    AgentRun,
+    AgentRunToolCall,
 )
+from fivcplayground.agents.types.base import AgentConfig
 
 
-class AgentsRuntimeRepository(ABC):
+class AgentConfigRepository(ABC):
+    """
+    Abstract base class for agent configuration data repositories.
+
+    Defines the interface for persisting and retrieving agent configuration data.
+    Implementations can use different storage backends (files, databases, etc.).
+    """
+
+    @abstractmethod
+    def update_agent_config(self, agent_config: AgentConfig) -> None:
+        """Create or update an agent configuration."""
+        ...
+
+    @abstractmethod
+    def get_agent_config(self, agent_id: str) -> Optional[AgentConfig]:
+        """Retrieve an agent configuration by ID."""
+        ...
+
+    @abstractmethod
+    def list_agent_configs(self) -> List[AgentConfig]:
+        """List all agent configurations in the repository."""
+        ...
+
+    @abstractmethod
+    def delete_agent_config(self, agent_id: str) -> None:
+        """Delete an agent configuration."""
+        ...
+
+    @abstractmethod
+    def filter_repository(
+        self, user_id: str | None = None, **kwargs: Any
+    ) -> "AgentConfigRepository":
+        """Filter the repository to a subset of agents."""
+        ...
+
+
+class AgentRunRepository(ABC):
     """
     Abstract base class for agent runtime data repositories.
 
@@ -16,18 +53,18 @@ class AgentsRuntimeRepository(ABC):
     Implementations can use different storage backends (files, databases, etc.).
 
     The repository manages three levels of data:
-        1. Agent metadata (AgentsRuntimeMeta) - Agent configuration and identity
-        2. Agent runtimes (AgentsRuntime) - Individual execution instances
-        3. Tool calls (AgentsRuntimeToolCall) - Tool invocations within runtimes
+        1. Agent metadata (AgentRunMeta) - Agent configuration and identity
+        2. Agent runtimes (AgentRun) - Individual execution instances
+        3. Tool calls (AgentRunToolCall) - Tool invocations within runtimes
     """
 
     @abstractmethod
-    def update_agent(self, agent: AgentsRuntimeMeta) -> None:
+    def update_agent(self, agent: AgentRunMeta) -> None:
         """
         Create or update an agent's metadata.
 
         Args:
-            agent: AgentsRuntimeMeta instance containing agent configuration
+            agent: AgentRunMeta instance containing agent configuration
 
         Note:
             This operation is idempotent - calling it multiple times with the
@@ -36,7 +73,7 @@ class AgentsRuntimeRepository(ABC):
         ...
 
     @abstractmethod
-    def get_agent(self, agent_id: str) -> Optional[AgentsRuntimeMeta]:
+    def get_agent(self, agent_id: str) -> Optional[AgentRunMeta]:
         """
         Retrieve an agent's metadata by ID.
 
@@ -44,17 +81,17 @@ class AgentsRuntimeRepository(ABC):
             agent_id: Unique identifier for the agent
 
         Returns:
-            AgentsRuntimeMeta instance if found, None otherwise
+            AgentRunMeta instance if found, None otherwise
         """
         ...
 
     @abstractmethod
-    def list_agents(self) -> List[AgentsRuntimeMeta]:
+    def list_agents(self) -> List[AgentRunMeta]:
         """
         List all agents in the repository.
 
         Returns:
-            List of AgentsRuntimeMeta instances for all agents.
+            List of AgentRunMeta instances for all agents.
             Returns empty list if no agents exist.
 
         Note:
@@ -82,13 +119,13 @@ class AgentsRuntimeRepository(ABC):
         ...
 
     @abstractmethod
-    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentsRuntime) -> None:
+    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentRun) -> None:
         """
         Create or update an agent runtime's metadata.
 
         Args:
             agent_id: Agent ID that owns this runtime
-            agent_runtime: AgentsRuntime instance to persist
+            agent_runtime: AgentRun instance to persist
 
         Note:
             This operation is idempotent - calling it multiple times with the
@@ -98,9 +135,7 @@ class AgentsRuntimeRepository(ABC):
         ...
 
     @abstractmethod
-    def get_agent_runtime(
-        self, agent_id: str, agent_run_id: str
-    ) -> Optional[AgentsRuntime]:
+    def get_agent_runtime(self, agent_id: str, agent_run_id: str) -> Optional[AgentRun]:
         """
         Retrieve an agent runtime by agent ID and run ID.
 
@@ -109,7 +144,7 @@ class AgentsRuntimeRepository(ABC):
             agent_run_id: Unique identifier for the runtime instance
 
         Returns:
-            AgentsRuntime instance if found, None otherwise
+            AgentRun instance if found, None otherwise
 
         Note:
             Tool calls are loaded separately via list_agent_runtime_tool_calls.
@@ -135,7 +170,7 @@ class AgentsRuntimeRepository(ABC):
         ...
 
     @abstractmethod
-    def list_agent_runtimes(self, agent_id: str) -> List[AgentsRuntime]:
+    def list_agent_runtimes(self, agent_id: str) -> List[AgentRun]:
         """
         List all agent runtimes for a specific agent.
 
@@ -143,7 +178,7 @@ class AgentsRuntimeRepository(ABC):
             agent_id: Agent ID to list runtimes for
 
         Returns:
-            List of AgentsRuntime instances for the specified agent.
+            List of AgentRun instances for the specified agent.
             Returns empty list if no runtimes exist.
 
         Note:
@@ -156,7 +191,7 @@ class AgentsRuntimeRepository(ABC):
     @abstractmethod
     def get_agent_runtime_tool_call(
         self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Optional[AgentsRuntimeToolCall]:
+    ) -> Optional[AgentRunToolCall]:
         """
         Retrieve a specific tool call by IDs.
 
@@ -166,13 +201,13 @@ class AgentsRuntimeRepository(ABC):
             tool_call_id: Unique identifier for the tool call
 
         Returns:
-            AgentsRuntimeToolCall instance if found, None otherwise
+            AgentRunToolCall instance if found, None otherwise
         """
         ...
 
     @abstractmethod
     def update_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call: AgentsRuntimeToolCall
+        self, agent_id: str, agent_run_id: str, tool_call: AgentRunToolCall
     ) -> None:
         """
         Create or update a tool call for an agent runtime.
@@ -180,7 +215,7 @@ class AgentsRuntimeRepository(ABC):
         Args:
             agent_id: Agent ID that owns the runtime
             agent_run_id: Runtime ID that contains the tool call
-            tool_call: AgentsRuntimeToolCall instance to persist
+            tool_call: AgentRunToolCall instance to persist
 
         Note:
             This operation is idempotent - calling it multiple times with the
@@ -191,7 +226,7 @@ class AgentsRuntimeRepository(ABC):
     @abstractmethod
     def list_agent_runtime_tool_calls(
         self, agent_id: str, agent_run_id: str
-    ) -> List[AgentsRuntimeToolCall]:
+    ) -> List[AgentRunToolCall]:
         """
         List all tool calls for an agent runtime.
 
@@ -200,7 +235,7 @@ class AgentsRuntimeRepository(ABC):
             agent_run_id: Runtime ID to list tool calls for
 
         Returns:
-            List of AgentsRuntimeToolCall instances for the specified runtime.
+            List of AgentRunToolCall instances for the specified runtime.
             Returns empty list if no tool calls exist.
 
         Note:

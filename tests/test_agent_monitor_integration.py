@@ -1,8 +1,8 @@
 """
-Integration tests for AgentsMonitor with Chat.
+Integration tests for AgentMonitor with Chat.
 
-Tests the integration of AgentsMonitor with Chat and real agent execution:
-- Chat uses AgentsMonitorManager correctly
+Tests the integration of AgentMonitor with Chat and real agent execution:
+- Chat uses AgentMonitorManager correctly
 - Monitor integration with agent execution
 - UI callback flow with unified on_event callback
 - Multiple executions with cleanup
@@ -14,7 +14,7 @@ import dotenv
 from unittest.mock import Mock, AsyncMock, patch
 from langchain_core.messages import AIMessage
 from fivcplayground.app.utils.chats import Chat
-from fivcplayground.agents.types import AgentsMonitor, AgentsRuntime
+from fivcplayground.agents.types import AgentMonitor, AgentRun
 from fivcplayground import tools
 
 dotenv.load_dotenv()
@@ -35,9 +35,9 @@ def mock_tools_retriever():
 @pytest.fixture
 def mock_repo():
     """Create a mock repository."""
-    from fivcplayground.agents.types.repositories import AgentsRuntimeRepository
+    from fivcplayground.agents.types.repositories import AgentRunRepository
 
-    repo = Mock(spec=AgentsRuntimeRepository)
+    repo = Mock(spec=AgentRunRepository)
     repo.list_agent_runtimes.return_value = []
     repo.get_agent_runtime.return_value = None
     repo.update_agent.return_value = None
@@ -46,16 +46,16 @@ def mock_repo():
 
 
 class TestChatMonitorIntegration:
-    """Test Chat integration with AgentsMonitor."""
+    """Test Chat integration with AgentMonitor."""
 
     def test_chat_creates_monitor_manager(self, mock_tools_retriever):
-        """Test that Chat creates an AgentsMonitorManager instance."""
+        """Test that Chat creates an AgentMonitorManager instance."""
         manager = Chat(tool_retriever=mock_tools_retriever)
 
         assert hasattr(manager, "monitor_manager")
-        from fivcplayground.agents.types import AgentsMonitorManager
+        from fivcplayground.agents.types import AgentMonitorManager
 
-        assert isinstance(manager.monitor_manager, AgentsMonitorManager)
+        assert isinstance(manager.monitor_manager, AgentMonitorManager)
 
     @pytest.mark.asyncio
     async def test_multiple_executions(self, mock_tools_retriever, mock_repo):
@@ -109,13 +109,13 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test that monitor captures streaming events during execution."""
-        from fivcplayground.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentRunEvent
 
         _ = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_tools_retriever)
 
         captured_runtimes = []
 
-        def on_event(runtime: AgentsRuntime):
+        def on_event(runtime: AgentRun):
             # Capture runtime state
             captured_runtimes.append(
                 {
@@ -125,23 +125,23 @@ class TestMonitorWithMockAgent:
             )
 
         # Create a real monitor with the callback
-        monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
+        monitor = AgentMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate streaming events through the monitor
         runtime = monitor._runtime
 
         # Simulate start event
-        monitor(AgentsEvent.START, runtime)
+        monitor(AgentRunEvent.START, runtime)
 
         # Simulate streaming messages
         runtime.streaming_text = "Hello"
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         runtime.streaming_text = "Hello world"
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         # Simulate finish event
-        monitor(AgentsEvent.FINISH, runtime)
+        monitor(AgentRunEvent.FINISH, runtime)
 
         # Verify streaming was captured
         assert len(captured_runtimes) >= 2
@@ -153,11 +153,11 @@ class TestMonitorWithMockAgent:
     @pytest.mark.asyncio
     async def test_monitor_captures_tool_events(self, mock_tools_retriever, mock_repo):
         """Test that monitor captures tool events during execution."""
-        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentRunEvent, AgentRunToolCall
 
         captured_runtimes = []
 
-        def on_event(runtime: AgentsRuntime):
+        def on_event(runtime: AgentRun):
             # Capture runtime state
             captured_runtimes.append(
                 {
@@ -167,26 +167,26 @@ class TestMonitorWithMockAgent:
             )
 
         # Create a real monitor with the callback
-        monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
+        monitor = AgentMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate tool events through the monitor
         runtime = monitor._runtime
 
         # Simulate start event
-        monitor(AgentsEvent.START, runtime)
+        monitor(AgentRunEvent.START, runtime)
 
         # Simulate tool call
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="123",
             tool_name="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         # Simulate finish event
         runtime.reply = "The answer is 4"
-        monitor(AgentsEvent.FINISH, runtime)
+        monitor(AgentRunEvent.FINISH, runtime)
 
         # Verify tool events were captured
         assert len(captured_runtimes) >= 2
@@ -198,11 +198,11 @@ class TestMonitorWithMockAgent:
         self, mock_tools_retriever, mock_repo
     ):
         """Test monitor handling both streaming and tool events."""
-        from fivcplayground.agents.types.base import AgentsEvent, AgentsRuntimeToolCall
+        from fivcplayground.agents.types.base import AgentRunEvent, AgentRunToolCall
 
         captured_runtimes = []
 
-        def on_event(runtime: AgentsRuntime):
+        def on_event(runtime: AgentRun):
             # Capture complete runtime state
             captured_runtimes.append(
                 {
@@ -211,34 +211,34 @@ class TestMonitorWithMockAgent:
                 }
             )
 
-        monitor = AgentsMonitor(on_event=on_event, runtime_repo=mock_repo)
+        monitor = AgentMonitor(on_event=on_event, runtime_repo=mock_repo)
 
         # Simulate both streaming and tool events through the monitor
         runtime = monitor._runtime
 
         # Simulate start event
-        monitor(AgentsEvent.START, runtime)
+        monitor(AgentRunEvent.START, runtime)
 
         # Simulate streaming text
         runtime.streaming_text = "Let me calculate that. "
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         # Simulate tool call
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="123",
             tool_name="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         # Simulate more streaming text
         runtime.streaming_text = "Let me calculate that. The answer is 42."
-        monitor(AgentsEvent.UPDATE, runtime)
+        monitor(AgentRunEvent.UPDATE, runtime)
 
         # Simulate finish event
         runtime.reply = "Let me calculate that. The answer is 42."
-        monitor(AgentsEvent.FINISH, runtime)
+        monitor(AgentRunEvent.FINISH, runtime)
 
         # Verify both types of events were captured
         assert len(captured_runtimes) >= 3
@@ -312,37 +312,37 @@ class TestMonitorStateManagement:
     @pytest.mark.asyncio
     async def test_state_isolated_between_runs(self, mock_tools_retriever, mock_repo):
         """Test that state is properly isolated between runs."""
-        from fivcplayground.agents.types.base import AgentsEvent
+        from fivcplayground.agents.types.base import AgentRunEvent
 
         captured_first = []
         captured_second = []
 
-        def on_event_first(runtime: AgentsRuntime):
+        def on_event_first(runtime: AgentRun):
             captured_first.append(runtime.streaming_text)
 
-        def on_event_second(runtime: AgentsRuntime):
+        def on_event_second(runtime: AgentRun):
             captured_second.append(runtime.streaming_text)
 
-        monitor_1 = AgentsMonitor(on_event=on_event_first, runtime_repo=mock_repo)
-        monitor_2 = AgentsMonitor(on_event=on_event_second, runtime_repo=mock_repo)
+        monitor_1 = AgentMonitor(on_event=on_event_first, runtime_repo=mock_repo)
+        monitor_2 = AgentMonitor(on_event=on_event_second, runtime_repo=mock_repo)
 
         # Simulate events for first monitor
         runtime_1 = monitor_1._runtime
-        monitor_1(AgentsEvent.START, runtime_1)
+        monitor_1(AgentRunEvent.START, runtime_1)
 
         runtime_1.streaming_text = "First response"
-        monitor_1(AgentsEvent.UPDATE, runtime_1)
+        monitor_1(AgentRunEvent.UPDATE, runtime_1)
 
-        monitor_1(AgentsEvent.FINISH, runtime_1)
+        monitor_1(AgentRunEvent.FINISH, runtime_1)
 
         # Simulate events for second monitor
         runtime_2 = monitor_2._runtime
-        monitor_2(AgentsEvent.START, runtime_2)
+        monitor_2(AgentRunEvent.START, runtime_2)
 
         runtime_2.streaming_text = "Second response"
-        monitor_2(AgentsEvent.UPDATE, runtime_2)
+        monitor_2(AgentRunEvent.UPDATE, runtime_2)
 
-        monitor_2(AgentsEvent.FINISH, runtime_2)
+        monitor_2(AgentRunEvent.FINISH, runtime_2)
 
         # State should be isolated between runs
         assert len(captured_first) > 0

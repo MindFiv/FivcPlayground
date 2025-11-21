@@ -10,7 +10,7 @@ __all__ = [
     "default_retriever",
     "default_agent",
     "BaseAgentsCreator",
-    "AgentsRetriever",
+    "AgentRetriever",
 ]
 
 from typing import cast, List
@@ -27,14 +27,14 @@ from fivcplayground.models import (
 )
 from fivcplayground.agents.types import (
     agents_creator,
-    AgentsRunnable,
-    AgentsRetriever,
+    AgentRunnable,
+    AgentRetriever,
     BaseAgentsCreator,
 )
 
 
 @agents_creator("Generic")
-def create_default_agent(**kwargs) -> AgentsRunnable:
+def create_default_agent(**kwargs) -> AgentRunnable:
     """Create a standard ReAct agent for task execution."""
 
     # Set default role if not provided
@@ -51,11 +51,11 @@ def create_default_agent(**kwargs) -> AgentsRunnable:
     if "model" not in kwargs:
         kwargs["model"] = create_model()
 
-    return AgentsRunnable(**kwargs)
+    return AgentRunnable(**kwargs)
 
 
 @agents_creator("Companion")
-def create_companion_agent(*args, **kwargs) -> AgentsRunnable:
+def create_companion_agent(*args, **kwargs) -> AgentRunnable:
     """Create a friend agent for chat."""
     kwargs["agent_name"] = "Companion"
     kwargs.setdefault(
@@ -71,7 +71,7 @@ def create_companion_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator("Tooling")
-def create_tooling_agent(*args, **kwargs) -> AgentsRunnable:
+def create_tooling_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can retrieve tools."""
     kwargs["agent_name"] = "Tooling"
     kwargs.setdefault(
@@ -90,7 +90,7 @@ def create_tooling_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator(name="Consultant")
-def create_consultant_agent(*args, **kwargs) -> AgentsRunnable:
+def create_consultant_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can assess tasks."""
     kwargs["agent_name"] = "Consultant"
     kwargs.setdefault(
@@ -110,7 +110,7 @@ def create_consultant_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator(name="Planner")
-def create_planning_agent(*args, **kwargs) -> AgentsRunnable:
+def create_planning_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can plan tasks."""
     kwargs["agent_name"] = "Planner"
     kwargs.setdefault(
@@ -126,7 +126,7 @@ def create_planning_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator(name="Researcher")
-def create_research_agent(*args, **kwargs) -> AgentsRunnable:
+def create_research_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can research tasks."""
     kwargs["agent_name"] = "Researcher"
     kwargs.setdefault(
@@ -144,7 +144,7 @@ def create_research_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator(name="Engineer")
-def create_engineering_agent(*args, **kwargs) -> AgentsRunnable:
+def create_engineering_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can engineer tools."""
     kwargs["agent_name"] = "Engineer"
     kwargs.setdefault(
@@ -162,7 +162,7 @@ def create_engineering_agent(*args, **kwargs) -> AgentsRunnable:
 
 
 @agents_creator(name="Evaluator")
-def create_evaluating_agent(*args, **kwargs) -> AgentsRunnable:
+def create_evaluating_agent(*args, **kwargs) -> AgentRunnable:
     """Create an agent that can evaluate performance."""
     kwargs["agent_name"] = "Evaluator"
     kwargs.setdefault(
@@ -181,8 +181,8 @@ def create_evaluating_agent(*args, **kwargs) -> AgentsRunnable:
     return create_default_agent(*args, **kwargs)
 
 
-def _load_retriever() -> AgentsRetriever:
-    retriever = AgentsRetriever()
+def _load_retriever() -> AgentRetriever:
+    retriever = AgentRetriever()
     retriever.add_batch(
         cast(
             List[BaseAgentsCreator],

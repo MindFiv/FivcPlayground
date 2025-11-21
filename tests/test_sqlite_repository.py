@@ -1,8 +1,8 @@
 """
-Tests for SqliteAgentsRuntimeRepository implementation.
+Tests for SqliteAgentRunRepository implementation.
 
 Tests verify that the SQLite-based repository correctly implements
-the AgentsRuntimeRepository interface with proper data persistence,
+the AgentRunRepository interface with proper data persistence,
 retrieval, and cascading deletes.
 """
 
@@ -11,13 +11,13 @@ import pytest
 from datetime import datetime
 
 from fivcplayground.agents.types import (
-    AgentsRuntimeMeta,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsStatus,
-    AgentsContent,
+    AgentRunMeta,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunStatus,
+    AgentRunContent,
 )
-from fivcplayground.agents.types.repositories import SqliteAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories import SqliteAgentRunRepository
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def temp_db():
         from fivcplayground.utils import OutputDir
 
         output_dir = OutputDir(tmpdir)
-        repo = SqliteAgentsRuntimeRepository(output_dir=output_dir)
+        repo = SqliteAgentRunRepository(output_dir=output_dir)
         yield repo
         repo.close()
 
@@ -37,7 +37,7 @@ class TestAgentOperations:
 
     def test_update_and_get_agent(self, temp_db):
         """Test creating and retrieving agent metadata."""
-        agent = AgentsRuntimeMeta(
+        agent = AgentRunMeta(
             agent_id="test-agent",
             agent_name="Test Agent",
             system_prompt="You are a test agent",
@@ -67,7 +67,7 @@ class TestAgentOperations:
         ]
 
         for agent_id, agent_name in agents_data:
-            agent = AgentsRuntimeMeta(
+            agent = AgentRunMeta(
                 agent_id=agent_id,
                 agent_name=agent_name,
             )
@@ -81,7 +81,7 @@ class TestAgentOperations:
 
     def test_delete_agent(self, temp_db):
         """Test deleting an agent."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
         assert temp_db.get_agent("test-agent") is not None
@@ -100,14 +100,14 @@ class TestAgentRuntimeOperations:
 
     def test_update_and_get_runtime(self, temp_db):
         """Test creating and retrieving agent runtime."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="test-agent",
             agent_name="Test Agent",
-            status=AgentsStatus.EXECUTING,
-            query=AgentsContent(text="What is 2+2?"),
+            status=AgentRunStatus.EXECUTING,
+            query=AgentRunContent(text="What is 2+2?"),
         )
 
         temp_db.update_agent_runtime("test-agent", runtime)
@@ -115,22 +115,22 @@ class TestAgentRuntimeOperations:
 
         assert retrieved is not None
         assert retrieved.agent_id == "test-agent"
-        assert retrieved.status == AgentsStatus.EXECUTING
+        assert retrieved.status == AgentRunStatus.EXECUTING
         assert retrieved.query is not None
         assert retrieved.query.text == "What is 2+2?"
 
     def test_list_agent_runtimes(self, temp_db):
         """Test listing all runtimes for an agent."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
         # Create multiple runtimes
         runtime_ids = []
         for i in range(3):
-            runtime = AgentsRuntime(
+            runtime = AgentRun(
                 agent_id="test-agent",
                 agent_name="Test Agent",
-                query=AgentsContent(text=f"Query {i}"),
+                query=AgentRunContent(text=f"Query {i}"),
             )
             temp_db.update_agent_runtime("test-agent", runtime)
             runtime_ids.append(runtime.agent_run_id)
@@ -141,10 +141,10 @@ class TestAgentRuntimeOperations:
 
     def test_delete_agent_runtime(self, temp_db):
         """Test deleting an agent runtime."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
         assert temp_db.get_agent_runtime("test-agent", runtime.agent_run_id) is not None
@@ -158,13 +158,13 @@ class TestToolCallOperations:
 
     def test_update_and_get_tool_call(self, temp_db):
         """Test creating and retrieving tool calls."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="call-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -186,15 +186,15 @@ class TestToolCallOperations:
 
     def test_list_tool_calls(self, temp_db):
         """Test listing all tool calls for a runtime."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
         # Create multiple tool calls
         for i in range(3):
-            tool_call = AgentsRuntimeToolCall(
+            tool_call = AgentRunToolCall(
                 tool_use_id=f"call-{i}",
                 tool_name="calculator",
                 tool_input={"expression": f"{i}+{i}"},
@@ -211,13 +211,13 @@ class TestToolCallOperations:
 
     def test_update_tool_call_status(self, temp_db):
         """Test updating tool call status."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="call-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -249,10 +249,10 @@ class TestCascadingDeletes:
 
     def test_delete_agent_cascades_to_runtimes(self, temp_db):
         """Test that deleting an agent deletes all its runtimes."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
         assert len(temp_db.list_agent_runtimes("test-agent")) == 1
@@ -263,13 +263,13 @@ class TestCascadingDeletes:
 
     def test_delete_runtime_cascades_to_tool_calls(self, temp_db):
         """Test that deleting a runtime deletes all its tool calls."""
-        agent = AgentsRuntimeMeta(agent_id="test-agent")
+        agent = AgentRunMeta(agent_id="test-agent")
         temp_db.update_agent(agent)
 
-        runtime = AgentsRuntime(agent_id="test-agent")
+        runtime = AgentRun(agent_id="test-agent")
         temp_db.update_agent_runtime("test-agent", runtime)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="call-1",
             tool_name="calculator",
         )
@@ -309,8 +309,8 @@ class TestDataPersistence:
             output_dir = OutputDir(tmpdir)
 
             # Create and store data
-            repo1 = SqliteAgentsRuntimeRepository(output_dir=output_dir)
-            agent = AgentsRuntimeMeta(
+            repo1 = SqliteAgentRunRepository(output_dir=output_dir)
+            agent = AgentRunMeta(
                 agent_id="test-agent",
                 agent_name="Test Agent",
             )
@@ -318,7 +318,7 @@ class TestDataPersistence:
             repo1.close()
 
             # Reopen and verify data
-            repo2 = SqliteAgentsRuntimeRepository(output_dir=output_dir)
+            repo2 = SqliteAgentRunRepository(output_dir=output_dir)
             retrieved = repo2.get_agent("test-agent")
 
             assert retrieved is not None
@@ -336,11 +336,11 @@ class TestForeignKeyConstraints:
         update_agent_runtime should automatically create the agent if it doesn't exist.
         """
         # Create runtime without creating agent first
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="auto-created-agent",
             agent_name="Auto Created Agent",
-            status=AgentsStatus.EXECUTING,
-            query=AgentsContent(text="Test query"),
+            status=AgentRunStatus.EXECUTING,
+            query=AgentRunContent(text="Test query"),
             started_at=datetime.now(),
         )
 
@@ -366,7 +366,7 @@ class TestForeignKeyConstraints:
         update_agent_runtime_tool_call should automatically create the runtime if it doesn't exist.
         """
         # Create tool call without creating runtime first
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="tool-1",
             tool_name="test_tool",
             tool_input={"param": "value"},

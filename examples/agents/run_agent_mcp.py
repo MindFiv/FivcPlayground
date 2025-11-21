@@ -35,7 +35,7 @@ import dotenv
 from fivcplayground.tools import create_tool_loader, create_tool_retriever
 from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
 from fivcplayground import agents
-from fivcplayground.agents.types import AgentsMonitor
+from fivcplayground.agents.types import AgentMonitor
 
 dotenv.load_dotenv()
 
@@ -94,8 +94,8 @@ async def main():
         print("Step 2: Creating companion agent with MCP tools...")
         print("-" * 70)
 
-        # Create an AgentsMonitor to track agent execution
-        agent_monitor = AgentsMonitor()
+        # Create an AgentMonitor to track agent execution
+        agent_monitor = AgentMonitor()
 
         # Create a companion agent with all loaded MCP tools
         # The agent will use these tools to fulfill user requests
@@ -155,7 +155,7 @@ async def main():
         print("2. ToolLoader provides framework-agnostic tool loading (Strands & LangChain)")
         print("3. Agent was created with access to these tools")
         print("4. Agent attempted to use the tools to fulfill the user's request")
-        print("5. Tool execution can be monitored and debugged using AgentsMonitor")
+        print("5. Tool execution can be monitored and debugged using AgentMonitor")
 
     except Exception as e:
         print(f"✗ Error: {e}")

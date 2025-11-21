@@ -17,8 +17,8 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from langchain_core.messages import AIMessage
 from fivcplayground.app.utils import Chat, ChatManager
-from fivcplayground.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
-from fivcplayground.agents.types.repositories import AgentsRuntimeRepository
+from fivcplayground.agents.types import AgentRun, AgentRunStatus, AgentRunMeta
+from fivcplayground.agents.types.repositories import AgentRunRepository
 from fivcplayground import tools
 
 
@@ -40,7 +40,7 @@ class TestChatInitialization:
     def test_init_with_custom_repository(self):
         """Test creating Chat with custom repository."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -51,7 +51,7 @@ class TestChatInitialization:
     def test_init_with_agent_runtime_meta(self):
         """Test creating Chat with agent runtime metadata."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        meta = AgentsRuntimeMeta(
+        meta = AgentRunMeta(
             agent_id="my-custom-agent-id",
             agent_name="Test Agent",
             system_prompt="Test prompt",
@@ -97,7 +97,7 @@ class TestChatAgentManagement:
     def test_id_property_with_metadata(self):
         """Test id property returns agent_id from metadata."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        meta = AgentsRuntimeMeta(agent_id="test-agent-123", agent_name="Test Agent")
+        meta = AgentRunMeta(agent_id="test-agent-123", agent_name="Test Agent")
 
         manager = Chat(agent_runtime_meta=meta, tool_retriever=mock_retriever)
 
@@ -106,7 +106,7 @@ class TestChatAgentManagement:
     def test_description_property_with_metadata(self):
         """Test description property returns description from metadata."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        meta = AgentsRuntimeMeta(agent_id="test-agent", description="My test chat")
+        meta = AgentRunMeta(agent_id="test-agent", description="My test chat")
 
         manager = Chat(agent_runtime_meta=meta, tool_retriever=mock_retriever)
 
@@ -115,7 +115,7 @@ class TestChatAgentManagement:
     def test_description_falls_back_to_id(self):
         """Test description falls back to agent_id when no description."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        meta = AgentsRuntimeMeta(agent_id="test-agent")
+        meta = AgentRunMeta(agent_id="test-agent")
 
         manager = Chat(agent_runtime_meta=meta, tool_retriever=mock_retriever)
 
@@ -128,8 +128,8 @@ class TestChatHistory:
     def test_list_history_returns_completed_runtimes(self):
         """Test list_history returns only completed agent runtimes with tool calls loaded."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
-        meta = AgentsRuntimeMeta(agent_id="test-agent")
+        mock_repo = Mock(spec=AgentRunRepository)
+        meta = AgentRunMeta(agent_id="test-agent")
 
         manager = Chat(
             agent_runtime_meta=meta,
@@ -138,15 +138,15 @@ class TestChatHistory:
         )
 
         # Mock runtime repository
-        completed_runtime = AgentsRuntime(
+        completed_runtime = AgentRun(
             agent_id="test-agent",
             agent_run_id="run-123",
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
         )
-        pending_runtime = AgentsRuntime(
+        pending_runtime = AgentRun(
             agent_id="test-agent",
             agent_run_id="run-456",
-            status=AgentsStatus.EXECUTING,
+            status=AgentRunStatus.EXECUTING,
         )
 
         mock_repo.list_agent_runtimes = Mock(
@@ -169,7 +169,7 @@ class TestChatHistory:
     def test_list_history_empty_when_no_metadata(self):
         """Test list_history returns empty list when no metadata."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -180,8 +180,8 @@ class TestChatHistory:
     def test_list_history_empty_when_no_runtimes(self):
         """Test list_history returns empty list when no runtimes exist."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
-        meta = AgentsRuntimeMeta(agent_id="test-agent")
+        mock_repo = Mock(spec=AgentRunRepository)
+        meta = AgentRunMeta(agent_id="test-agent")
 
         manager = Chat(
             agent_runtime_meta=meta,
@@ -197,12 +197,12 @@ class TestChatHistory:
 
     def test_list_history_loads_tool_calls_for_completed_runtimes(self):
         """Test list_history loads and attaches tool calls to completed runtimes."""
-        from fivcplayground.agents.types import AgentsRuntimeToolCall
+        from fivcplayground.agents.types import AgentRunToolCall
         from datetime import datetime
 
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
-        meta = AgentsRuntimeMeta(agent_id="test-agent")
+        mock_repo = Mock(spec=AgentRunRepository)
+        meta = AgentRunMeta(agent_id="test-agent")
 
         manager = Chat(
             agent_runtime_meta=meta,
@@ -211,14 +211,14 @@ class TestChatHistory:
         )
 
         # Create completed runtime
-        completed_runtime = AgentsRuntime(
+        completed_runtime = AgentRun(
             agent_id="test-agent",
             agent_run_id="run-123",
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
         )
 
         # Create mock tool calls
-        tool_call_1 = AgentsRuntimeToolCall(
+        tool_call_1 = AgentRunToolCall(
             tool_use_id="tc-1",
             tool_name="calculator",
             tool_input={"expr": "2+2"},
@@ -226,7 +226,7 @@ class TestChatHistory:
             status="success",
             started_at=datetime(2024, 1, 1, 10, 0, 0),
         )
-        tool_call_2 = AgentsRuntimeToolCall(
+        tool_call_2 = AgentRunToolCall(
             tool_use_id="tc-2",
             tool_name="search",
             tool_input={"query": "test"},
@@ -264,7 +264,7 @@ class TestChatAsk:
         """Test basic ask execution flow."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
         mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -309,9 +309,9 @@ class TestChatAsk:
         """Test ask execution with existing metadata doesn't recreate it."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
         mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_repo.list_agent_runtimes = Mock(return_value=[])  # Return empty list
-        meta = AgentsRuntimeMeta(
+        meta = AgentRunMeta(
             agent_id="existing-agent",
             agent_name="Existing Agent",
             system_prompt="Existing prompt",
@@ -357,7 +357,7 @@ class TestChatAsk:
         """Test ask execution with on_event callback."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
         mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -409,7 +409,7 @@ class TestChatAsk:
     async def test_ask_resets_running_on_exception(self):
         """Test ask resets running flag even when exception occurs."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -434,8 +434,8 @@ class TestChatCleanup:
     def test_cleanup_deletes_agent_data(self):
         """Test cleanup deletes agent and all associated data."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
-        meta = AgentsRuntimeMeta(agent_id="test-agent")
+        mock_repo = Mock(spec=AgentRunRepository)
+        meta = AgentRunMeta(agent_id="test-agent")
 
         manager = Chat(
             agent_runtime_meta=meta,
@@ -452,7 +452,7 @@ class TestChatCleanup:
     def test_cleanup_with_no_metadata_does_nothing(self):
         """Test cleanup does nothing when no metadata exists."""
         mock_retriever = Mock(spec=tools.ToolRetriever)
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
 
         manager = Chat(agent_runtime_repo=mock_repo, tool_retriever=mock_retriever)
 
@@ -482,7 +482,7 @@ class TestChatManager:
 
     def test_init_with_custom_settings(self):
         """Test ChatManager initialization with custom settings."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
 
         manager = ChatManager(
@@ -494,12 +494,12 @@ class TestChatManager:
 
     def test_list_chats_returns_chat_instances(self):
         """Test list_chats returns Chat instances for all agents."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
 
         # Mock some agent metadata
-        meta1 = AgentsRuntimeMeta(agent_id="agent-1", description="Chat 1")
-        meta2 = AgentsRuntimeMeta(agent_id="agent-2", description="Chat 2")
+        meta1 = AgentRunMeta(agent_id="agent-1", description="Chat 1")
+        meta2 = AgentRunMeta(agent_id="agent-2", description="Chat 2")
         mock_repo.list_agents = Mock(return_value=[meta1, meta2])
 
         manager = ChatManager(
@@ -517,7 +517,7 @@ class TestChatManager:
 
     def test_list_chats_empty(self):
         """Test list_chats returns empty list when no agents exist."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
         mock_repo.list_agents = Mock(return_value=[])
 
@@ -531,7 +531,7 @@ class TestChatManager:
 
     def test_add_chat_creates_new_chat(self):
         """Test add_chat creates a new Chat instance."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
 
         manager = ChatManager(
@@ -575,7 +575,7 @@ class TestAgentExecutionMethodRegression:
     @pytest.mark.asyncio
     async def test_agent_execution_uses_run_async_not_invoke_async(self):
         """Regression test: Verify agent execution uses run_async method."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
         mock_retriever.retrieve = Mock(return_value=[])  # Return empty list of tools
 
@@ -619,7 +619,7 @@ class TestAgentExecutionMethodRegression:
     @pytest.mark.asyncio
     async def test_agent_without_run_async_raises_error(self):
         """Regression test: Verify error if agent doesn't have run_async method."""
-        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_repo = Mock(spec=AgentRunRepository)
         mock_retriever = Mock(spec=tools.ToolRetriever)
 
         manager = Chat(

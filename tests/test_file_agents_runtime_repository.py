@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
 """
-Tests for FileAgentsRuntimeRepository functionality.
+Tests for FileAgentRunRepository functionality.
 """
 
 import tempfile
 from datetime import datetime
 
 from fivcplayground.agents.types import (
-    AgentsRuntime,
-    AgentsRuntimeMeta,
-    AgentsRuntimeToolCall,
-    AgentsStatus,
+    AgentRun,
+    AgentRunMeta,
+    AgentRunToolCall,
+    AgentRunStatus,
 )
-from fivcplayground.agents.types.repositories.files import FileAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
 from fivcplayground.utils import OutputDir
 
 
 class TestFileAgentsRuntimeRepository:
-    """Tests for FileAgentsRuntimeRepository class"""
+    """Tests for FileAgentRunRepository class"""
 
     def test_initialization(self):
         """Test repository initialization"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             assert repo.output_dir == output_dir
             assert repo.base_path.exists()
@@ -33,13 +33,13 @@ class TestFileAgentsRuntimeRepository:
         """Test creating and retrieving an agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent runtime
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-123",
                 agent_name="TestAgent",
-                status=AgentsStatus.EXECUTING,
+                status=AgentRunStatus.EXECUTING,
                 started_at=datetime(2024, 1, 1, 12, 0, 0),
             )
 
@@ -57,14 +57,14 @@ class TestFileAgentsRuntimeRepository:
             assert retrieved_agent is not None
             assert retrieved_agent.agent_id == "test-agent-123"
             assert retrieved_agent.agent_name == "TestAgent"
-            assert retrieved_agent.status == AgentsStatus.EXECUTING
+            assert retrieved_agent.status == AgentRunStatus.EXECUTING
             assert retrieved_agent.started_at == datetime(2024, 1, 1, 12, 0, 0)
 
     def test_get_nonexistent_agent(self):
         """Test retrieving an agent that doesn't exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Try to get non-existent agent
             agent = repo.get_agent_runtime("nonexistent-agent", "nonexistent-run")
@@ -74,10 +74,10 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-456",
                 agent_name="TestAgent",
             )
@@ -99,17 +99,17 @@ class TestFileAgentsRuntimeRepository:
         """Test creating and retrieving a tool call"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent first
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-789",
                 agent_name="TestAgent",
             )
             repo.update_agent_runtime("test-agent-789", agent)
 
             # Create a tool call
-            tool_call = AgentsRuntimeToolCall(
+            tool_call = AgentRunToolCall(
                 tool_use_id="tool-call-1",
                 tool_name="TestTool",
                 tool_input={"param": "value"},
@@ -142,7 +142,7 @@ class TestFileAgentsRuntimeRepository:
         """Test retrieving a tool call that doesn't exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Try to get non-existent tool call
             tool_call = repo.get_agent_runtime_tool_call(
@@ -154,27 +154,27 @@ class TestFileAgentsRuntimeRepository:
         """Test listing all tool calls for an agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-999",
                 agent_name="TestAgent",
             )
             repo.update_agent_runtime("test-agent-999", agent)
 
             # Create multiple tool calls
-            tool_call1 = AgentsRuntimeToolCall(
+            tool_call1 = AgentRunToolCall(
                 tool_use_id="tool-call-1",
                 tool_name="Tool1",
                 status="pending",
             )
-            tool_call2 = AgentsRuntimeToolCall(
+            tool_call2 = AgentRunToolCall(
                 tool_use_id="tool-call-2",
                 tool_name="Tool2",
                 status="success",
             )
-            tool_call3 = AgentsRuntimeToolCall(
+            tool_call3 = AgentRunToolCall(
                 tool_use_id="tool-call-3",
                 tool_name="Tool3",
                 status="error",
@@ -205,7 +205,7 @@ class TestFileAgentsRuntimeRepository:
         """Test listing tool calls for an agent that doesn't exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # List tool calls for non-existent agent
             tool_calls = repo.list_agent_runtime_tool_calls(
@@ -217,18 +217,18 @@ class TestFileAgentsRuntimeRepository:
         """Test updating an existing agent runtime"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-update",
                 agent_name="TestAgent",
-                status=AgentsStatus.PENDING,
+                status=AgentRunStatus.PENDING,
             )
             repo.update_agent_runtime("test-agent-update", agent)
 
             # Update agent status
-            agent.status = AgentsStatus.COMPLETED
+            agent.status = AgentRunStatus.COMPLETED
             agent.completed_at = datetime(2024, 1, 1, 13, 0, 0)
             repo.update_agent_runtime("test-agent-update", agent)
 
@@ -236,24 +236,24 @@ class TestFileAgentsRuntimeRepository:
             retrieved_agent = repo.get_agent_runtime(
                 "test-agent-update", agent.agent_run_id
             )
-            assert retrieved_agent.status == AgentsStatus.COMPLETED
+            assert retrieved_agent.status == AgentRunStatus.COMPLETED
             assert retrieved_agent.completed_at == datetime(2024, 1, 1, 13, 0, 0)
 
     def test_update_existing_tool_call(self):
         """Test updating an existing tool call"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-tool-update",
                 agent_name="TestAgent",
             )
             repo.update_agent_runtime("test-agent-tool-update", agent)
 
             # Create a tool call
-            tool_call = AgentsRuntimeToolCall(
+            tool_call = AgentRunToolCall(
                 tool_use_id="tool-call-update",
                 tool_name="TestTool",
                 status="pending",
@@ -282,17 +282,17 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent that has tool calls"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent with tool calls
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="test-agent-with-tools",
                 agent_name="TestAgent",
             )
             repo.update_agent_runtime("test-agent-with-tools", agent)
 
-            tool_call1 = AgentsRuntimeToolCall(tool_use_id="tool-1", tool_name="Tool1")
-            tool_call2 = AgentsRuntimeToolCall(tool_use_id="tool-2", tool_name="Tool2")
+            tool_call1 = AgentRunToolCall(tool_use_id="tool-1", tool_name="Tool1")
+            tool_call2 = AgentRunToolCall(tool_use_id="tool-2", tool_name="Tool2")
             repo.update_agent_runtime_tool_call(
                 "test-agent-with-tools", agent.agent_run_id, tool_call1
             )
@@ -335,18 +335,16 @@ class TestFileAgentsRuntimeRepository:
         """Test that the storage structure matches the expected format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent with tool calls
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="structure-test",
                 agent_name="StructureTestAgent",
             )
             repo.update_agent_runtime("structure-test", agent)
 
-            tool_call = AgentsRuntimeToolCall(
-                tool_use_id="tool-1", tool_name="TestTool"
-            )
+            tool_call = AgentRunToolCall(tool_use_id="tool-1", tool_name="TestTool")
             repo.update_agent_runtime_tool_call(
                 "structure-test", agent.agent_run_id, tool_call
             )
@@ -368,10 +366,10 @@ class TestFileAgentsRuntimeRepository:
         """Test agent runtime with streaming text"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent with streaming text
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="streaming-agent",
                 agent_name="StreamingAgent",
                 streaming_text="This is streaming text...",
@@ -388,37 +386,37 @@ class TestFileAgentsRuntimeRepository:
         """Test agent runtime with error"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent with error
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="error-agent",
                 agent_name="ErrorAgent",
-                status=AgentsStatus.FAILED,
+                status=AgentRunStatus.FAILED,
                 error="Something went wrong",
             )
             repo.update_agent_runtime("error-agent", agent)
 
             # Retrieve and verify
             retrieved_agent = repo.get_agent_runtime("error-agent", agent.agent_run_id)
-            assert retrieved_agent.status == AgentsStatus.FAILED
+            assert retrieved_agent.status == AgentRunStatus.FAILED
             assert retrieved_agent.error == "Something went wrong"
 
     def test_tool_call_with_complex_input_and_result(self):
         """Test tool call with complex input and result data"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create an agent
-            agent = AgentsRuntime(
+            agent = AgentRun(
                 agent_id="complex-agent",
                 agent_name="ComplexAgent",
             )
             repo.update_agent_runtime("complex-agent", agent)
 
             # Create a tool call with complex data
-            tool_call = AgentsRuntimeToolCall(
+            tool_call = AgentRunToolCall(
                 tool_use_id="complex-tool-call",
                 tool_name="ComplexTool",
                 tool_input={
@@ -454,7 +452,7 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent that doesn't exist (should not raise error)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Delete non-existent agent (should not raise error)
             repo.delete_agent_runtime("nonexistent-agent", "nonexistent-run")
@@ -468,29 +466,29 @@ class TestFileAgentsRuntimeRepository:
         """Test that list_agent_runtimes returns runtimes in chronological order"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             agent_id = "test-agent-chronological"
 
             # Create multiple runtimes with different timestamps
             # Note: agent_run_id is a timestamp string, so we create them with explicit values
-            runtime1 = AgentsRuntime(
+            runtime1 = AgentRun(
                 agent_id=agent_id,
                 agent_name="TestAgent",
                 agent_run_id="1000.0",  # Earliest
-                status=AgentsStatus.COMPLETED,
+                status=AgentRunStatus.COMPLETED,
             )
-            runtime2 = AgentsRuntime(
+            runtime2 = AgentRun(
                 agent_id=agent_id,
                 agent_name="TestAgent",
                 agent_run_id="2000.0",  # Middle
-                status=AgentsStatus.COMPLETED,
+                status=AgentRunStatus.COMPLETED,
             )
-            runtime3 = AgentsRuntime(
+            runtime3 = AgentRun(
                 agent_id=agent_id,
                 agent_name="TestAgent",
                 agent_run_id="3000.0",  # Latest
-                status=AgentsStatus.COMPLETED,
+                status=AgentRunStatus.COMPLETED,
             )
 
             # Save in random order
@@ -517,10 +515,10 @@ class TestFileAgentsRuntimeRepository:
         """Test creating and retrieving agent metadata"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create agent metadata
-            agent_meta = AgentsRuntimeMeta(
+            agent_meta = AgentRunMeta(
                 agent_id="test-agent-meta-123",
                 agent_name="TestAgent",
                 system_prompt="You are a helpful assistant",
@@ -546,7 +544,7 @@ class TestFileAgentsRuntimeRepository:
         """Test retrieving agent metadata that doesn't exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Try to get non-existent agent
             agent = repo.get_agent("nonexistent-agent-meta")
@@ -556,10 +554,10 @@ class TestFileAgentsRuntimeRepository:
         """Test updating existing agent metadata"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create agent metadata
-            agent_meta = AgentsRuntimeMeta(
+            agent_meta = AgentRunMeta(
                 agent_id="test-agent-update-meta",
                 agent_name="TestAgent",
                 system_prompt="Initial prompt",
@@ -582,7 +580,7 @@ class TestFileAgentsRuntimeRepository:
         """Test listing agents when repository is empty"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # List agents in empty repository
             agents = repo.list_agents()
@@ -592,18 +590,18 @@ class TestFileAgentsRuntimeRepository:
         """Test listing multiple agents"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create multiple agents
-            agent1 = AgentsRuntimeMeta(
+            agent1 = AgentRunMeta(
                 agent_id="agent-001",
                 agent_name="Agent1",
             )
-            agent2 = AgentsRuntimeMeta(
+            agent2 = AgentRunMeta(
                 agent_id="agent-002",
                 agent_name="Agent2",
             )
-            agent3 = AgentsRuntimeMeta(
+            agent3 = AgentRunMeta(
                 agent_id="agent-003",
                 agent_name="Agent3",
             )
@@ -633,24 +631,24 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent and all its runtimes"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             agent_id = "test-agent-delete"
 
             # Create agent metadata
-            agent_meta = AgentsRuntimeMeta(
+            agent_meta = AgentRunMeta(
                 agent_id=agent_id,
                 agent_name="TestAgent",
             )
             repo.update_agent(agent_meta)
 
             # Create multiple runtimes for this agent
-            runtime1 = AgentsRuntime(
+            runtime1 = AgentRun(
                 agent_id=agent_id,
                 agent_name="TestAgent",
                 agent_run_id="1000.0",
             )
-            runtime2 = AgentsRuntime(
+            runtime2 = AgentRun(
                 agent_id=agent_id,
                 agent_name="TestAgent",
                 agent_run_id="2000.0",
@@ -674,7 +672,7 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent that doesn't exist (should not raise error)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Delete non-existent agent (should not raise error)
             repo.delete_agent("nonexistent-agent-meta")
@@ -686,10 +684,10 @@ class TestFileAgentsRuntimeRepository:
         """Test agent metadata with only required fields"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create agent metadata with only agent_id
-            agent_meta = AgentsRuntimeMeta(agent_id="minimal-agent")
+            agent_meta = AgentRunMeta(agent_id="minimal-agent")
             repo.update_agent(agent_meta)
 
             # Retrieve and verify
@@ -704,10 +702,10 @@ class TestFileAgentsRuntimeRepository:
         """Test that agent metadata storage structure matches expected format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create agent metadata
-            agent_meta = AgentsRuntimeMeta(
+            agent_meta = AgentRunMeta(
                 agent_id="structure-test-agent",
                 agent_name="StructureTestAgent",
             )
@@ -730,27 +728,27 @@ class TestFileAgentsRuntimeRepository:
         """Test deleting an agent that has runtimes with tool calls"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             agent_id = "agent-with-complex-data"
 
             # Create agent metadata
-            agent_meta = AgentsRuntimeMeta(
+            agent_meta = AgentRunMeta(
                 agent_id=agent_id,
                 agent_name="ComplexAgent",
             )
             repo.update_agent(agent_meta)
 
             # Create runtime with tool calls
-            runtime = AgentsRuntime(
+            runtime = AgentRun(
                 agent_id=agent_id,
                 agent_name="ComplexAgent",
             )
             repo.update_agent_runtime(agent_id, runtime)
 
             # Add tool calls
-            tool_call1 = AgentsRuntimeToolCall(tool_use_id="tool-1", tool_name="Tool1")
-            tool_call2 = AgentsRuntimeToolCall(tool_use_id="tool-2", tool_name="Tool2")
+            tool_call1 = AgentRunToolCall(tool_use_id="tool-1", tool_name="Tool1")
+            tool_call2 = AgentRunToolCall(tool_use_id="tool-2", tool_name="Tool2")
             repo.update_agent_runtime_tool_call(
                 agent_id, runtime.agent_run_id, tool_call1
             )
@@ -782,12 +780,12 @@ class TestFileAgentsRuntimeRepository:
         """Test that deleted agents don't appear in list"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Create multiple agents
-            agent1 = AgentsRuntimeMeta(agent_id="agent-keep-1")
-            agent2 = AgentsRuntimeMeta(agent_id="agent-delete")
-            agent3 = AgentsRuntimeMeta(agent_id="agent-keep-2")
+            agent1 = AgentRunMeta(agent_id="agent-keep-1")
+            agent2 = AgentRunMeta(agent_id="agent-delete")
+            agent3 = AgentRunMeta(agent_id="agent-keep-2")
 
             repo.update_agent(agent1)
             repo.update_agent(agent2)

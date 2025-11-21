@@ -7,17 +7,17 @@ with a cleaner interface and support for agent runtime persistence.
 The Chat class manages:
 - Agent conversation state and history
 - Agent execution with streaming support
-- Runtime persistence via AgentsRuntimeRepository
+- Runtime persistence via AgentRunRepository
 - Agent metadata management
 
 Example:
     >>> from fivcplayground.app.utils import Chat
     >>> from fivcplayground import tools
-    >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+    >>> from fivcplayground.agents.types.repositories import FileAgentRunRepository
     >>> from fivcplayground.utils import OutputDir
     >>>
     >>> # Create chat with custom repository
-    >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./my_agents"))
+    >>> repo = FileAgentRunRepository(output_dir=OutputDir("./my_agents"))
     >>> chat = Chat(
     ...     agent_runtime_repo=repo,
     ...     tool_retriever=tools.create_tool_retriever()
@@ -43,13 +43,13 @@ from pydantic import BaseModel
 from fivcplayground import agents, tools
 from fivcplayground.tasks import create_briefing_task
 from fivcplayground.agents.types import (
-    AgentsRuntime,
-    AgentsMonitorManager,
-    AgentsRuntimeMeta,
+    AgentRun,
+    AgentMonitorManager,
+    AgentRunMeta,
 )
 from fivcplayground.agents.types.repositories import (
-    AgentsRuntimeRepository,
-    SqliteAgentsRuntimeRepository,
+    AgentRunRepository,
+    SqliteAgentRunRepository,
 )
 from fivcplayground.utils import OutputDir
 
@@ -118,15 +118,15 @@ class Chat(object):
 
     def __init__(
         self,
-        agent_runtime_meta: Optional[AgentsRuntimeMeta] = None,
-        agent_runtime_repo: Optional[AgentsRuntimeRepository] = None,
+        agent_runtime_meta: Optional[AgentRunMeta] = None,
+        agent_runtime_repo: Optional[AgentRunRepository] = None,
         tool_retriever: Optional[tools.ToolRetriever] = None,
     ):
         """
         Initialize Chat manager.
 
         Creates a new chat instance with agent runtime tracking and persistence.
-        If no repository is provided, a default FileAgentsRuntimeRepository is
+        If no repository is provided, a default FileAgentRunRepository is
         created in the standard output directory.
 
         Args:
@@ -135,7 +135,7 @@ class Chat(object):
                                agent will be created on the first query with auto-generated
                                metadata. Use this to resume a previous chat session.
             agent_runtime_repo: Optional repository for persisting agent runtime state.
-                               If not provided, defaults to FileAgentsRuntimeRepository
+                               If not provided, defaults to FileAgentRunRepository
                                with OutputDir().subdir("agents").
             tool_retriever: Retriever for tool access. Required parameter that
                             provides tools to the agent based on the query.
@@ -151,8 +151,8 @@ class Chat(object):
             >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>>
             >>> # Resume existing chat with metadata
-            >>> from fivcplayground.agents.types import AgentsRuntimeMeta
-            >>> meta = AgentsRuntimeMeta(
+            >>> from fivcplayground.agents.types import AgentRunMeta
+            >>> meta = AgentRunMeta(
             ...     agent_id="my-agent-123",
             ...     agent_name="My Assistant",
             ...     system_prompt="You are a helpful assistant",
@@ -164,10 +164,10 @@ class Chat(object):
             ... )
             >>>
             >>> # Create with custom repository
-            >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+            >>> from fivcplayground.agents.types.repositories import FileAgentRunRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
-            >>> repo = FileAgentsRuntimeRepository(
+            >>> repo = FileAgentRunRepository(
             ...     output_dir=OutputDir("./custom_agents")
             ... )
             >>> chat = Chat(
@@ -180,21 +180,21 @@ class Chat(object):
             - The agent_runtime_repo defaults to a file-based repository if not provided
             - If agent_runtime_meta is None, metadata is auto-created on first query
         """
-        from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+        from fivcplayground.agents.types.repositories import FileAgentRunRepository
         from fivcplayground.utils import OutputDir
 
         assert tool_retriever is not None, "tool_retriever is required"
 
         # Create default repository if not provided
         if agent_runtime_repo is None:
-            agent_runtime_repo = FileAgentsRuntimeRepository(
+            agent_runtime_repo = FileAgentRunRepository(
                 output_dir=OutputDir().subdir("agents")
             )
 
         self.tool_retriever = tool_retriever
         self.runtime_meta = agent_runtime_meta
         self.runtime_repo = agent_runtime_repo
-        self.monitor_manager = AgentsMonitorManager(
+        self.monitor_manager = AgentMonitorManager(
             runtime_repo=self.runtime_repo,
         )
         self.running = False
@@ -231,8 +231,8 @@ class Chat(object):
             str: The chat description, agent ID, or empty string
 
         Example:
-            >>> from fivcplayground.agents.types import AgentsRuntimeMeta
-            >>> meta = AgentsRuntimeMeta(
+            >>> from fivcplayground.agents.types import AgentRunMeta
+            >>> meta = AgentRunMeta(
             ...     agent_id="my-agent",
             ...     description="Customer support bot"
             ... )
@@ -271,7 +271,7 @@ class Chat(object):
         """
         return self.running
 
-    def list_history(self) -> List[AgentsRuntime]:
+    def list_history(self) -> List[AgentRun]:
         """
         List all completed agent runtimes for this chat session.
 
@@ -280,7 +280,7 @@ class Chat(object):
         or with failure). Pending or executing runtimes are excluded.
 
         Returns:
-            List[AgentsRuntime]: List of completed agent runtime instances,
+            List[AgentRun]: List of completed agent runtime instances,
                                 sorted chronologically by agent_run_id.
                                 Returns empty list if no completed runtimes exist.
 
@@ -325,7 +325,7 @@ class Chat(object):
     async def ask_async(
         self,
         query: str,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
+        on_event: Optional[Callable[[AgentRun], None]] = None,
     ) -> BaseMessage | BaseModel:
         """
         Send a query to the agent and get a response.
@@ -341,7 +341,7 @@ class Chat(object):
         Args:
             query: User query string to send to the agent
             on_event: Optional callback function invoked during agent execution.
-                     Receives AgentsRuntime instance with updated state including:
+                     Receives AgentRun instance with updated state including:
                      - streaming_text: Accumulated text as it's generated
                      - tool_calls: Dictionary of tool calls made so far
                      - status: Current execution status
@@ -425,7 +425,7 @@ class Chat(object):
                     tool_retriever=self.tool_retriever,
                 )
                 agent_desc = await agent_desc.run_async()
-                self.runtime_meta = AgentsRuntimeMeta(
+                self.runtime_meta = AgentRunMeta(
                     agent_id=agent.agent_id,
                     agent_name=agent.name,
                     system_prompt=agent.system_prompt,
@@ -443,7 +443,7 @@ class Chat(object):
     def ask(
         self,
         query: str,
-        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
+        on_event: Optional[Callable[[AgentRun], None]] = None,
     ) -> BaseMessage | BaseModel:
         return asyncio.run(self.ask_async(query, on_event))
 
@@ -512,10 +512,10 @@ class ChatManager(object):
         >>> await new_chat.ask_async("Hello!")
         >>>
         >>> # Create manager with custom repository
-        >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+        >>> from fivcplayground.agents.types.repositories import FileAgentRunRepository
         >>> from fivcplayground.utils import OutputDir
         >>>
-        >>> repo = FileAgentsRuntimeRepository(
+        >>> repo = FileAgentRunRepository(
         ...     output_dir=OutputDir("./my_chats")
         ... )
         >>> manager = ChatManager(
@@ -531,7 +531,7 @@ class ChatManager(object):
 
     def __init__(
         self,
-        agent_runtime_repo: Optional[AgentsRuntimeRepository] = None,
+        agent_runtime_repo: Optional[AgentRunRepository] = None,
         tool_retriever: Optional[tools.ToolRetriever] = None,
     ):
         """
@@ -542,7 +542,7 @@ class ChatManager(object):
 
         Args:
             agent_runtime_repo: Optional repository for persisting agent runtime state.
-                               If not provided, defaults to FileAgentsRuntimeRepository
+                               If not provided, defaults to FileAgentRunRepository
                                with OutputDir().subdir("agents").
             tool_retriever: Optional retriever for tool access. If not provided,
                             defaults to tools.create_tool_retriever().
@@ -555,17 +555,17 @@ class ChatManager(object):
             >>>
             >>> # Create with custom settings
             >>> from fivcplayground import tools
-            >>> from fivcplayground.agents.types.repositories import FileAgentsRuntimeRepository
+            >>> from fivcplayground.agents.types.repositories import FileAgentRunRepository
             >>> from fivcplayground.utils import OutputDir
             >>>
             >>> manager = ChatManager(
-            ...     agent_runtime_repo=FileAgentsRuntimeRepository(
+            ...     agent_runtime_repo=FileAgentRunRepository(
             ...         output_dir=OutputDir("./chats")
             ...     ),
             ...     tool_retriever=tools.create_tool_retriever()
             ... )
         """
-        self.runtime_repo = agent_runtime_repo or SqliteAgentsRuntimeRepository(
+        self.runtime_repo = agent_runtime_repo or SqliteAgentRunRepository(
             str(OutputDir().subdir("agents"))
         )
         self.tool_retriever = tool_retriever or tools.create_tool_retriever()

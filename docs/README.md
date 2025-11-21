@@ -143,8 +143,8 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 ### Version 0.1.0 (2025-10-16)
 - **Multi-Page Web Interface**: New navigation system with dynamic chat pages
 - **Chat Management**: ChatManager and Chat classes for multi-conversation support
-- **Agent Runtime System**: Comprehensive persistence with AgentsRuntime models
-- **File-Based Storage**: FileAgentsRuntimeRepository for organized data storage
+- **Agent Runtime System**: Comprehensive persistence with AgentRun models
+- **File-Based Storage**: FileAgentRunRepository for organized data storage
 - **Component Architecture**: Modular views, components, and managers
 - **Streaming Support**: Real-time response updates with async execution
 - **Tool Call Tracking**: Complete tool invocation history and visualization

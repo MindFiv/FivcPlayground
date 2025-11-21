@@ -1,8 +1,8 @@
 """
 SQLite-based agent runtime repository implementation.
 
-This module provides SqliteAgentsRuntimeRepository, a SQLite-based implementation
-of AgentsRuntimeRepository that stores agent data in a relational database.
+This module provides SqliteAgentRunRepository, a SQLite-based implementation
+of AgentRunRepository that stores agent data in a relational database.
 
 Database Schema:
     agents:
@@ -49,14 +49,14 @@ This structure provides:
     - Cascading deletes for data consistency
 
 Example:
-    >>> from fivcplayground.agents.types.repositories.sqlite import SqliteAgentsRuntimeRepository
-    >>> from fivcplayground.agents.types import AgentsRuntimeMeta, AgentsRuntime
+    >>> from fivcplayground.agents.types.repositories.sqlite import SqliteAgentRunRepository
+    >>> from fivcplayground.agents.types import AgentRunMeta, AgentRun
     >>>
     >>> # Create repository
-    >>> repo = SqliteAgentsRuntimeRepository(db_path="./agents.db")
+    >>> repo = SqliteAgentRunRepository(db_path="./agents.db")
     >>>
     >>> # Store agent metadata
-    >>> agent_meta = AgentsRuntimeMeta(
+    >>> agent_meta = AgentRunMeta(
     ...     agent_id="my-agent",
     ...     agent_name="MyAgent",
     ...     system_prompt="You are a helpful assistant"
@@ -64,7 +64,7 @@ Example:
     >>> repo.update_agent(agent_meta)
     >>>
     >>> # Create and store a runtime
-    >>> runtime = AgentsRuntime(agent_id="my-agent", agent_name="MyAgent")
+    >>> runtime = AgentRun(agent_id="my-agent", agent_name="MyAgent")
     >>> repo.update_agent_runtime("my-agent", runtime)
     >>>
     >>> # List all agents
@@ -77,16 +77,16 @@ import sqlite3
 from pathlib import Path
 from typing import Optional, List
 
-from fivcplayground.agents.types import AgentsRuntimeMeta
+from fivcplayground.agents.types import AgentRunMeta
 from fivcplayground.agents.types.repositories import (
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsRuntimeRepository,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunRepository,
 )
 from fivcplayground.utils import OutputDir
 
 
-class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
+class SqliteAgentRunRepository(AgentRunRepository):
     """
     SQLite-based repository for agent runtime data.
 
@@ -201,7 +201,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
 
         self.connection.commit()
 
-    def update_agent(self, agent: AgentsRuntimeMeta) -> None:
+    def update_agent(self, agent: AgentRunMeta) -> None:
         """Create or update an agent's metadata."""
         cursor = self.connection.cursor()
         agent_data = agent.model_dump(mode="json")
@@ -243,7 +243,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
         )
         self.connection.commit()
 
-    def get_agent(self, agent_id: str) -> Optional[AgentsRuntimeMeta]:
+    def get_agent(self, agent_id: str) -> Optional[AgentRunMeta]:
         """Retrieve an agent's metadata by ID."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents WHERE agent_id = ?", (agent_id,))
@@ -253,7 +253,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
             return None
 
         try:
-            return AgentsRuntimeMeta.model_validate(
+            return AgentRunMeta.model_validate(
                 {
                     "agent_id": row["agent_id"],
                     "agent_name": row["agent_name"],
@@ -266,7 +266,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
             print(f"Error loading agent {agent_id}: {e}")
             return None
 
-    def list_agents(self) -> List[AgentsRuntimeMeta]:
+    def list_agents(self) -> List[AgentRunMeta]:
         """List all agents in the repository."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents ORDER BY agent_id")
@@ -275,7 +275,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
         agents = []
         for row in rows:
             try:
-                agent = AgentsRuntimeMeta.model_validate(
+                agent = AgentRunMeta.model_validate(
                     {
                         "agent_id": row["agent_id"],
                         "agent_name": row["agent_name"],
@@ -296,7 +296,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
         cursor.execute("DELETE FROM agents WHERE agent_id = ?", (agent_id,))
         self.connection.commit()
 
-    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentsRuntime) -> None:
+    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentRun) -> None:
         """Create or update an agent runtime."""
         cursor = self.connection.cursor()
         runtime_data = agent_runtime.model_dump(mode="json", exclude={"tool_calls"})
@@ -339,9 +339,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
         )
         self.connection.commit()
 
-    def get_agent_runtime(
-        self, agent_id: str, agent_run_id: str
-    ) -> Optional[AgentsRuntime]:
+    def get_agent_runtime(self, agent_id: str, agent_run_id: str) -> Optional[AgentRun]:
         """Retrieve an agent runtime by agent ID and run ID."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -357,7 +355,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
             query = json.loads(row["query"]) if row["query"] else None
             reply = json.loads(row["reply"]) if row["reply"] else None
 
-            return AgentsRuntime.model_validate(
+            return AgentRun.model_validate(
                 {
                     "agent_run_id": row["agent_run_id"],
                     "agent_id": row["agent_id"],
@@ -384,7 +382,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
         )
         self.connection.commit()
 
-    def list_agent_runtimes(self, agent_id: str) -> List[AgentsRuntime]:
+    def list_agent_runtimes(self, agent_id: str) -> List[AgentRun]:
         """List all agent runtimes for a specific agent."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -399,7 +397,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
                 query = json.loads(row["query"]) if row["query"] else None
                 reply = json.loads(row["reply"]) if row["reply"] else None
 
-                runtime = AgentsRuntime.model_validate(
+                runtime = AgentRun.model_validate(
                     {
                         "agent_run_id": row["agent_run_id"],
                         "agent_id": row["agent_id"],
@@ -421,7 +419,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
 
     def get_agent_runtime_tool_call(
         self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Optional[AgentsRuntimeToolCall]:
+    ) -> Optional[AgentRunToolCall]:
         """Retrieve a specific tool call by IDs."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -437,7 +435,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
             tool_input = json.loads(row["tool_input"]) if row["tool_input"] else {}
             tool_result = json.loads(row["tool_result"]) if row["tool_result"] else None
 
-            return AgentsRuntimeToolCall.model_validate(
+            return AgentRunToolCall.model_validate(
                 {
                     "tool_use_id": row["tool_use_id"],
                     "tool_name": row["tool_name"],
@@ -454,7 +452,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
             return None
 
     def update_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call: AgentsRuntimeToolCall
+        self, agent_id: str, agent_run_id: str, tool_call: AgentRunToolCall
     ) -> None:
         """Create or update a tool call for an agent runtime."""
         cursor = self.connection.cursor()
@@ -505,7 +503,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
 
     def list_agent_runtime_tool_calls(
         self, agent_id: str, agent_run_id: str
-    ) -> List[AgentsRuntimeToolCall]:
+    ) -> List[AgentRunToolCall]:
         """List all tool calls for an agent runtime."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -522,7 +520,7 @@ class SqliteAgentsRuntimeRepository(AgentsRuntimeRepository):
                     json.loads(row["tool_result"]) if row["tool_result"] else None
                 )
 
-                tool_call = AgentsRuntimeToolCall.model_validate(
+                tool_call = AgentRunToolCall.model_validate(
                     {
                         "tool_use_id": row["tool_use_id"],
                         "tool_name": row["tool_name"],

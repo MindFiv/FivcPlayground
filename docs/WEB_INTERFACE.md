@@ -166,7 +166,7 @@ src/fivcplayground/app/
   - Agent runtime creation and execution
   - Conversation history management
   - Streaming response handling
-  - Persistence via AgentsRuntimeRepository
+  - Persistence via AgentRunRepository
 - `ChatManager` class: Manages multiple chats
   - Lists all existing chats
   - Creates new chat instances
@@ -187,7 +187,7 @@ src/fivcplayground/app/
   - Uses class-based architecture for better modularity
 
 **5. Persistence Layer**
-- `FileAgentsRuntimeRepository`: File-based storage
+- `FileAgentRunRepository`: File-based storage
 - Storage location: `.fivcplayground/agents/`
 - Structure:
   ```
@@ -298,7 +298,7 @@ ls -la .fivcplayground/agents/
 #### Streaming Not Working
 - Ensure async execution is working properly
 - Check that on_event callback is being called
-- Verify AgentsRuntime is being updated correctly
+- Verify AgentRun is being updated correctly
 - Look for errors in terminal output
 
 ### Getting Help
@@ -323,7 +323,7 @@ make serve
 
 ### Agent System
 - Uses the same agent creation system as CLI
-- Shares AgentsRuntimeRepository for persistence
+- Shares AgentRunRepository for persistence
 - Shares tool registry and retriever
 - Consistent behavior across interfaces
 - Same LLM configuration and models

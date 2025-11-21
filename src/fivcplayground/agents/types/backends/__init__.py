@@ -1,11 +1,11 @@
 __all__ = [
-    "AgentsRunnable",
+    "AgentRunnable",
 ]
 
 from fivcplayground import __backend__
 
 if __backend__ == "langchain":
-    from .langchain import AgentsRunnable
+    from .langchain import AgentRunnable
 
 elif __backend__ == "strands":
-    from .strands import AgentsRunnable
+    from .strands import AgentRunnable

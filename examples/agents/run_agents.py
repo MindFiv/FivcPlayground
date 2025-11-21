@@ -27,8 +27,8 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a companion agent
-    from fivcplayground.agents.types import AgentsMonitor
-    agent_monitor = AgentsMonitor()
+    from fivcplayground.agents.types import AgentMonitor
+    agent_monitor = AgentMonitor()
     agent = agents.create_companion_agent(
         callback_handler=agent_monitor)
     print(f"Agent ID: {agent.id}")

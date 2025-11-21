@@ -1,5 +1,5 @@
 """
-Example usage of SqliteAgentsRuntimeRepository.
+Example usage of SqliteAgentRunRepository.
 
 This example demonstrates how to use the SQLite-based repository to store
 and retrieve agent runtime data, including agent metadata, execution runtimes,
@@ -15,13 +15,13 @@ The SQLite repository provides:
 
 from datetime import datetime
 from fivcplayground.agents.types import (
-    AgentsRuntimeMeta,
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsStatus,
-    AgentsContent,
+    AgentRunMeta,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunStatus,
+    AgentRunContent,
 )
-from fivcplayground.agents.types.repositories import SqliteAgentsRuntimeRepository
+from fivcplayground.agents.types.repositories import SqliteAgentRunRepository
 
 
 def example_1_basic_agent_storage():
@@ -31,10 +31,10 @@ def example_1_basic_agent_storage():
     print("="*60)
     
     # Create repository
-    repo = SqliteAgentsRuntimeRepository(db_path="./examples_agents.db")
+    repo = SqliteAgentRunRepository(db_path="./examples_agents.db")
     
     # Create agent metadata
-    agent = AgentsRuntimeMeta(
+    agent = AgentRunMeta(
         agent_id="customer-support-agent",
         agent_name="Customer Support Agent",
         system_prompt="You are a helpful customer support assistant.",
@@ -59,10 +59,10 @@ def example_2_agent_runtime_execution():
     print("Example 2: Agent Runtime Execution")
     print("="*60)
     
-    repo = SqliteAgentsRuntimeRepository(db_path="./examples_agents.db")
+    repo = SqliteAgentRunRepository(db_path="./examples_agents.db")
     
     # Create agent
-    agent = AgentsRuntimeMeta(
+    agent = AgentRunMeta(
         agent_id="math-agent",
         agent_name="Math Agent",
         system_prompt="You are a math expert.",
@@ -70,11 +70,11 @@ def example_2_agent_runtime_execution():
     repo.update_agent(agent)
     
     # Create runtime for agent execution
-    runtime = AgentsRuntime(
+    runtime = AgentRun(
         agent_id="math-agent",
         agent_name="Math Agent",
-        status=AgentsStatus.EXECUTING,
-        query=AgentsContent(text="What is 2 + 2?"),
+        status=AgentRunStatus.EXECUTING,
+        query=AgentRunContent(text="What is 2 + 2?"),
         started_at=datetime.now(),
     )
     
@@ -85,9 +85,9 @@ def example_2_agent_runtime_execution():
     print(f"  Query: {runtime.query.text}")
     
     # Simulate execution completion
-    runtime.status = AgentsStatus.COMPLETED
+    runtime.status = AgentRunStatus.COMPLETED
     runtime.completed_at = datetime.now()
-    runtime.reply = AgentsContent(text="2 + 2 = 4")
+    runtime.reply = AgentRunContent(text="2 + 2 = 4")
     
     # Update runtime
     repo.update_agent_runtime("math-agent", runtime)
@@ -103,20 +103,20 @@ def example_3_tool_calls_tracking():
     print("Example 3: Tool Calls Tracking")
     print("="*60)
     
-    repo = SqliteAgentsRuntimeRepository(db_path="./examples_agents.db")
+    repo = SqliteAgentRunRepository(db_path="./examples_agents.db")
     
     # Create agent and runtime
-    agent = AgentsRuntimeMeta(agent_id="calculator-agent")
+    agent = AgentRunMeta(agent_id="calculator-agent")
     repo.update_agent(agent)
     
-    runtime = AgentsRuntime(
+    runtime = AgentRun(
         agent_id="calculator-agent",
-        query=AgentsContent(text="Calculate 10 * 5"),
+        query=AgentRunContent(text="Calculate 10 * 5"),
     )
     repo.update_agent_runtime("calculator-agent", runtime)
     
     # Create tool call
-    tool_call = AgentsRuntimeToolCall(
+    tool_call = AgentRunToolCall(
         tool_use_id="call-001",
         tool_name="calculator",
         tool_input={"expression": "10 * 5"},
@@ -153,7 +153,7 @@ def example_4_list_and_query():
     print("Example 4: List and Query")
     print("="*60)
     
-    repo = SqliteAgentsRuntimeRepository(db_path="./examples_agents.db")
+    repo = SqliteAgentRunRepository(db_path="./examples_agents.db")
     
     # List all agents
     agents = repo.list_agents()
@@ -184,16 +184,16 @@ def example_5_cascading_deletes():
     print("Example 5: Cascading Deletes")
     print("="*60)
     
-    repo = SqliteAgentsRuntimeRepository(db_path="./examples_agents.db")
+    repo = SqliteAgentRunRepository(db_path="./examples_agents.db")
     
     # Create test data
-    agent = AgentsRuntimeMeta(agent_id="temp-agent")
+    agent = AgentRunMeta(agent_id="temp-agent")
     repo.update_agent(agent)
     
-    runtime = AgentsRuntime(agent_id="temp-agent")
+    runtime = AgentRun(agent_id="temp-agent")
     repo.update_agent_runtime("temp-agent", runtime)
     
-    tool_call = AgentsRuntimeToolCall(
+    tool_call = AgentRunToolCall(
         tool_use_id="temp-call",
         tool_name="test_tool",
     )
@@ -216,7 +216,7 @@ def example_5_cascading_deletes():
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("SqliteAgentsRuntimeRepository Examples")
+    print("SqliteAgentRunRepository Examples")
     print("="*60)
     
     example_1_basic_agent_storage()

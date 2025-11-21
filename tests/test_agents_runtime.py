@@ -1,9 +1,9 @@
 """
-Unit tests for AgentsRuntime and AgentsRuntimeToolCall models.
+Unit tests for AgentRun and AgentRunToolCall models.
 
 Tests the agent runtime data models including:
-- AgentsRuntimeToolCall creation and computed fields
-- AgentsRuntime creation and computed fields
+- AgentRunToolCall creation and computed fields
+- AgentRun creation and computed fields
 - Status tracking
 - Tool call tracking
 - Timing calculations
@@ -13,18 +13,18 @@ Tests the agent runtime data models including:
 import json
 from datetime import datetime
 from fivcplayground.agents.types import (
-    AgentsRuntime,
-    AgentsRuntimeToolCall,
-    AgentsStatus,
+    AgentRun,
+    AgentRunToolCall,
+    AgentRunStatus,
 )
 
 
 class TestAgentsRuntimeToolCall:
-    """Test AgentsRuntimeToolCall model."""
+    """Test AgentRunToolCall model."""
 
     def test_create_tool_call(self):
         """Test creating a tool call record."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -40,7 +40,7 @@ class TestAgentsRuntimeToolCall:
 
     def test_tool_call_with_result(self):
         """Test tool call with result."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -54,7 +54,7 @@ class TestAgentsRuntimeToolCall:
 
     def test_tool_call_with_error(self):
         """Test tool call with error."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={"expression": "invalid"},
@@ -71,7 +71,7 @@ class TestAgentsRuntimeToolCall:
         start = datetime(2024, 1, 1, 12, 0, 0)
         end = datetime(2024, 1, 1, 12, 0, 5)
 
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={},
@@ -83,7 +83,7 @@ class TestAgentsRuntimeToolCall:
 
     def test_tool_call_duration_none_when_incomplete(self):
         """Test duration is None when tool call is incomplete."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={},
@@ -94,7 +94,7 @@ class TestAgentsRuntimeToolCall:
 
     def test_tool_call_id_computed_field(self):
         """Test that id is a computed field that returns tool_use_id."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="unique-tool-call-id",
             tool_name="calculator",
             tool_input={},
@@ -106,11 +106,11 @@ class TestAgentsRuntimeToolCall:
 
 
 class TestAgentsRuntime:
-    """Test AgentsRuntime model."""
+    """Test AgentRun model."""
 
     def test_create_runtime(self):
         """Test creating an agent runtime record."""
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
         )
@@ -118,7 +118,7 @@ class TestAgentsRuntime:
         assert runtime.id == runtime.agent_run_id  # id is computed from agent_run_id
         assert runtime.agent_id == "agent-123"
         assert runtime.agent_name == "TestAgent"
-        assert runtime.status == AgentsStatus.PENDING
+        assert runtime.status == AgentRunStatus.PENDING
         assert runtime.reply is None
         assert runtime.tool_calls == {}
         assert runtime.streaming_text == ""
@@ -126,7 +126,7 @@ class TestAgentsRuntime:
 
     def test_runtime_id_computed_field(self):
         """Test that id is a computed field that returns agent_run_id."""
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="custom-agent-id",
             agent_name="TestAgent",
         )
@@ -140,7 +140,7 @@ class TestAgentsRuntime:
         import time
 
         # Create first runtime
-        runtime1 = AgentsRuntime(
+        runtime1 = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
         )
@@ -149,7 +149,7 @@ class TestAgentsRuntime:
         time.sleep(0.1)
 
         # Create second runtime
-        runtime2 = AgentsRuntime(
+        runtime2 = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
         )
@@ -169,17 +169,17 @@ class TestAgentsRuntime:
 
     def test_runtime_status_transitions(self):
         """Test runtime status transitions."""
-        runtime = AgentsRuntime(agent_id="agent-123")
+        runtime = AgentRun(agent_id="agent-123")
 
-        assert runtime.status == AgentsStatus.PENDING
+        assert runtime.status == AgentRunStatus.PENDING
         assert runtime.is_running is False
         assert runtime.is_completed is False
 
-        runtime.status = AgentsStatus.EXECUTING
+        runtime.status = AgentRunStatus.EXECUTING
         assert runtime.is_running is True
         assert runtime.is_completed is False
 
-        runtime.status = AgentsStatus.COMPLETED
+        runtime.status = AgentRunStatus.COMPLETED
         assert runtime.is_running is False
         assert runtime.is_completed is True
 
@@ -188,7 +188,7 @@ class TestAgentsRuntime:
         start = datetime(2024, 1, 1, 12, 0, 0)
         end = datetime(2024, 1, 1, 12, 0, 30)
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
             started_at=start,
             completed_at=end,
@@ -198,7 +198,7 @@ class TestAgentsRuntime:
 
     def test_runtime_duration_none_when_incomplete(self):
         """Test duration is None when execution is incomplete."""
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
             started_at=datetime.now(),
         )
@@ -207,16 +207,16 @@ class TestAgentsRuntime:
 
     def test_runtime_with_tool_calls(self):
         """Test runtime with tool calls."""
-        runtime = AgentsRuntime(agent_id="agent-123")
+        runtime = AgentRun(agent_id="agent-123")
 
-        tool_call_1 = AgentsRuntimeToolCall(
+        tool_call_1 = AgentRunToolCall(
             tool_use_id="tc-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             status="success",
         )
 
-        tool_call_2 = AgentsRuntimeToolCall(
+        tool_call_2 = AgentRunToolCall(
             tool_use_id="tc-2",
             tool_name="web_search",
             tool_input={"query": "test"},
@@ -233,7 +233,7 @@ class TestAgentsRuntime:
 
     def test_runtime_with_streaming_text(self):
         """Test runtime with streaming text."""
-        runtime = AgentsRuntime(agent_id="agent-123")
+        runtime = AgentRun(agent_id="agent-123")
 
         runtime.streaming_text = "Hello"
         assert runtime.streaming_text == "Hello"
@@ -243,22 +243,22 @@ class TestAgentsRuntime:
 
     def test_runtime_with_error(self):
         """Test runtime with error."""
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
-            status=AgentsStatus.FAILED,
+            status=AgentRunStatus.FAILED,
             error="Execution failed",
         )
 
-        assert runtime.status == AgentsStatus.FAILED
+        assert runtime.status == AgentRunStatus.FAILED
         assert runtime.error == "Execution failed"
         assert runtime.is_completed is True
 
     def test_runtime_serialization(self):
         """Test runtime can be serialized to dict."""
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
         )
 
         data = runtime.model_dump()
@@ -277,7 +277,7 @@ class TestAgentsRuntime:
 
     def test_tool_call_serialization(self):
         """Test tool call can be serialized to dict."""
-        tool_call = AgentsRuntimeToolCall(
+        tool_call = AgentRunToolCall(
             tool_use_id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
@@ -298,25 +298,25 @@ class TestAgentsRuntime:
 
 
 class TestAgentsStatus:
-    """Test AgentsStatus enum."""
+    """Test AgentRunStatus enum."""
 
     def test_status_values(self):
         """Test status enum values."""
-        assert AgentsStatus.PENDING.value == "pending"
-        assert AgentsStatus.EXECUTING.value == "executing"
-        assert AgentsStatus.COMPLETED.value == "completed"
-        assert AgentsStatus.FAILED.value == "failed"
+        assert AgentRunStatus.PENDING.value == "pending"
+        assert AgentRunStatus.EXECUTING.value == "executing"
+        assert AgentRunStatus.COMPLETED.value == "completed"
+        assert AgentRunStatus.FAILED.value == "failed"
 
     def test_status_comparison(self):
         """Test status comparison."""
-        runtime = AgentsRuntime(agent_id="agent-123")
+        runtime = AgentRun(agent_id="agent-123")
 
-        runtime.status = AgentsStatus.PENDING
-        assert runtime.status == AgentsStatus.PENDING
+        runtime.status = AgentRunStatus.PENDING
+        assert runtime.status == AgentRunStatus.PENDING
 
-        runtime.status = AgentsStatus.EXECUTING
-        assert runtime.status != AgentsStatus.PENDING
-        assert runtime.status == AgentsStatus.EXECUTING
+        runtime.status = AgentRunStatus.EXECUTING
+        assert runtime.status != AgentRunStatus.PENDING
+        assert runtime.status == AgentRunStatus.EXECUTING
 
 
 class TestAgentsRuntimeMessageSerialization:
@@ -331,46 +331,46 @@ class TestAgentsRuntimeMessageSerialization:
     """
 
     def test_runtime_with_ai_message_reply(self):
-        """Test AgentsRuntime with AgentsContent reply."""
-        from fivcplayground.agents.types.base import AgentsContent
+        """Test AgentRun with AgentRunContent reply."""
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        content = AgentsContent(text="This is a test response")
-        runtime = AgentsRuntime(
+        content = AgentRunContent(text="This is a test response")
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
             reply=content,
         )
 
         assert runtime.reply is not None
-        assert isinstance(runtime.reply, AgentsContent)
+        assert isinstance(runtime.reply, AgentRunContent)
         assert runtime.reply.text == "This is a test response"
 
     def test_runtime_with_human_message_reply(self):
-        """Test AgentsRuntime with AgentsContent reply."""
-        from fivcplayground.agents.types.base import AgentsContent
+        """Test AgentRun with AgentRunContent reply."""
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        content = AgentsContent(text="This is a user message")
-        runtime = AgentsRuntime(
+        content = AgentRunContent(text="This is a user message")
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
             reply=content,
         )
 
         assert runtime.reply is not None
-        assert isinstance(runtime.reply, AgentsContent)
+        assert isinstance(runtime.reply, AgentRunContent)
         assert runtime.reply.text == "This is a user message"
 
     def test_runtime_json_serialization_with_ai_message(self):
-        """Test JSON serialization of AgentsRuntime with AgentsContent."""
-        from fivcplayground.agents.types.base import AgentsContent
+        """Test JSON serialization of AgentRun with AgentRunContent."""
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        content = AgentsContent(text="Test response with special chars: 中文 🎉")
-        runtime = AgentsRuntime(
+        content = AgentRunContent(text="Test response with special chars: 中文 🎉")
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
-            query=AgentsContent(text="What is 2+2?"),
+            query=AgentRunContent(text="What is 2+2?"),
             reply=content,
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
         )
 
         # Serialize to JSON
@@ -386,44 +386,44 @@ class TestAgentsRuntimeMessageSerialization:
         assert "Test response with special chars" in json_str
 
     def test_runtime_json_deserialization_with_ai_message(self):
-        """Test JSON deserialization of AgentsRuntime with AgentsContent."""
-        from fivcplayground.agents.types.base import AgentsContent
+        """Test JSON deserialization of AgentRun with AgentRunContent."""
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        original_content = AgentsContent(text="Test response")
-        original_runtime = AgentsRuntime(
+        original_content = AgentRunContent(text="Test response")
+        original_runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
-            query=AgentsContent(text="What is 2+2?"),
+            query=AgentRunContent(text="What is 2+2?"),
             reply=original_content,
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
         )
 
         # Serialize to JSON dict
         json_data = original_runtime.model_dump(mode="json")
 
         # Deserialize back
-        restored_runtime = AgentsRuntime(**json_data)
+        restored_runtime = AgentRun(**json_data)
 
         # Verify the content is properly restored
         assert restored_runtime.reply is not None
-        assert isinstance(restored_runtime.reply, AgentsContent)
+        assert isinstance(restored_runtime.reply, AgentRunContent)
         assert restored_runtime.reply.text == "Test response"
         assert restored_runtime.agent_id == "agent-123"
-        assert restored_runtime.status == AgentsStatus.COMPLETED
+        assert restored_runtime.status == AgentRunStatus.COMPLETED
 
     def test_runtime_roundtrip_serialization(self):
         """Test complete roundtrip: object -> JSON -> object."""
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        content = AgentsContent(
+        content = AgentRunContent(
             text="现在是2025年10月29日凌晨0点10分，差不多该休息啦～今天过得怎么样呀？（*^▽^*）"
         )
-        original_runtime = AgentsRuntime(
+        original_runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
-            query=AgentsContent(text="How are you?"),
+            query=AgentRunContent(text="How are you?"),
             reply=content,
-            status=AgentsStatus.COMPLETED,
+            status=AgentRunStatus.COMPLETED,
             started_at=datetime(2025, 10, 29, 0, 0, 0),
             completed_at=datetime(2025, 10, 29, 0, 10, 0),
         )
@@ -433,7 +433,7 @@ class TestAgentsRuntimeMessageSerialization:
 
         # Deserialize from JSON string
         json_data = json.loads(json_str)
-        restored_runtime = AgentsRuntime(**json_data)
+        restored_runtime = AgentRun(**json_data)
 
         # Verify all fields are preserved
         assert restored_runtime.agent_id == original_runtime.agent_id
@@ -441,12 +441,12 @@ class TestAgentsRuntimeMessageSerialization:
         assert restored_runtime.query == original_runtime.query
         assert restored_runtime.status == original_runtime.status
         assert restored_runtime.reply is not None
-        assert isinstance(restored_runtime.reply, AgentsContent)
+        assert isinstance(restored_runtime.reply, AgentRunContent)
         assert restored_runtime.reply.text == content.text
 
     def test_runtime_with_none_reply(self):
-        """Test AgentsRuntime with None reply."""
-        runtime = AgentsRuntime(
+        """Test AgentRun with None reply."""
+        runtime = AgentRun(
             agent_id="agent-123",
             agent_name="TestAgent",
             reply=None,
@@ -456,53 +456,53 @@ class TestAgentsRuntimeMessageSerialization:
 
         # Serialize and deserialize
         json_data = runtime.model_dump(mode="json")
-        restored_runtime = AgentsRuntime(**json_data)
+        restored_runtime = AgentRun(**json_data)
         assert restored_runtime.reply is None
 
     def test_runtime_reply_is_valid_base_message(self):
-        """Test that deserialized reply is a valid AgentsContent.
+        """Test that deserialized reply is a valid AgentRunContent.
 
         This is the core regression test - the deserialized content should be
-        properly restored as AgentsContent.
+        properly restored as AgentRunContent.
         """
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        content = AgentsContent(text="Test response")
-        runtime = AgentsRuntime(
+        content = AgentRunContent(text="Test response")
+        runtime = AgentRun(
             agent_id="agent-123",
             reply=content,
         )
 
         # Serialize and deserialize
         json_data = runtime.model_dump(mode="json")
-        restored_runtime = AgentsRuntime(**json_data)
+        restored_runtime = AgentRun(**json_data)
 
-        # The restored content should be a proper AgentsContent instance
+        # The restored content should be a proper AgentRunContent instance
         assert restored_runtime.reply is not None
-        assert isinstance(restored_runtime.reply, AgentsContent)
+        assert isinstance(restored_runtime.reply, AgentRunContent)
 
         # It should have the text attribute
         assert hasattr(restored_runtime.reply, "text")
         assert restored_runtime.reply.text == "Test response"
 
     def test_runtime_with_message_dict_input(self):
-        """Test that AgentsRuntime can accept dict representation of AgentsContent.
+        """Test that AgentRun can accept dict representation of AgentRunContent.
 
-        This tests the field_validator that converts dicts to AgentsContent objects.
+        This tests the field_validator that converts dicts to AgentRunContent objects.
         """
-        from fivcplayground.agents.types.base import AgentsContent
+        from fivcplayground.agents.types.base import AgentRunContent
 
-        # Use the format that AgentsContent produces
+        # Use the format that AgentRunContent produces
         content_dict = {
             "text": "Test response",
         }
 
-        runtime = AgentsRuntime(
+        runtime = AgentRun(
             agent_id="agent-123",
             reply=content_dict,
         )
 
-        # Should be converted to AgentsContent
+        # Should be converted to AgentRunContent
         assert runtime.reply is not None
-        assert isinstance(runtime.reply, AgentsContent)
+        assert isinstance(runtime.reply, AgentRunContent)
         assert runtime.reply.text == "Test response"
