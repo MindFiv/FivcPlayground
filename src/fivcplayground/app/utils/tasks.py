@@ -76,7 +76,7 @@ class TaskManager(object):
 
         Args:
             query: User query to process
-            tool_retriever: Optional tools retriever (defaults to default_retriever)
+            tool_retriever: Optional tools retriever (defaults to create_tool_retriever())
 
         Returns:
             Task ID of the created task

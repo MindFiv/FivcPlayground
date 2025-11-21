@@ -44,13 +44,17 @@ class ToolRetriever(object):
 
     def __init__(
         self,
-        db: Optional[embeddings.EmbeddingDB] = None,
-        **kwargs,
+        embedding_config_repository: embeddings.EmbeddingConfigRepository | None = None,
+        embedding_config_id: str = "default",
+        **kwargs,  # ignore additional kwargs
     ):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
         self.tools: dict[str, Tool] = {}
-        db = db or embeddings.create_embedding_db()
+        db = embeddings.create_embedding_db(
+            embedding_config_repository,
+            embedding_config_id,
+        )
         # Use dynamic attribute access to get the tools collection (EmbeddingTable)
         self.collection = db.tools
         self.collection.clear()  # clean up any old data

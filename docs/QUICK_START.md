@@ -247,18 +247,21 @@ loader.load()
 ### Check Loaded Tools
 
 ```python
-from fivcplayground.tools import default_retriever
+from fivcplayground.tools import create_tool_retriever
+
+# Create a tool retriever
+retriever = create_tool_retriever()
 
 # List all tools (including bundles)
-tools = default_retriever.get_all()
+tools = retriever.get_all()
 for tool in tools:
     print(f"- {tool.name}: {tool.description}")
 
 # Search for tools (returns bundles as-is)
-relevant_tools = default_retriever.retrieve("calculate math")
+relevant_tools = retriever.retrieve("calculate math")
 
 # Search and expand bundles into individual tools
-expanded_tools = default_retriever.retrieve("calculate math", expand=True)
+expanded_tools = retriever.retrieve("calculate math", expand=True)
 ```
 
 ### Monitor Connections

@@ -57,7 +57,7 @@ async def main():
 
     swarm = await manager.create_task(
         query=query,
-        tools_retriever=tools.default_retriever,
+        tools_retriever=tools.create_tool_retriever(),
         on_event=on_runtime_update,
     )
     print("✅ Task created with step tracking")

@@ -30,6 +30,6 @@ def create_embedding_db(
     )
 
     if not embedding_config:
-        raise ValueError("Default embedding not found")
+        raise ValueError(f"Embedding not found {embedding_config_id}")
 
     return EmbeddingDB(embedding_config, **kwargs)

@@ -23,7 +23,7 @@ from .tasks import TaskManager
 def _load_mcp_config():
     with utils.OutputDir():
         return tools.ToolLoader(
-            tool_retriever=tools.default_retriever,
+            tool_retriever=tools.create_tool_retriever(),
             tool_config_repository=FileToolConfigRepository(),
             config_file="mcp.yml",
         )

@@ -20,11 +20,11 @@ Example:
     >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./my_agents"))
     >>> chat = Chat(
     ...     agent_runtime_repo=repo,
-    ...     tool_retriever=tools.default_retriever
+    ...     tool_retriever=tools.create_tool_retriever()
     ... )
     >>>
     >>> # Or use default repository
-    >>> chat = Chat(tool_retriever=tools.default_retriever)
+    >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
     >>>
     >>> # Send a query
     >>> result = await chat.ask_async("What is the weather?")
@@ -85,7 +85,7 @@ class Chat(object):
         >>> from fivcplayground import tools
         >>>
         >>> # Create new chat instance
-        >>> chat = Chat(tool_retriever=tools.default_retriever)
+        >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
         >>>
         >>> # Send query with streaming callback
         >>> async def handle_stream(runtime):
@@ -148,7 +148,7 @@ class Chat(object):
             >>> from fivcplayground import tools
             >>>
             >>> # Create new chat with default repository
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>>
             >>> # Resume existing chat with metadata
             >>> from fivcplayground.agents.types import AgentsRuntimeMeta
@@ -160,7 +160,7 @@ class Chat(object):
             ... )
             >>> chat = Chat(
             ...     agent_runtime_meta=meta,
-            ...     tool_retriever=tools.default_retriever
+            ...     tool_retriever=tools.create_tool_retriever()
             ... )
             >>>
             >>> # Create with custom repository
@@ -172,7 +172,7 @@ class Chat(object):
             ... )
             >>> chat = Chat(
             ...     agent_runtime_repo=repo,
-            ...     tool_retriever=tools.default_retriever
+            ...     tool_retriever=tools.create_tool_retriever()
             ... )
 
         Note:
@@ -211,7 +211,7 @@ class Chat(object):
             str | None: The agent ID, or None if no metadata exists yet
 
         Example:
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>> print(chat.id)  # None (not initialized yet)
             >>> await chat.ask("Hello")
             >>> print(chat.id)  # UUID string like "abc-123-def-456"
@@ -238,7 +238,7 @@ class Chat(object):
             ... )
             >>> chat = Chat(
             ...     agent_runtime_meta=meta,
-            ...     tool_retriever=tools.default_retriever
+            ...     tool_retriever=tools.create_tool_retriever()
             ... )
             >>> print(chat.description)  # "Customer support bot"
         """
@@ -264,7 +264,7 @@ class Chat(object):
             bool: True if agent is currently executing a query, False otherwise
 
         Example:
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>> print(chat.is_running)
             False
             >>> # During async execution, is_running would be True
@@ -285,7 +285,7 @@ class Chat(object):
                                 Returns empty list if no completed runtimes exist.
 
         Example:
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>> await chat.ask_async("What is 2+2?")
             >>> await chat.ask_async("What is 3+3?")
             >>>
@@ -359,7 +359,7 @@ class Chat(object):
             >>> from fivcplayground.app.utils import Chat
             >>> from fivcplayground import tools
             >>>
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>>
             >>> # Simple query without streaming
             >>> result = await chat.ask_async("What is the capital of France?")
@@ -461,7 +461,7 @@ class Chat(object):
         The next query will create a new agent with fresh metadata.
 
         Example:
-            >>> chat = Chat(tool_retriever=tools.default_retriever)
+            >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>> await chat.ask("Hello")
             >>> await chat.ask("How are you?")
             >>>
@@ -520,7 +520,7 @@ class ChatManager(object):
         ... )
         >>> manager = ChatManager(
         ...     agent_runtime_repo=repo,
-        ...     tool_retriever=tools.default_retriever
+        ...     tool_retriever=tools.create_tool_retriever()
         ... )
 
     Note:
@@ -545,7 +545,7 @@ class ChatManager(object):
                                If not provided, defaults to FileAgentsRuntimeRepository
                                with OutputDir().subdir("agents").
             tool_retriever: Optional retriever for tool access. If not provided,
-                            defaults to tools.default_retriever.
+                            defaults to tools.create_tool_retriever().
 
         Example:
             >>> from fivcplayground.app.utils import ChatManager
@@ -562,13 +562,13 @@ class ChatManager(object):
             ...     agent_runtime_repo=FileAgentsRuntimeRepository(
             ...         output_dir=OutputDir("./chats")
             ...     ),
-            ...     tool_retriever=tools.default_retriever
+            ...     tool_retriever=tools.create_tool_retriever()
             ... )
         """
         self.runtime_repo = agent_runtime_repo or SqliteAgentsRuntimeRepository(
             str(OutputDir().subdir("agents"))
         )
-        self.tool_retriever = tool_retriever or tools.default_retriever
+        self.tool_retriever = tool_retriever or tools.create_tool_retriever()
 
     def list_chats(self) -> List[Chat]:
         """

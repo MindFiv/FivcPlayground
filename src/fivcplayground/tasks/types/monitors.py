@@ -210,7 +210,7 @@ class TaskMonitorManager(object):
         >>> # Create a task with monitoring (planning is done automatically)
         >>> swarm = await manager.create_task(
         ...     query="Your query here",
-        ...     tool_retriever=tools.default_retriever
+        ...     tool_retriever=tools.create_tool_retriever()
         ... )
         >>>
         >>> # Execute task (automatically tracked and persisted)

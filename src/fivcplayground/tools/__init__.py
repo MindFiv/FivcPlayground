@@ -1,6 +1,6 @@
 __all__ = [
+    "create_tool_retriever",
     "setup_tools",
-    "default_retriever",
     "Tool",
     "ToolBundle",
     "ToolRetriever",
@@ -10,7 +10,7 @@ __all__ = [
 from contextlib import asynccontextmanager, AsyncExitStack
 from typing import AsyncGenerator, List
 
-from fivcplayground.utils import LazyValue
+from fivcplayground.embeddings import EmbeddingConfigRepository
 from fivcplayground.tools.types import (
     ToolRetriever,
     ToolLoader,
@@ -18,21 +18,26 @@ from fivcplayground.tools.types import (
 from fivcplayground.tools.types.backends import (
     Tool,
     ToolBundle,
-    get_tool_name,
 )
-from fivcplayground.tools.clock import clock
-from fivcplayground.tools.calculator import calculator
 
 
-def _load_retriever() -> ToolRetriever:
-    """Load and initialize the default tools retriever.
+def create_tool_retriever(
+    embedding_config_repository: EmbeddingConfigRepository | None = None,
+    embedding_config_id: str = "default",
+    load_builtin_tools: bool = True,
+    **kwargs,  # ignore additional kwargs
+) -> ToolRetriever:
+    """Create a new ToolRetriever instance."""
+    retriever = ToolRetriever(
+        embedding_config_repository=embedding_config_repository,
+        embedding_config_id=embedding_config_id,
+    )
+    if load_builtin_tools:
+        from fivcplayground.tools.clock import clock
+        from fivcplayground.tools.calculator import calculator
 
-    This creates a ToolRetriever and loads MCP tools from configured servers.
-    """
-    retriever = ToolRetriever()
-    retriever.add_batch([clock, calculator])
+        retriever.add_batch([clock, calculator])
 
-    print(f"Registered Tools: {[get_tool_name(t) for t in retriever.get_all()]}")
     return retriever
 
 
@@ -49,6 +54,3 @@ async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
                 tools_expanded.append(tool)
 
         yield tools_expanded
-
-
-default_retriever = LazyValue(_load_retriever)

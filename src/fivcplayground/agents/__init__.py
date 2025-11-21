@@ -46,7 +46,7 @@ def create_default_agent(**kwargs) -> AgentsRunnable:
         kwargs["agent_id"] = str(uuid4())
 
     if "tools" not in kwargs:
-        kwargs["tools"] = tools.default_retriever.get_all()
+        kwargs["tools"] = tools.create_tool_retriever().get_all()
 
     if "model" not in kwargs:
         kwargs["model"] = create_model()
@@ -65,7 +65,7 @@ def create_companion_agent(*args, **kwargs) -> AgentsRunnable:
         kwargs["model"] = create_chat_model()
 
     if "tools" not in kwargs:
-        kwargs["tools"] = tools.default_retriever.get_all()
+        kwargs["tools"] = tools.create_tool_retriever().get_all()
 
     return create_default_agent(*args, **kwargs)
 

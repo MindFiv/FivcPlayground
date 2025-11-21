@@ -297,17 +297,20 @@ The `ToolRetriever` provides semantic search over available tools:
 ```python
 from fivcplayground import tools
 
+# Create a tool retriever
+retriever = tools.create_tool_retriever()
+
 # Get all tools
-all_tools = tools.default_retriever.get_all()
+all_tools = retriever.get_all()
 
 # Get specific tools
-selected_tools = tools.default_retriever.get_batch(["calculator", "python_repl"])
+selected_tools = retriever.get_batch(["calculator", "python_repl"])
 
 # Search for relevant tools (returns bundles as-is)
-relevant_tools = tools.default_retriever.retrieve("I need to calculate something")
+relevant_tools = retriever.retrieve("I need to calculate something")
 
 # Search and expand bundles into individual tools
-expanded_tools = tools.default_retriever.retrieve("I need to calculate something", expand=True)
+expanded_tools = retriever.retrieve("I need to calculate something", expand=True)
 ```
 
 #### Tool Bundles

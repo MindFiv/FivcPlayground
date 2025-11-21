@@ -12,7 +12,7 @@ __all__ = [
 import streamlit as st
 import nest_asyncio
 
-from fivcplayground.tools import default_retriever
+from fivcplayground.tools import create_tool_retriever
 from fivcplayground.agents.types.repositories import (
     # FileAgentsRuntimeRepository,
     SqliteAgentsRuntimeRepository,
@@ -45,7 +45,7 @@ def main():
     # agent_runtime_repo = FileAgentsRuntimeRepository()
     chat_manager = ChatManager(
         agent_runtime_repo=agent_runtime_repo,
-        tool_retriever=default_retriever,
+        tool_retriever=create_tool_retriever(),
     )
 
     # Create navigation instance

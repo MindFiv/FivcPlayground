@@ -61,7 +61,7 @@ async def create_and_run_task(manager, task_name, query, runtime_tracker):
     # Create and execute task (planning is done automatically)
     swarm = await manager.create_task(
         query=query,
-        tools_retriever=tools.default_retriever,
+        tools_retriever=tools.create_tool_retriever(),
         on_event=runtime_tracker.on_runtime_update,
     )
 

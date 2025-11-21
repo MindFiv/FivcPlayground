@@ -81,7 +81,7 @@ def run(
         return
 
     agent = agent_creator(
-        tool_retriever=tools.default_retriever,
+        tool_retriever=tools.create_tool_retriever(),
         verbose=verbose,
     )
 
