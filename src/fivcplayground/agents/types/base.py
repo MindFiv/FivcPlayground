@@ -137,7 +137,7 @@ class AgentRunToolCall(BaseModel):
 
     Attributes:
         id: Unique identifier for this tool call (required)
-        tool_name: Name of the tool being invoked (required)
+        tool_id: Identifier of the tool being invoked (required)
         tool_input: Dictionary of input parameters passed to the tool
         tool_result: Result returned by the tool (None until completed)
         status: Current status - "pending", "success", or "error"
@@ -151,7 +151,7 @@ class AgentRunToolCall(BaseModel):
         >>> # Create a pending tool call
         >>> tool_call = AgentRunToolCall(
         ...     id="call-123",
-        ...     tool_name="calculator",
+        ...     tool_id="calculator",
         ...     tool_input={"expression": "2+2"},
         ...     status="pending",
         ...     started_at=datetime.now()
@@ -164,14 +164,14 @@ class AgentRunToolCall(BaseModel):
         >>> print(f"Duration: {tool_call.duration}s")
 
     Note:
-        - id and tool_name are required fields
+        - id and tool_id are required fields
         - status should be one of: "pending", "success", "error"
         - duration is automatically calculated from timestamps
         - is_completed returns True for both "success" and "error" statuses
     """
 
     id: str = Field(description="Unique tool call identifier")
-    tool_name: str = Field(description="Name of the tool being invoked")
+    tool_id: str = Field(description="Identifier of the tool being invoked")
     tool_input: Dict[str, Any] = Field(
         default_factory=dict, description="Input parameters passed to the tool"
     )
@@ -308,7 +308,7 @@ class AgentRun(BaseModel):
         >>> # Add tool call
         >>> tool_call = AgentRunToolCall(
         ...     id="call-1",
-        ...     tool_name="calculator",
+        ...     tool_id="calculator",
         ...     tool_input={"expression": "2+2"}
         ... )
         >>> runtime.tool_calls[tool_call.id] = tool_call

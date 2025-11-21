@@ -148,7 +148,7 @@ class TestChatHistory:
         # Add embedded tool call
         tool_call = AgentRunToolCall(
             id="tc-1",
-            tool_name="calculator",
+            tool_id="calculator",
             status="success",
         )
         completed_runtime.tool_calls["tc-1"] = tool_call
@@ -224,7 +224,7 @@ class TestChatHistory:
         # Create tool calls (in unsorted order)
         tool_call_1 = AgentRunToolCall(
             id="tc-1",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expr": "2+2"},
             tool_result="4",
             status="success",
@@ -232,7 +232,7 @@ class TestChatHistory:
         )
         tool_call_2 = AgentRunToolCall(
             id="tc-2",
-            tool_name="search",
+            tool_id="search",
             tool_input={"query": "test"},
             tool_result="results",
             status="success",

@@ -30,7 +30,7 @@ Database Schema:
         - id (INTEGER PRIMARY KEY)
         - tool_call_id (TEXT NOT NULL)
         - agent_run_id (TEXT NOT NULL, FOREIGN KEY)
-        - tool_name (TEXT NOT NULL)
+        - tool_id (TEXT NOT NULL)
         - tool_input (TEXT JSON)
         - tool_result (TEXT JSON)
         - status (TEXT)
@@ -165,7 +165,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 id INTEGER PRIMARY KEY,
                 tool_use_id TEXT NOT NULL,
                 agent_run_id TEXT NOT NULL,
-                tool_name TEXT NOT NULL,
+                tool_id TEXT NOT NULL,
                 tool_input TEXT,
                 tool_result TEXT,
                 status TEXT,
@@ -191,6 +191,21 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 )
         except Exception:
             # If migration fails, continue - the column might already exist
+            pass
+
+        # Migration: Rename tool_name to tool_id in tool_calls table (for existing databases)
+        try:
+            cursor.execute("PRAGMA table_info(tool_calls)")
+            columns = cursor.fetchall()
+            column_names = [col[1] for col in columns]
+
+            if "tool_name" in column_names and "tool_id" not in column_names:
+                # Rename tool_name to tool_id
+                cursor.execute(
+                    "ALTER TABLE tool_calls RENAME COLUMN tool_name TO tool_id"
+                )
+        except Exception:
+            # If migration fails, continue - the column might already be renamed
             pass
 
         # Create indexes for common queries
@@ -354,14 +369,14 @@ class SqliteAgentRunRepository(AgentRunRepository):
             cursor.execute(
                 """
                 INSERT OR REPLACE INTO tool_calls
-                (tool_use_id, agent_run_id, tool_name, tool_input, tool_result,
+                (tool_use_id, agent_run_id, tool_id, tool_input, tool_result,
                  status, started_at, completed_at, error)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     tool_call_data.get("id"),
                     agent_run_id,
-                    tool_call_data.get("tool_name"),
+                    tool_call_data.get("tool_id"),
                     json.dumps(tool_call_data.get("tool_input", {})),
                     json.dumps(tool_call_data.get("tool_result"))
                     if tool_call_data.get("tool_result")
@@ -413,7 +428,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                     tool_call = AgentRunToolCall.model_validate(
                         {
                             "id": tc_row["tool_use_id"],
-                            "tool_name": tc_row["tool_name"],
+                            "tool_id": tc_row["tool_id"],
                             "tool_input": tool_input,
                             "tool_result": tool_result,
                             "status": tc_row["status"],
@@ -492,7 +507,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                         tool_call = AgentRunToolCall.model_validate(
                             {
                                 "id": tc_row["tool_use_id"],
-                                "tool_name": tc_row["tool_name"],
+                                "tool_id": tc_row["tool_id"],
                                 "tool_input": tool_input,
                                 "tool_result": tool_result,
                                 "status": tc_row["status"],

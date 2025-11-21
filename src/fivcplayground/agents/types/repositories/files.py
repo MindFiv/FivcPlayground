@@ -284,7 +284,7 @@ class FileAgentRunRepository(AgentRunRepository):
         >>>
         >>> # Create and store a runtime execution with embedded tool calls
         >>> runtime = AgentRun(agent_id="my-agent")
-        >>> tool_call = AgentRunToolCall(id="call-1", tool_name="calculator")
+        >>> tool_call = AgentRunToolCall(id="call-1", tool_id="calculator")
         >>> runtime.tool_calls["call-1"] = tool_call
         >>> repo.update_agent_run(agent_session.id, runtime)
         >>>
@@ -532,7 +532,7 @@ class FileAgentRunRepository(AgentRunRepository):
             ...     agent_id="my-agent",
             ...     status=AgentRunStatus.EXECUTING
             ... )
-            >>> tool_call = AgentRunToolCall(id="call-1", tool_name="calculator")
+            >>> tool_call = AgentRunToolCall(id="call-1", tool_id="calculator")
             >>> runtime.tool_calls["call-1"] = tool_call
             >>> repo.update_agent_run(session.id, runtime)
 

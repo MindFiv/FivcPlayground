@@ -178,7 +178,7 @@ class TestMonitorWithMockAgent:
         # Simulate tool call
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
@@ -226,7 +226,7 @@ class TestMonitorWithMockAgent:
         # Simulate tool call
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call

@@ -123,7 +123,7 @@ class AgentRunRepository(ABC):
         Create or update an agent runtime's metadata.
 
         Args:
-            session_id: Agent ID that owns this runtime
+            session_id: Session ID that owns this runtime
             agent_run: AgentRun instance to persist (with embedded tool_calls)
 
         Note:
@@ -136,10 +136,10 @@ class AgentRunRepository(ABC):
     @abstractmethod
     def get_agent_run(self, session_id: str, run_id: str) -> AgentRun | None:
         """
-        Retrieve an agent runtime by agent ID and run ID.
+        Retrieve an agent runtime by session ID and run ID.
 
         Args:
-            session_id: Agent ID that owns the runtime
+            session_id: Session ID that owns the runtime
             run_id: Unique identifier for the runtime instance
 
         Returns:
@@ -160,7 +160,7 @@ class AgentRunRepository(ABC):
             - All tool calls within this runtime
 
         Args:
-            session_id: Agent ID that owns the runtime
+            session_id: Session ID that owns the runtime
             run_id: Unique identifier for the runtime to delete
 
         Note:
@@ -171,13 +171,13 @@ class AgentRunRepository(ABC):
     @abstractmethod
     def list_agent_runs(self, session_id: str) -> List[AgentRun]:
         """
-        List all agent runtimes for a specific agent.
+        List all agent runtimes for a specific session.
 
         Args:
-            session_id: Agent ID to list runtimes for
+            session_id: Session ID to list runtimes for
 
         Returns:
-            List of AgentRun instances for the specified agent.
+            List of AgentRun instances for the specified session.
             Returns empty list if no runtimes exist.
 
         Note:

@@ -303,7 +303,7 @@ class AgentRunnable(Runnable):
                             event = AgentRunEvent.TOOL
                             tool_call = AgentRunToolCall(
                                 id=msg.tool_call_id,
-                                tool_name=msg.name,
+                                tool_id=msg.name,
                                 # tool_input=msg.input,
                                 tool_result=msg.content,
                                 started_at=datetime.now(),

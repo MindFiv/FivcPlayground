@@ -163,7 +163,7 @@ class TestAgentsMonitorToolEvents:
         # Add a tool call to the runtime
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
         )
         runtime.tool_calls["123"] = tool_call
@@ -185,7 +185,7 @@ class TestAgentsMonitorToolEvents:
         # Add tool call
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
@@ -209,7 +209,7 @@ class TestAgentsMonitorToolEvents:
         # Add tool call
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
@@ -234,7 +234,7 @@ class TestAgentsMonitorToolEvents:
         # Add tool call and update
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call
@@ -258,7 +258,7 @@ class TestAgentsMonitorToolEvents:
         runtime.streaming_text = "Let me calculate that"
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
         runtime.tool_calls["123"] = tool_call

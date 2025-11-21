@@ -150,7 +150,7 @@ class AgentRunnable(Runnable):
                                 tool_use_id = tool_use.get("toolUseId")
                                 tool_call = AgentRunToolCall(
                                     id=tool_use_id,
-                                    tool_name=tool_use.get("name"),
+                                    tool_id=tool_use.get("name"),
                                     tool_input=tool_use.get("input"),
                                     started_at=datetime.now(),
                                     status=AgentRunStatus.EXECUTING,

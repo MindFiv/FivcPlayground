@@ -118,7 +118,7 @@ class TestFileAgentsRuntimeRepository:
             # Create a tool call and embed it in the runtime
             tool_call = AgentRunToolCall(
                 id="tool-call-1",
-                tool_name="TestTool",
+                tool_id="TestTool",
                 tool_input={"param": "value"},
                 status="pending",
                 started_at=datetime(2024, 1, 1, 12, 0, 0),
@@ -136,7 +136,7 @@ class TestFileAgentsRuntimeRepository:
             # Verify tool call data
             retrieved_tool_call = retrieved_agent.tool_calls["tool-call-1"]
             assert retrieved_tool_call.id == "tool-call-1"
-            assert retrieved_tool_call.tool_name == "TestTool"
+            assert retrieved_tool_call.tool_id == "TestTool"
             assert retrieved_tool_call.tool_input == {"param": "value"}
             assert retrieved_tool_call.status == "pending"
 
@@ -168,17 +168,17 @@ class TestFileAgentsRuntimeRepository:
             # Create multiple tool calls and embed them in the runtime
             tool_call1 = AgentRunToolCall(
                 id="tool-call-1",
-                tool_name="Tool1",
+                tool_id="Tool1",
                 status="pending",
             )
             tool_call2 = AgentRunToolCall(
                 id="tool-call-2",
-                tool_name="Tool2",
+                tool_id="Tool2",
                 status="success",
             )
             tool_call3 = AgentRunToolCall(
                 id="tool-call-3",
-                tool_name="Tool3",
+                tool_id="Tool3",
                 status="error",
             )
 
@@ -253,7 +253,7 @@ class TestFileAgentsRuntimeRepository:
             # Create a tool call and embed it
             tool_call = AgentRunToolCall(
                 id="tool-call-update",
-                tool_name="TestTool",
+                tool_id="TestTool",
                 status="pending",
             )
             agent.tool_calls["tool-call-update"] = tool_call
@@ -288,8 +288,8 @@ class TestFileAgentsRuntimeRepository:
                 agent_id="test-agent-with-tools",
             )
 
-            tool_call1 = AgentRunToolCall(id="tool-1", tool_name="Tool1")
-            tool_call2 = AgentRunToolCall(id="tool-2", tool_name="Tool2")
+            tool_call1 = AgentRunToolCall(id="tool-1", tool_id="Tool1")
+            tool_call2 = AgentRunToolCall(id="tool-2", tool_id="Tool2")
             agent.tool_calls["tool-1"] = tool_call1
             agent.tool_calls["tool-2"] = tool_call2
 
@@ -321,7 +321,7 @@ class TestFileAgentsRuntimeRepository:
                 agent_id="structure-test",
             )
 
-            tool_call = AgentRunToolCall(id="tool-1", tool_name="TestTool")
+            tool_call = AgentRunToolCall(id="tool-1", tool_id="TestTool")
             agent.tool_calls["tool-1"] = tool_call
 
             repo.update_agent_run(session.id, agent)
@@ -396,7 +396,7 @@ class TestFileAgentsRuntimeRepository:
             # Create a tool call with complex data and embed it
             tool_call = AgentRunToolCall(
                 id="complex-tool-call",
-                tool_name="ComplexTool",
+                tool_id="ComplexTool",
                 tool_input={
                     "nested": {"data": [1, 2, 3]},
                     "string": "test",
@@ -712,8 +712,8 @@ class TestFileAgentsRuntimeRepository:
             )
 
             # Add tool calls to runtime
-            tool_call1 = AgentRunToolCall(id="tool-1", tool_name="Tool1")
-            tool_call2 = AgentRunToolCall(id="tool-2", tool_name="Tool2")
+            tool_call1 = AgentRunToolCall(id="tool-1", tool_id="Tool1")
+            tool_call2 = AgentRunToolCall(id="tool-2", tool_id="Tool2")
             runtime.tool_calls["tool-1"] = tool_call1
             runtime.tool_calls["tool-2"] = tool_call2
 

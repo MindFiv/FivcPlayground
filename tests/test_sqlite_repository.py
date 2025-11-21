@@ -160,7 +160,7 @@ class TestToolCallOperations:
         # Create tool call and embed it
         tool_call = AgentRunToolCall(
             id="call-1",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
         )
@@ -175,7 +175,7 @@ class TestToolCallOperations:
         assert "call-1" in retrieved_runtime.tool_calls
         retrieved = retrieved_runtime.tool_calls["call-1"]
         assert retrieved.id == "call-1"
-        assert retrieved.tool_name == "calculator"
+        assert retrieved.tool_id == "calculator"
         assert retrieved.tool_input == {"expression": "2+2"}
         assert retrieved.status == "pending"
 
@@ -190,7 +190,7 @@ class TestToolCallOperations:
         for i in range(3):
             tool_call = AgentRunToolCall(
                 id=f"call-{i}",
-                tool_name="calculator",
+                tool_id="calculator",
                 tool_input={"expression": f"{i}+{i}"},
             )
             runtime.tool_calls[f"call-{i}"] = tool_call
@@ -216,7 +216,7 @@ class TestToolCallOperations:
 
         tool_call = AgentRunToolCall(
             id="call-1",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
         )
@@ -265,7 +265,7 @@ class TestCascadingDeletes:
         # Create tool call and embed it
         tool_call = AgentRunToolCall(
             id="call-1",
-            tool_name="calculator",
+            tool_id="calculator",
         )
         runtime.tool_calls["call-1"] = tool_call
 
@@ -359,7 +359,7 @@ class TestForeignKeyConstraints:
 
         tool_call = AgentRunToolCall(
             id="tool-1",
-            tool_name="test_tool",
+            tool_id="test_tool",
             tool_input={"param": "value"},
             status="pending",
         )

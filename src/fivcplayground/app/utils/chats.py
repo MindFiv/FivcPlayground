@@ -367,7 +367,7 @@ class Chat(object):
             >>> def on_stream(runtime):
             ...     print(f"Streaming: {runtime.streaming_text}")
             ...     for tool_call in runtime.tool_calls.values():
-            ...         print(f"Tool: {tool_call.tool_name}")
+            ...         print(f"Tool: {tool_call.tool_id}")
             >>>
             >>> result = await chat.ask_async(
             ...     "Search for Python tutorials",

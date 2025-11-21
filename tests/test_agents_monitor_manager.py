@@ -310,7 +310,7 @@ class TestAgentsMonitorManager:
             # Add a tool call to the runtime
             tool_call = AgentRunToolCall(
                 id="tool-1",
-                tool_name="calculator",
+                tool_id="calculator",
                 tool_input={"expression": "2+2"},
                 status="success",
             )
@@ -335,7 +335,7 @@ class TestAgentsMonitorManager:
             # Load tool calls from the runtime
             loaded_runtime = repo.get_agent_run(session.id, agent_run_id)
             assert len(loaded_runtime.tool_calls) == 1
-            assert loaded_runtime.tool_calls["tool-1"].tool_name == "calculator"
+            assert loaded_runtime.tool_calls["tool-1"].tool_id == "calculator"
 
     def test_list_tool_calls(self):
         """Test listing tool calls for an agent runtime"""
@@ -359,8 +359,8 @@ class TestAgentsMonitorManager:
             runtime.agent_id = agent_id
 
             # Add some tool calls (embedded)
-            tool_call1 = AgentRunToolCall(id="tool-1", tool_name="calculator")
-            tool_call2 = AgentRunToolCall(id="tool-2", tool_name="search")
+            tool_call1 = AgentRunToolCall(id="tool-1", tool_id="calculator")
+            tool_call2 = AgentRunToolCall(id="tool-2", tool_id="search")
             runtime.tool_calls["tool-1"] = tool_call1
             runtime.tool_calls["tool-2"] = tool_call2
 

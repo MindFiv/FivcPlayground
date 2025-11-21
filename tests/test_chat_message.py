@@ -244,7 +244,7 @@ class TestRenderToolCallMethod:
 
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
         )
@@ -268,7 +268,7 @@ class TestRenderToolCallMethod:
 
         tool_call = AgentRunToolCall(
             id="123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
             status="success",
@@ -290,7 +290,7 @@ class TestRenderToolCallMethod:
 
         tool_call = AgentRunToolCall(
             id="456",
-            tool_name="file_reader",
+            tool_id="file_reader",
             tool_input={"path": "/test"},
             tool_result="File not found",
             status="error",
@@ -377,14 +377,14 @@ class TestIntegration:
 
         tool_call1 = AgentRunToolCall(
             id="1",
-            tool_name="tool1",
+            tool_id="tool1",
             tool_input={},
             tool_result="result1",
             status="success",
         )
         tool_call2 = AgentRunToolCall(
             id="2",
-            tool_name="tool2",
+            tool_id="tool2",
             tool_input={},
             tool_result="result2",
             status="success",

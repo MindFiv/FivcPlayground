@@ -26,12 +26,12 @@ class TestAgentsRuntimeToolCall:
         """Test creating a tool call record."""
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
         )
 
         assert tool_call.id == "test-123"
-        assert tool_call.tool_name == "calculator"
+        assert tool_call.tool_id == "calculator"
         assert tool_call.tool_input == {"expression": "2+2"}
         assert tool_call.status == "pending"
         assert tool_call.tool_result is None
@@ -41,7 +41,7 @@ class TestAgentsRuntimeToolCall:
         """Test tool call with result."""
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
             status="success",
@@ -55,7 +55,7 @@ class TestAgentsRuntimeToolCall:
         """Test tool call with error."""
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "invalid"},
             status="error",
             error="Invalid expression",
@@ -72,7 +72,7 @@ class TestAgentsRuntimeToolCall:
 
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
             started_at=start,
             completed_at=end,
@@ -84,7 +84,7 @@ class TestAgentsRuntimeToolCall:
         """Test duration is None when tool call is incomplete."""
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
             started_at=datetime.now(),
         )
@@ -95,7 +95,7 @@ class TestAgentsRuntimeToolCall:
         """Test that id is the primary identifier for tool calls."""
         tool_call = AgentRunToolCall(
             id="unique-tool-call-id",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={},
         )
 
@@ -200,14 +200,14 @@ class TestAgentsRuntime:
 
         tool_call_1 = AgentRunToolCall(
             id="tc-1",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             status="success",
         )
 
         tool_call_2 = AgentRunToolCall(
             id="tc-2",
-            tool_name="web_search",
+            tool_id="web_search",
             tool_input={"query": "test"},
             status="error",
             error="Network error",
@@ -266,7 +266,7 @@ class TestAgentsRuntime:
         """Test tool call can be serialized to dict."""
         tool_call = AgentRunToolCall(
             id="test-123",
-            tool_name="calculator",
+            tool_id="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
             status="success",
@@ -275,7 +275,7 @@ class TestAgentsRuntime:
         data = tool_call.model_dump()
 
         assert data["id"] == "test-123"
-        assert data["tool_name"] == "calculator"
+        assert data["tool_id"] == "calculator"
         assert data["tool_input"] == {"expression": "2+2"}
         assert data["tool_result"] == "4"
         assert data["status"] == "success"
