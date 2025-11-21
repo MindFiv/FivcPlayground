@@ -253,15 +253,15 @@ from fivcplayground.tools import create_tool_retriever
 retriever = create_tool_retriever()
 
 # List all tools (including bundles)
-tools = retriever.get_all()
+tools = retriever.list_tools()
 for tool in tools:
     print(f"- {tool.name}: {tool.description}")
 
 # Search for tools (returns bundles as-is)
-relevant_tools = retriever.retrieve("calculate math")
+relevant_tools = retriever.retrieve_tools("calculate math")
 
 # Search and expand bundles into individual tools
-expanded_tools = retriever.retrieve("calculate math", expand=True)
+expanded_tools = retriever.retrieve_tools("calculate math", expand=True)
 ```
 
 ### Monitor Connections

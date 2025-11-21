@@ -24,7 +24,7 @@ dotenv.load_dotenv()
 def mock_tools_retriever():
     """Create a mock tools retriever."""
     retriever = Mock(spec=tools.ToolRetriever)
-    retriever.retrieve.return_value = []
+    retriever.retrieve_tools.return_value = []
     # Mock to_tool() to return a valid tool spec
     mock_tool = Mock()
     mock_tool.name = "mock_tool"

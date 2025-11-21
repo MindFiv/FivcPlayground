@@ -301,16 +301,16 @@ from fivcplayground import tools
 retriever = tools.create_tool_retriever()
 
 # Get all tools
-all_tools = retriever.get_all()
+all_tools = retriever.list_tools()
 
-# Get specific tools
-selected_tools = retriever.get_batch(["calculator", "python_repl"])
+# Get specific tools (note: get_batch() method has been removed, use get_tool() instead)
+selected_tools = [retriever.get_tool("calculator"), retriever.get_tool("python_repl")]
 
 # Search for relevant tools (returns bundles as-is)
-relevant_tools = retriever.retrieve("I need to calculate something")
+relevant_tools = retriever.retrieve_tools("I need to calculate something")
 
 # Search and expand bundles into individual tools
-expanded_tools = retriever.retrieve("I need to calculate something", expand=True)
+expanded_tools = retriever.retrieve_tools("I need to calculate something", expand=True)
 ```
 
 #### Tool Bundles

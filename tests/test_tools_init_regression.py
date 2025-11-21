@@ -47,7 +47,7 @@ class TestToolsInitRegression:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
-            mock_embedding_table.clear = Mock()
+            mock_embedding_table.cleanup = Mock()
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
@@ -65,14 +65,14 @@ class TestToolsInitRegression:
             assert isinstance(result, ToolRetriever)
 
             # Verify get_all returns tools
-            all_tools = result.get_all()
+            all_tools = result.list_tools()
             assert len(all_tools) >= 0  # May have builtin tools
 
-    def test_get_all_returns_tools_with_name_attribute(self):
+    def test_list_tools_returns_tools_with_name_attribute(self):
         """
-        Test that ToolRetriever.get_all() returns tools with correct attributes.
+        Test that ToolRetriever.list_tools() returns tools with correct attributes.
 
-        This ensures that tools returned from get_all() have the correct
+        This ensures that tools returned from list_tools() have the correct
         attributes for the current backend (name for LangChain, tool_name for Strands).
         """
         from fivcplayground.tools.types.retrievers import ToolRetriever
@@ -82,7 +82,7 @@ class TestToolsInitRegression:
             # Create mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
-            mock_embedding_table.clear = Mock()
+            mock_embedding_table.cleanup = Mock()
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
@@ -96,11 +96,11 @@ class TestToolsInitRegression:
             tool2 = create_mock_tool("tool2", "Tool 2 description")
 
             # Add tools to retriever
-            retriever.add(tool1)
-            retriever.add(tool2)
+            retriever.add_tool(tool1)
+            retriever.add_tool(tool2)
 
             # Get all tools
-            all_tools = retriever.get_all()
+            all_tools = retriever.list_tools()
 
             # Verify all tools can be accessed with get_tool_name
             assert len(all_tools) == 2
@@ -119,7 +119,7 @@ class TestToolsInitRegression:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
-            mock_embedding_table.clear = Mock()
+            mock_embedding_table.cleanup = Mock()
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
@@ -131,7 +131,7 @@ class TestToolsInitRegression:
             )
 
             # Get all tools
-            all_tools = retriever.get_all()
+            all_tools = retriever.list_tools()
 
             # Verify builtin tools are loaded
             tool_names = [get_tool_name(tool) for tool in all_tools]
@@ -141,9 +141,9 @@ class TestToolsInitRegression:
     @pytest.mark.skipif(
         __backend__ != "langchain", reason="Only test with LangChain backend"
     )
-    def test_tools_retriever_get_all_with_langchain_tools(self):
+    def test_tools_retriever_list_tools_with_langchain_tools(self):
         """
-        Test that ToolRetriever.get_all() works with actual LangChain Tool objects.
+        Test that ToolRetriever.list_tools() works with actual LangChain Tool objects.
 
         This test uses real LangChain tools to ensure compatibility.
         Only runs when backend is set to "langchain".
@@ -155,7 +155,7 @@ class TestToolsInitRegression:
         # Create mock embedding DB
         mock_db = Mock()
         mock_embedding_table = Mock()
-        mock_embedding_table.clear = Mock()
+        mock_embedding_table.cleanup = Mock()
         mock_db.tools = mock_embedding_table
 
         retriever = ToolRetriever(
@@ -175,11 +175,11 @@ class TestToolsInitRegression:
             return f"Results for {query}"
 
         # Add tools to retriever
-        retriever.add(calculator)
-        retriever.add(search)
+        retriever.add_tool(calculator)
+        retriever.add_tool(search)
 
         # Get all tools
-        all_tools = retriever.get_all()
+        all_tools = retriever.list_tools()
 
         # Verify tools have 'name' attribute (LangChain standard)
         assert len(all_tools) == 2

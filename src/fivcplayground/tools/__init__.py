@@ -6,6 +6,7 @@ __all__ = [
     "ToolBundle",
     "ToolRetriever",
     "ToolLoader",
+    "ToolConfig",
     "ToolConfigRepository",
 ]
 
@@ -17,6 +18,7 @@ from fivcplayground.tools.types import (
     ToolRetriever,
     ToolLoader,
     Tool,
+    ToolConfig,
     ToolBundle,
 )
 from fivcplayground.tools.types.repositories import ToolConfigRepository
@@ -37,7 +39,8 @@ def create_tool_retriever(
         from fivcplayground.tools.clock import clock
         from fivcplayground.tools.calculator import calculator
 
-        retriever.add_batch([clock, calculator])
+        retriever.add_tool(clock)
+        retriever.add_tool(calculator)
 
     return retriever
 

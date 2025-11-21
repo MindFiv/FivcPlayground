@@ -76,6 +76,19 @@ class EmbeddingTable(object):
             ids=[str(hash(chunk)) for chunk in chunks],
         )
 
+    def delete(self, metadata: Dict[str, Any]):
+        """Delete documents from the collection."""
+        if not metadata:
+            raise ValueError("metadata is required")
+
+        where_clauses = [{key: {"$eq": value}} for key, value in metadata.items()]
+        if len(where_clauses) == 1:
+            where = where_clauses[0]
+        else:
+            where = {"$and": where_clauses}
+
+        self.collection.delete(where=where)
+
     def search(self, query: str, num_documents: int = 10) -> list:
         """Search the collection."""
         results = self.collection.query(query_texts=[query], n_results=num_documents)
@@ -87,7 +100,7 @@ class EmbeddingTable(object):
             for doc, meta, score in zip(result_docs, result_metas, result_scores)
         ]
 
-    def clear(self):
+    def cleanup(self):
         """Delete the collection."""
         while True:
             ids2delete = self.collection.peek(limit=100)["ids"]

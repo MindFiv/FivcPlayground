@@ -73,7 +73,7 @@ async def main():
 
         # Get all loaded tools from the retriever
         # These tools are now available for use by the agent
-        all_tools = tools_retriever.get_all()
+        all_tools = tools_retriever.list_tools()
 
         print(f"✓ Successfully loaded {len(all_tools)} tools total")
 

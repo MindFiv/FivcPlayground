@@ -121,7 +121,7 @@ class ToolLoader(object):
         # Remove tools from bundles that are no longer configured
         for bundle_name in bundle_names_to_remove:
             self.tool_bundles.pop(bundle_name, None)
-            self.tool_retriever.remove(bundle_name)
+            self.tool_retriever.delete_tool(bundle_name)
 
         # Load tools for new bundles using proper async context management
         for bundle_name in bundle_names_to_add:
@@ -133,7 +133,7 @@ class ToolLoader(object):
                     tool_descriptions = [get_tool_description(t) for t in tools]
                     set_tool_description(bundle, "\n\n".join(tool_descriptions))
 
-                self.tool_retriever.add(bundle)
+                self.tool_retriever.add_tool(bundle)
                 self.tool_bundles.setdefault(bundle_name, tool_names)
 
             except Exception as e:
@@ -167,7 +167,7 @@ class ToolLoader(object):
         """
         # Remove all tracked tools from the retriever
         for bundle_name in self.tool_bundles.keys():
-            self.tool_retriever.remove(bundle_name)
+            self.tool_retriever.delete_tool(bundle_name)
 
         # Clear the bundle tracking and client reference
         self.tool_bundles.clear()

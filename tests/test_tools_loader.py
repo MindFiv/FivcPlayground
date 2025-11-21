@@ -134,7 +134,7 @@ class TestToolLoaderLoad:
             await loader.load_async()
 
             # Should not call add if no servers
-            mock_retriever.add.assert_not_called()
+            mock_retriever.add_tool.assert_not_called()
         finally:
             os.unlink(config_path)
 
@@ -189,7 +189,7 @@ class TestToolLoaderLoad:
                 await loader.load_async()
 
                 # Verify bundle was added
-                mock_retriever.add.assert_called_once()
+                mock_retriever.add_tool.assert_called_once()
 
                 # Verify tool_bundles was updated
                 assert "test_server" in loader.tool_bundles
@@ -238,7 +238,7 @@ class TestToolLoaderLoad:
                 await loader.load_async()
 
                 # Should not call add if error occurred
-                mock_retriever.add.assert_not_called()
+                mock_retriever.add_tool.assert_not_called()
         finally:
             os.unlink(config_path)
 
@@ -269,10 +269,10 @@ class TestToolLoaderCleanup:
             loader.cleanup()
 
             # Verify remove was called for each bundle (not each tool)
-            assert mock_retriever.remove.call_count == 2
+            assert mock_retriever.delete_tool.call_count == 2
             # Verify the bundle names were passed to remove
-            mock_retriever.remove.assert_any_call("bundle1")
-            mock_retriever.remove.assert_any_call("bundle2")
+            mock_retriever.delete_tool.assert_any_call("bundle1")
+            mock_retriever.delete_tool.assert_any_call("bundle2")
 
             # Verify tool_bundles was cleared
             assert loader.tool_bundles == {}
@@ -299,7 +299,7 @@ class TestToolLoaderCleanup:
             loader.cleanup()
 
             # Should not call remove if no tools
-            mock_retriever.remove.assert_not_called()
+            mock_retriever.delete_tool.assert_not_called()
         finally:
             os.unlink(config_path)
 
@@ -324,7 +324,7 @@ class TestToolLoaderCleanup:
             loader.cleanup()
 
             # Verify remove method was called with bundle name (not tool name)
-            mock_retriever.remove.assert_called_once_with("bundle1")
+            mock_retriever.delete_tool.assert_called_once_with("bundle1")
         finally:
             os.unlink(config_path)
 
@@ -431,7 +431,7 @@ class TestToolLoaderIncrementalUpdates:
                 await loader.load_async()
 
                 # Verify old bundle was removed by bundle name
-                mock_retriever.remove.assert_called_once_with("old_server")
+                mock_retriever.delete_tool.assert_called_once_with("old_server")
                 assert "old_server" not in loader.tool_bundles
         finally:
             os.unlink(config_path)
@@ -488,7 +488,7 @@ class TestToolLoaderPersistentConnections:
 
                 # Verify tools are loaded and registered
                 assert "test_server" in loader.tool_bundles
-                mock_retriever.add.assert_called_once()
+                mock_retriever.add_tool.assert_called_once()
         finally:
             os.unlink(config_path)
 
@@ -519,9 +519,9 @@ class TestToolLoaderPersistentConnections:
             await loader.cleanup_async()
 
             # Verify bundles were removed (2 bundles, not 3 tools)
-            assert mock_retriever.remove.call_count == 2
-            mock_retriever.remove.assert_any_call("server1")
-            mock_retriever.remove.assert_any_call("server2")
+            assert mock_retriever.delete_tool.call_count == 2
+            mock_retriever.delete_tool.assert_any_call("server1")
+            mock_retriever.delete_tool.assert_any_call("server2")
 
             # Verify state was cleared
             assert loader.tool_bundles == {}

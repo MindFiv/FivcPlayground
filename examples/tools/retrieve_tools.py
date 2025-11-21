@@ -35,7 +35,8 @@ async def main():
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
         # Add default tools to retriever
-        retriever.add_batch([clock, calculator])
+        retriever.add_tool(clock)
+        retriever.add_tool(calculator)
 
         # Load MCP tools using ToolLoader
         print("Loading MCP tools...")
@@ -50,7 +51,7 @@ async def main():
         print(f"\nQuery: {query}")
         print("\nRetrieving relevant tools...")
 
-        result = retriever.retrieve(query)
+        result = retriever.retrieve_tools(query)
 
         print(f'\nFound {len(result)} relevant tools:')
         for i, tool in enumerate(result, 1):

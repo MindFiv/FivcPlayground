@@ -13,4 +13,6 @@ from .backends import (
     EmbeddingDB,
     EmbeddingTable,
 )
-from .repositories import EmbeddingConfigRepository
+from .repositories import (
+    EmbeddingConfigRepository,
+)

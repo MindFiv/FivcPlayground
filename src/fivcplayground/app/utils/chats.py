@@ -407,7 +407,7 @@ class Chat(object):
             # Filter out None values
             agent_kwargs = {k: v for k, v in agent_kwargs.items() if v}
             agent_creator = agents.default_retriever.get("Companion")
-            agent_tools = self.tool_retriever.retrieve(query)
+            agent_tools = self.tool_retriever.retrieve_tools(query)
             agent_monitor = self.monitor_manager.create_agent_runtime(on_event=on_event)
             agent = agent_creator(
                 callback_handler=agent_monitor,
