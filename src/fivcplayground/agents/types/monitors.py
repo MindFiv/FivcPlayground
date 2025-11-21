@@ -133,6 +133,7 @@ class AgentMonitor(object):
         runtime: Optional[AgentRun] = None,
         runtime_repo: Optional[AgentRunRepository] = None,
         on_event: Optional[Callable[[AgentRun], None]] = None,
+        session_id: Optional[str] = None,
     ):
         """
         Initialize AgentMonitor.
@@ -145,6 +146,8 @@ class AgentMonitor(object):
             on_event: Optional callback invoked after each event (streaming or tool).
                       Receives the complete AgentRun state, allowing access to
                       streaming_text, tool_calls, and other execution metadata.
+            session_id: Optional session ID for grouping runtimes. If not provided,
+                       will be created from agent_id or auto-generated.
         """
         from fivcplayground.agents.types.repositories.files import (
             FileAgentRunRepository,
@@ -153,19 +156,14 @@ class AgentMonitor(object):
         self._runtime = runtime or AgentRun()
         self._repo = runtime_repo or FileAgentRunRepository()
         self._on_event = on_event
+        self._session_id = session_id
 
         if not runtime:
             self._update_agent_runtime()
 
     def _update_agent_runtime(self):
-        if self._runtime.agent_id:
-            self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
-
-    def _update_agent_runtime_tool_call(self, tool_call: AgentRunToolCall):
-        if self._runtime.agent_id:
-            self._repo.update_agent_runtime_tool_call(
-                self._runtime.agent_id, self._runtime.agent_run_id, tool_call
-            )
+        if self._session_id:
+            self._repo.update_agent_run(self._session_id, self._runtime)
 
     def _fire_event(self):
         if self._on_event:
@@ -180,24 +178,16 @@ class AgentMonitor(object):
         if self._runtime is not runtime:
             import warnings
 
-            warnings.warn(
-                f"Agent mismatch: "
-                f"{self._runtime.agent_run_id} != {runtime.agent_run_id}"
-            )
+            warnings.warn(f"Agent mismatch: " f"{self._runtime.id} != {runtime.id}")
 
         self._update_agent_runtime()
-        for tool_call in self._runtime.tool_calls.values():
-            self._update_agent_runtime_tool_call(tool_call)
         self._fire_event()
 
     def on_update(self, runtime: AgentRun):
         if self._runtime is not runtime:
             import warnings
 
-            warnings.warn(
-                f"Agent mismatch: "
-                f"{self._runtime.agent_run_id} != {runtime.agent_run_id}"
-            )
+            warnings.warn(f"Agent mismatch: " f"{self._runtime.id} != {runtime.id}")
 
         # self._update_agent_runtime()
         self._fire_event()
@@ -368,17 +358,26 @@ class AgentMonitorManager(object):
         Returns:
             List of AgentMonitor instances
         """
-        agent_runtimes = self._repo.list_agent_runtimes(agent_id)
+        # Get the session for this agent_id
+        session = self._repo.get_agent_run_session(agent_id)
+        if not session:
+            return []
+
+        agent_runtimes = self._repo.list_agent_runs(session.id)
         if status:
             return [
-                AgentMonitor(runtime=runtime, runtime_repo=self._repo)
+                AgentMonitor(
+                    runtime=runtime, runtime_repo=self._repo, session_id=session.id
+                )
                 for runtime in agent_runtimes
                 if runtime.status in status
             ]
 
         else:
             return [
-                AgentMonitor(runtime=runtime, runtime_repo=self._repo)
+                AgentMonitor(
+                    runtime=runtime, runtime_repo=self._repo, session_id=session.id
+                )
                 for runtime in agent_runtimes
             ]
 
@@ -399,7 +398,12 @@ class AgentMonitorManager(object):
         Returns:
             AgentMonitor instance or None if not found
         """
-        agent_runtime = self._repo.get_agent_runtime(agent_id, agent_run_id)
+        # Get the session for this agent_id
+        session = self._repo.get_agent_run_session(agent_id)
+        if not session:
+            return None
+
+        agent_runtime = self._repo.get_agent_run(session.id, agent_run_id)
         if not agent_runtime:
             return None
 
@@ -407,6 +411,7 @@ class AgentMonitorManager(object):
             runtime=agent_runtime,
             runtime_repo=self._repo,
             on_event=on_event,
+            session_id=session.id,
         )
 
     def delete_agent_runtime(self, agent_id: str, agent_run_id: str) -> None:
@@ -417,4 +422,7 @@ class AgentMonitorManager(object):
             agent_id: Agent ID to delete
             agent_run_id: Agent run ID to delete
         """
-        self._repo.delete_agent_runtime(agent_id, agent_run_id)
+        # Get the session for this agent_id
+        session = self._repo.get_agent_run_session(agent_id)
+        if session:
+            self._repo.delete_agent_run(session.id, agent_run_id)

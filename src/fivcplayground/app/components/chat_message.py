@@ -219,7 +219,7 @@ class ChatMessage(object):
     ):
         try:
             tool_name = tool_call.tool_name
-            tool_id = tool_call.tool_use_id
+            tool_id = tool_call.id
             # tool_input = tool_call.tool_input
             tool_result = tool_call.tool_result
             status = tool_call.status

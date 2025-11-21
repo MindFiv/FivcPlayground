@@ -38,10 +38,10 @@ def mock_repo():
     from fivcplayground.agents.types.repositories import AgentRunRepository
 
     repo = Mock(spec=AgentRunRepository)
-    repo.list_agent_runtimes.return_value = []
-    repo.get_agent_runtime.return_value = None
-    repo.update_agent.return_value = None
-    repo.update_agent_runtime.return_value = None
+    repo.list_agent_runs.return_value = []
+    repo.get_agent_run.return_value = None
+    repo.update_agent_run_session.return_value = None
+    repo.update_agent_run.return_value = None
     return repo
 
 
@@ -177,7 +177,7 @@ class TestMonitorWithMockAgent:
 
         # Simulate tool call
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )
@@ -225,7 +225,7 @@ class TestMonitorWithMockAgent:
 
         # Simulate tool call
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )

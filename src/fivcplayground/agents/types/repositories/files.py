@@ -1,84 +1,72 @@
 """
-File-based agent runtime repository implementation.
+File-based agent repository implementations.
 
-This module provides FileAgentRunRepository, a file-based implementation
-of AgentRunRepository that stores agent data in a hierarchical directory
-structure with JSON files.
+This module provides two separate file-based repository implementations:
 
-Storage Structure:
+1. **FileAgentConfigRepository**: Stores simple agent configurations
+   - Stores: agent id, name, description, system_prompt
+   - Use case: Configuration management for agents
+   - Storage: Flat directory with individual JSON files per agent
+
+2. **FileAgentRunRepository**: Stores agent runtime execution data
+   - Stores: agent metadata, execution runs, tool calls, execution state
+   - Use case: Tracking agent execution history and performance
+   - Storage: Hierarchical directory structure with nested runs and tool calls
+
+Both implementations use JSON files with UTF-8 encoding and are thread-safe
+for single-process usage.
+
+FileAgentConfigRepository Storage Structure:
     /<output_dir>/
-    └── agent_<agent_id>/
-        ├── agent.json               # Agent metadata (AgentRunMeta)
-        └── run_<agent_run_id>/
-            ├── run.json             # Agent Runtime metadata (AgentRun)
-            └── tool_calls/
-                ├── tool_call_<tool_call_id>.json  # Tool call data
-                └── tool_call_<tool_call_id>.json
+    ├── agent_<agent_id>.json        # Agent configuration (id, name, description, system_prompt)
+    ├── agent_<agent_id>.json
+    └── ...
 
-This structure allows for:
-    - Multiple runs per agent
-    - Easy inspection of agent data
-    - Efficient tool-call-by-tool-call updates
-    - Simple backup and version control
-    - Human-readable JSON format
-    - Cascading deletes (deleting an agent removes all its runtimes)
-
-Example:
-    >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
-    >>> from fivcplayground.agents.types import AgentRunMeta, AgentRun
-    >>> from fivcplayground.utils import OutputDir
-    >>>
-    >>> # Create repository
-    >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agents"))
-    >>>
-    >>> # Store agent metadata
-    >>> agent_meta = AgentRunMeta(
-    ...     agent_id="my-agent",
-    ...     agent_name="MyAgent",
-    ...     system_prompt="You are a helpful assistant"
-    ... )
-    >>> repo.update_agent(agent_meta)
-    >>>
-    >>> # Create and store a runtime
-    >>> runtime = AgentRun(agent_id="my-agent", agent_name="MyAgent")
-    >>> repo.update_agent_runtime("my-agent", runtime)
-    >>>
-    >>> # List all agents
-    >>> agents = repo.list_agents()
+FileAgentRunRepository Storage Structure:
+    /<output_dir>/
+    └── session_<session_id>/
+        ├── session.json             # Agent metadata (AgentRunSession)
+        └── run_<agent_run_id>.json  # Agent Runtime metadata (AgentRun) with embedded tool calls
 """
 
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Any
 
-from fivcplayground.agents.types import AgentRunMeta
+from fivcplayground.agents.types import AgentRunSession
 from fivcplayground.utils import OutputDir
 
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.agents.types.repositories.base import (
+    AgentConfig,
+    AgentConfigRepository,
     AgentRun,
-    AgentRunToolCall,
     AgentRunRepository,
 )
 
 
-class FileAgentRunRepository(AgentRunRepository):
+class FileAgentConfigRepository(AgentConfigRepository):
     """
-    File-based repository for agent runtime data.
+    File-based repository for agent configurations.
 
-    Stores agent metadata, runtimes, and tool calls in a hierarchical directory
-    structure with JSON files. All operations are thread-safe for single-process
-    usage.
+    Stores simple agent configurations (id, name, description, system_prompt)
+    in JSON files within a flat directory structure. This repository is designed
+    for configuration management and is separate from FileAgentRunRepository
+    which handles runtime execution data.
+
+    All operations are thread-safe for single-process usage.
 
     Storage structure:
         /<output_dir>/
-        └── agent_<agent_id>/
-            ├── agent.json               # Agent metadata
-            └── run_<agent_run_id>/
-                ├── run.json             # Agent Runtime metadata
-                └── tool_calls/
-                    ├── tool_call_<tool_call_id>.json
-                    └── tool_call_<tool_call_id>.json
+        ├── agent_<agent_id>.json           # Agent configuration
+        ├── agent_<agent_id>.json
+        └── ...
+
+    Data stored per agent:
+        - id: Unique agent identifier
+        - name: Agent display name (computed from id)
+        - description: Optional agent description
+        - system_prompt: Optional system prompt for the agent
 
     Attributes:
         output_dir: OutputDir instance for the repository base directory
@@ -89,6 +77,28 @@ class FileAgentRunRepository(AgentRunRepository):
         - Corrupted JSON files are logged and skipped during reads
         - Delete operations are safe to call on non-existent items
         - All write operations create necessary directories automatically
+        - This repository stores ONLY configuration, not execution data
+        - For runtime execution data, use FileAgentRunRepository instead
+
+    Example:
+        >>> from fivcplayground.agents.types.repositories.files import FileAgentConfigRepository
+        >>> from fivcplayground.agents.types.base import AgentConfig
+        >>> from fivcplayground.utils import OutputDir
+        >>>
+        >>> # Create repository
+        >>> repo = FileAgentConfigRepository(output_dir=OutputDir("./agents"))
+        >>>
+        >>> # Store agent configuration
+        >>> config = AgentConfig(
+        ...     id="assistant-v1",
+        ...     description="Main assistant",
+        ...     system_prompt="You are helpful"
+        ... )
+        >>> repo.update_agent_config(config)
+        >>>
+        >>> # Retrieve configuration
+        >>> retrieved = repo.get_agent_config("assistant-v1")
+        >>> all_configs = repo.list_agent_configs()
     """
 
     def __init__(self, output_dir: Optional[OutputDir] = None):
@@ -106,174 +116,331 @@ class FileAgentRunRepository(AgentRunRepository):
         self.base_path = Path(str(self.output_dir))
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_agent_dir(self, agent_id: str) -> Path:
+    def _get_agent_config_file(self, agent_id: str) -> Path:
         """
-        Get the directory path for an agent.
+        Get the file path for an agent configuration.
 
         Args:
             agent_id: Agent identifier
 
         Returns:
-            Path to agent directory (e.g., /<base_path>/agent_<agent_id>/)
+            Path to agent configuration file (e.g., /<base_path>/agent_<agent_id>.json)
         """
-        return self.base_path / f"agent_{agent_id}"
+        return self.base_path / f"agent_{agent_id}.json"
 
-    def _get_agent_file(self, agent_id: str) -> Path:
+    def update_agent_config(self, agent_config: AgentConfig) -> None:
         """
-        Get the file path for agent metadata.
+        Create or update an agent configuration.
+
+        Stores agent configuration in a JSON file. The agent_id is derived from
+        the agent_config.id field.
 
         Args:
-            agent_id: Agent identifier
-
-        Returns:
-            Path to agent metadata file (e.g., /<base_path>/agent_<agent_id>/agent.json)
-        """
-        return self._get_agent_dir(agent_id) / "agent.json"
-
-    def _get_run_dir(self, agent_id: str, agent_run_id: str) -> Path:
-        """
-        Get the directory path for an agent run.
-
-        Args:
-            agent_id: Agent identifier
-            agent_run_id: Agent run identifier
-
-        Returns:
-            Path to run directory (e.g., /<base_path>/agent_<agent_id>/run_<agent_run_id>/)
-        """
-        return self._get_agent_dir(agent_id) / f"run_{agent_run_id}"
-
-    def _get_run_file(self, agent_id: str, agent_run_id: str) -> Path:
-        """
-        Get the file path for agent runtime metadata.
-
-        Args:
-            agent_id: Agent identifier
-            agent_run_id: Agent run identifier
-
-        Returns:
-            Path to runtime file (e.g., /<base_path>/agent_<agent_id>/run_<agent_run_id>/run.json)
-        """
-        return self._get_run_dir(agent_id, agent_run_id) / "run.json"
-
-    def _get_tool_calls_dir(self, agent_id: str, agent_run_id: str) -> Path:
-        """
-        Get the directory path for agent tool calls.
-
-        Args:
-            agent_id: Agent identifier
-            agent_run_id: Agent run identifier
-
-        Returns:
-            Path to tool calls directory (e.g., /<base_path>/agent_<agent_id>/run_<agent_run_id>/tool_calls/)
-        """
-        return self._get_run_dir(agent_id, agent_run_id) / "tool_calls"
-
-    def _get_tool_call_file(
-        self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Path:
-        """
-        Get the file path for a tool call.
-
-        Args:
-            agent_id: Agent identifier
-            agent_run_id: Agent run identifier
-            tool_call_id: Tool call identifier
-
-        Returns:
-            Path to tool call file (e.g., /<base_path>/agent_<agent_id>/run_<agent_run_id>/tool_calls/tool_call_<tool_call_id>.json)
-        """
-        return (
-            self._get_tool_calls_dir(agent_id, agent_run_id)
-            / f"tool_call_{tool_call_id}.json"
-        )
-
-    def update_agent(self, agent: AgentRunMeta) -> None:
-        """
-        Create or update an agent's metadata.
-
-        Stores agent configuration including agent_id, agent_name, system_prompt,
-        and description in agent.json file. Creates the agent directory if it
-        doesn't exist.
-
-        Args:
-            agent: AgentRunMeta instance containing agent configuration
-
-        Example:
-            >>> agent_meta = AgentRunMeta(
-            ...     agent_id="my-agent",
-            ...     agent_name="MyAgent",
-            ...     system_prompt="You are helpful"
-            ... )
-            >>> repo.update_agent(agent_meta)
+            agent_config: AgentConfig instance to persist
 
         Note:
             This operation is idempotent - calling it multiple times with the
-            same agent_id will overwrite the existing metadata.
+            same agent will overwrite the existing configuration.
         """
-        agent_dir = self._get_agent_dir(agent.agent_id)
-        agent_dir.mkdir(parents=True, exist_ok=True)
+        agent_id = agent_config.id
+        agent_config_file = self._get_agent_config_file(agent_id)
 
-        agent_file = self._get_agent_file(agent.agent_id)
+        # Serialize agent config to JSON
+        agent_data = agent_config.model_dump(mode="json")
 
-        # Serialize agent metadata to JSON
-        agent_data = agent.model_dump(mode="json")
-
-        with open(agent_file, "w", encoding="utf-8") as f:
+        with open(agent_config_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent(self, agent_id: str) -> Optional[AgentRunMeta]:
+    def get_agent_config(self, agent_id: str) -> Optional[AgentConfig]:
         """
-        Retrieve an agent's metadata by ID.
-
-        Reads and deserializes the agent.json file for the specified agent.
+        Retrieve an agent configuration by ID.
 
         Args:
             agent_id: Unique identifier for the agent
 
         Returns:
-            AgentRunMeta instance if found, None if agent doesn't exist
-            or if the agent.json file is corrupted
-
-        Example:
-            >>> agent = repo.get_agent("my-agent")
-            >>> if agent:
-            ...     print(f"Agent: {agent.agent_name}")
-
-        Note:
-            Corrupted JSON files are logged to stdout and return None.
+            AgentConfig instance if found, None if agent doesn't exist
+            or if the JSON file is corrupted
         """
-        agent_file = self._get_agent_file(agent_id)
+        agent_config_file = self._get_agent_config_file(agent_id)
 
-        if not agent_file.exists():
+        if not agent_config_file.exists():
             return None
 
         try:
-            with open(agent_file, "r", encoding="utf-8") as f:
+            with open(agent_config_file, "r", encoding="utf-8") as f:
                 agent_data = json.load(f)
 
-            # Reconstruct AgentRunMeta from JSON
-            return AgentRunMeta.model_validate(agent_data)
+            return AgentConfig.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
-            # Log error and return None if file is corrupted
-            print(f"Error loading agent {agent_id}: {e}")
+            print(f"Error loading agent config {agent_id}: {e}")
             return None
 
-    def list_agents(self) -> List[AgentRunMeta]:
+    def list_agent_configs(self) -> List[AgentConfig]:
+        """
+        List all agent configurations in the repository.
+
+        Returns:
+            List of AgentConfig instances sorted by agent_id.
+            Returns empty list if no agents exist.
+        """
+        configs = []
+
+        if not self.base_path.exists():
+            return configs
+
+        for config_file in sorted(self.base_path.glob("agent_*.json")):
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    agent_data = json.load(f)
+                config = AgentConfig.model_validate(agent_data)
+                configs.append(config)
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error loading agent config from {config_file.name}: {e}")
+
+        return configs
+
+    def delete_agent_config(self, agent_id: str) -> None:
+        """
+        Delete an agent configuration.
+
+        Args:
+            agent_id: Unique identifier for the agent to delete
+
+        Note:
+            This operation is safe to call on non-existent agents.
+        """
+        agent_config_file = self._get_agent_config_file(agent_id)
+        if agent_config_file.exists():
+            agent_config_file.unlink()
+
+    def filter_repository(
+        self,
+        user_id: str | None = None,
+        **kwargs: Any,
+    ) -> "FileAgentConfigRepository":
+        """Filter the repository.
+
+        Args:
+            user_id: Optional user ID to filter by
+            kwargs: Additional keyword arguments for filtering
+
+        Returns:
+            Filtered repository
+        """
+        return self
+
+
+class FileAgentRunRepository(AgentRunRepository):
+    """
+    File-based repository for agent runtime execution data.
+
+    Stores agent metadata and execution runs with embedded tool calls in a
+    simplified directory structure with JSON files. This repository is designed
+    for tracking agent execution history and performance, and is separate from
+    FileAgentConfigRepository which handles simple agent configurations.
+
+    All operations are thread-safe for single-process usage.
+
+    Storage structure:
+        /<output_dir>/
+        └── session_<session_id>/
+            ├── session.json             # Agent metadata (AgentRunSession)
+            └── run_<agent_run_id>.json  # Agent Runtime metadata (AgentRun) with embedded tool calls
+
+    Data stored per agent:
+        - Agent metadata: agent_id, description, started_at
+        - Runtimes: execution status, timestamps, streaming text, tool calls (embedded)
+        - Tool calls: stored as part of AgentRun.tool_calls dictionary
+
+    Attributes:
+        output_dir: OutputDir instance for the repository base directory
+        base_path: Path object pointing to the repository root
+
+    Note:
+        - All JSON files use UTF-8 encoding with 2-space indentation
+        - Corrupted JSON files are logged and skipped during reads
+        - Delete operations are safe to call on non-existent items
+        - All write operations create necessary directories automatically
+        - This repository stores ONLY runtime execution data
+        - For agent configuration, use FileAgentConfigRepository instead
+        - Supports cascading deletes (deleting an agent removes all its runtimes)
+        - Tool calls are embedded within AgentRun objects, not stored separately
+
+    Example:
+        >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
+        >>> from fivcplayground.agents.types import AgentRunSession, AgentRun, AgentRunToolCall
+        >>> from fivcplayground.utils import OutputDir
+        >>>
+        >>> # Create repository
+        >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agent_runs"))
+        >>>
+        >>> # Store agent session metadata
+        >>> agent_session = AgentRunSession(
+        ...     agent_id="my-agent",
+        ...     description="A helpful assistant agent"
+        ... )
+        >>> repo.update_agent_run_session(agent_session)
+        >>>
+        >>> # Create and store a runtime execution with embedded tool calls
+        >>> runtime = AgentRun(agent_id="my-agent")
+        >>> tool_call = AgentRunToolCall(id="call-1", tool_name="calculator")
+        >>> runtime.tool_calls["call-1"] = tool_call
+        >>> repo.update_agent_run(agent_session.id, runtime)
+        >>>
+        >>> # List all agents and their runtimes
+        >>> agents = repo.list_agent_run_sessions()
+        >>> runtimes = repo.list_agent_runs(agent_session.id)
+    """
+
+    def __init__(self, output_dir: Optional[OutputDir] = None):
+        """
+        Initialize the file-based repository.
+
+        Args:
+            output_dir: Optional OutputDir for the repository. If not provided,
+                       defaults to OutputDir().subdir("agents")
+
+        Note:
+            The base directory is created automatically if it doesn't exist.
+        """
+        self.output_dir = output_dir or OutputDir().subdir("agent_runs")
+        self.base_path = Path(str(self.output_dir))
+        self.base_path.mkdir(parents=True, exist_ok=True)
+
+    def _get_session_dir(self, session_id: str) -> Path:
+        """
+        Get the directory path for a session.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            Path to session directory (e.g., /<base_path>/session_<session_id>/)
+        """
+        return self.base_path / f"session_{session_id}"
+
+    def _get_session_file(self, session_id: str) -> Path:
+        """
+        Get the file path for session metadata.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            Path to session metadata file (e.g., /<base_path>/session_<session_id>/session.json)
+        """
+        return self._get_session_dir(session_id) / "session.json"
+
+    def _get_run_file(self, session_id: str, agent_run_id: str) -> Path:
+        """
+        Get the file path for agent runtime metadata with embedded tool calls.
+
+        Args:
+            session_id: Session identifier
+            agent_run_id: Agent run identifier
+
+        Returns:
+            Path to runtime file (e.g., /<base_path>/session_<session_id>/run_<agent_run_id>.json)
+        """
+        return self._get_session_dir(session_id) / f"run_{agent_run_id}.json"
+
+    def update_agent_run_session(self, agent: AgentRunSession) -> None:
+        """
+        Create or update an agent's metadata.
+
+        Stores agent configuration including agent_id and description in session.json
+        file. Creates the session directory if it doesn't exist.
+
+        Args:
+            agent: AgentRunSession instance containing agent configuration
+
+        Example:
+            >>> agent_session = AgentRunSession(
+            ...     agent_id="my-agent",
+            ...     description="A helpful assistant"
+            ... )
+            >>> repo.update_agent_run_session(agent_session)
+
+        Note:
+            This operation is idempotent - calling it multiple times with the
+            same session id will overwrite the existing metadata.
+        """
+        session_dir = self._get_session_dir(agent.id)
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        session_file = self._get_session_file(agent.id)
+
+        # Serialize agent metadata to JSON
+        agent_data = agent.model_dump(mode="json")
+
+        with open(session_file, "w", encoding="utf-8") as f:
+            json.dump(agent_data, f, indent=2, ensure_ascii=False)
+
+    def get_agent_run_session(self, agent_id: str) -> Optional[AgentRunSession]:
+        """
+        Retrieve an agent's metadata by agent ID.
+
+        Scans all session directories to find the agent with the specified agent_id.
+        Reads and deserializes the session.json file for the specified agent.
+
+        Args:
+            agent_id: Unique identifier for the agent
+
+        Returns:
+            AgentRunSession instance if found, None if agent doesn't exist
+            or if the session.json file is corrupted
+
+        Example:
+            >>> agent = repo.get_agent_run_session("my-agent")
+            >>> if agent:
+            ...     print(f"Agent: {agent.agent_id}")
+
+        Note:
+            Corrupted JSON files are logged to stdout and return None.
+            Returns the first matching agent if multiple sessions exist for the same agent_id.
+        """
+        if not self.base_path.exists():
+            return None
+
+        # Iterate through all session directories to find the agent
+        for session_dir in self.base_path.glob("session_*"):
+            if not session_dir.is_dir():
+                continue
+
+            session_file = session_dir / "session.json"
+            if not session_file.exists():
+                continue
+
+            try:
+                with open(session_file, "r", encoding="utf-8") as f:
+                    agent_data = json.load(f)
+
+                # Reconstruct AgentRunSession from JSON
+                agent = AgentRunSession.model_validate(agent_data)
+                if agent.agent_id == agent_id:
+                    return agent
+            except (json.JSONDecodeError, ValueError) as e:
+                # Log error and continue to next session
+                print(f"Error loading session from {session_file}: {e}")
+
+        return None
+
+    def list_agent_run_sessions(self) -> List[AgentRunSession]:
         """
         List all agents in the repository.
 
-        Scans all agent_* directories and loads their metadata. Corrupted
-        agent files are skipped.
+        Scans all session_* directories and loads their metadata. Corrupted
+        session files are skipped.
 
         Returns:
-            List of AgentRunMeta instances sorted by agent_id.
+            List of AgentRunSession instances sorted by agent_id.
             Returns empty list if no agents exist or repository is empty.
 
         Example:
-            >>> agents = repo.list_agents()
+            >>> agents = repo.list_agent_run_sessions()
             >>> for agent in agents:
-            ...     print(f"{agent.agent_id}: {agent.agent_name}")
+            ...     print(f"{agent.agent_id}: {agent.id}")
 
         Note:
             Results are sorted alphabetically by agent_id for consistent ordering.
@@ -283,32 +450,36 @@ class FileAgentRunRepository(AgentRunRepository):
         if not self.base_path.exists():
             return agents
 
-        # Iterate through all agent directories
-        for agent_dir in self.base_path.glob("agent_*"):
-            if not agent_dir.is_dir():
+        # Iterate through all session directories
+        for session_dir in self.base_path.glob("session_*"):
+            if not session_dir.is_dir():
                 continue
 
-            # Extract agent_id from directory name
-            agent_id = agent_dir.name.replace("agent_", "")
+            session_file = session_dir / "session.json"
+            if not session_file.exists():
+                continue
 
-            # Load agent metadata
-            agent = self.get_agent(agent_id)
-            if agent:
+            try:
+                with open(session_file, "r", encoding="utf-8") as f:
+                    agent_data = json.load(f)
+
+                agent = AgentRunSession.model_validate(agent_data)
                 agents.append(agent)
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error loading session from {session_file}: {e}")
 
         # Sort by agent_id for consistent ordering
         agents.sort(key=lambda a: a.agent_id)
 
         return agents
 
-    def delete_agent(self, agent_id: str) -> None:
+    def delete_agent_run_session(self, agent_id: str) -> None:
         """
         Delete an agent and all its associated runtimes.
 
         This is a cascading delete operation that removes:
-            - Agent metadata (agent.json)
+            - Agent metadata (session.json)
             - All agent runtimes for this agent
-            - All tool calls within those runtimes
 
         Args:
             agent_id: Unique identifier for the agent to delete
@@ -320,73 +491,94 @@ class FileAgentRunRepository(AgentRunRepository):
         Note:
             This operation is safe to call on non-existent agents - it will
             not raise an error if the agent doesn't exist.
+            Deletes the first matching session found for the agent_id.
         """
-        agent_dir = self._get_agent_dir(agent_id)
+        # Find and delete the session directory for this agent
+        if not self.base_path.exists():
+            return
 
-        if agent_dir.exists():
-            shutil.rmtree(agent_dir)
+        for session_dir in self.base_path.glob("session_*"):
+            if not session_dir.is_dir():
+                continue
 
-    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentRun) -> None:
+            session_file = session_dir / "session.json"
+            if not session_file.exists():
+                continue
+
+            try:
+                with open(session_file, "r", encoding="utf-8") as f:
+                    agent_data = json.load(f)
+
+                agent = AgentRunSession.model_validate(agent_data)
+                if agent.agent_id == agent_id:
+                    shutil.rmtree(session_dir)
+                    return
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+    def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
         """
         Create or update an agent runtime.
 
-        Stores runtime execution metadata including status, timestamps, and
-        streaming text. Tool calls are stored separately and not included in
-        this operation.
+        Stores runtime execution metadata including status, timestamps, streaming text,
+        and embedded tool calls.
 
         Args:
-            agent_id: Agent ID that owns this runtime
-            agent_runtime: AgentRun instance to persist
+            session_id: Session ID that owns this runtime
+            agent_run: AgentRun instance to persist (with embedded tool_calls)
 
         Example:
             >>> runtime = AgentRun(
             ...     agent_id="my-agent",
-            ...     agent_name="MyAgent",
             ...     status=AgentRunStatus.EXECUTING
             ... )
-            >>> repo.update_agent_runtime("my-agent", runtime)
+            >>> tool_call = AgentRunToolCall(id="call-1", tool_name="calculator")
+            >>> runtime.tool_calls["call-1"] = tool_call
+            >>> repo.update_agent_run(session.id, runtime)
 
         Note:
             This operation is idempotent - calling it multiple times with the
-            same agent_run_id will overwrite the existing runtime metadata.
-            Creates the run directory if it doesn't exist.
+            same id will overwrite the existing runtime metadata.
+            Creates the session directory if it doesn't exist.
+            Tool calls are embedded within the AgentRun object.
         """
-        run_dir = self._get_run_dir(agent_id, str(agent_runtime.agent_run_id))
-        run_dir.mkdir(parents=True, exist_ok=True)
+        session_dir = self._get_session_dir(session_id)
+        session_dir.mkdir(parents=True, exist_ok=True)
 
-        run_file = self._get_run_file(agent_id, str(agent_runtime.agent_run_id))
+        run_file = self._get_run_file(session_id, str(agent_run.id))
 
-        # Serialize agent to JSON (exclude tool_calls as they're stored separately)
-        agent_data = agent_runtime.model_dump(mode="json", exclude={"tool_calls"})
+        # Serialize agent to JSON (include tool_calls as they're now embedded)
+        agent_data = agent_run.model_dump(mode="json")
 
         with open(run_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent_runtime(self, agent_id: str, agent_run_id: str) -> Optional[AgentRun]:
+    def get_agent_run(self, session_id: str, run_id: str) -> Optional[AgentRun]:
         """
-        Retrieve an agent runtime by agent ID and run ID.
+        Retrieve an agent runtime by session ID and run ID.
 
         Reads and deserializes the run.json file for the specified runtime.
-        Tool calls are not included and must be loaded separately.
+        Tool calls are included as embedded data within the AgentRun object.
 
         Args:
-            agent_id: Agent ID that owns the runtime
-            agent_run_id: Unique identifier for the runtime instance
+            session_id: Session ID that owns the runtime
+            run_id: Unique identifier for the runtime instance
 
         Returns:
-            AgentRun instance if found, None if runtime doesn't exist
-            or if the run.json file is corrupted
+            AgentRun instance if found (with embedded tool_calls), None if runtime
+            doesn't exist or if the run.json file is corrupted
 
         Example:
-            >>> runtime = repo.get_agent_runtime("my-agent", "1234567890.123")
+            >>> runtime = repo.get_agent_run(session.id, "1234567890.123")
             >>> if runtime:
             ...     print(f"Status: {runtime.status}")
+            ...     print(f"Tool calls: {len(runtime.tool_calls)}")
 
         Note:
-            Tool calls are loaded separately via list_agent_runtime_tool_calls.
+            Tool calls are embedded within the AgentRun object.
             Corrupted JSON files are logged to stdout and return None.
         """
-        run_file = self._get_run_file(agent_id, agent_run_id)
+        run_file = self._get_run_file(session_id, run_id)
 
         if not run_file.exists():
             return None
@@ -395,222 +587,82 @@ class FileAgentRunRepository(AgentRunRepository):
             with open(run_file, "r", encoding="utf-8") as f:
                 agent_data = json.load(f)
 
-            # Reconstruct AgentRun from JSON
-            # Note: tool_calls are loaded separately via list_agent_runtime_tool_calls
+            # Reconstruct AgentRun from JSON (includes embedded tool_calls)
             return AgentRun.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
-            print(f"Error loading agent {agent_id} run {agent_run_id}: {e}")
+            print(f"Error loading session {session_id} run {run_id}: {e}")
             return None
 
-    def delete_agent_runtime(self, agent_id: str, agent_run_id: str) -> None:
+    def delete_agent_run(self, session_id: str, run_id: str) -> None:
         """
-        Delete an agent runtime and all its tool calls.
+        Delete an agent runtime and all its embedded tool calls.
 
-        This is a cascading delete operation that removes:
-            - Runtime metadata (run.json)
-            - All tool calls within this runtime
+        Removes the runtime metadata file (run.json) which contains the embedded
+        tool calls.
 
         Args:
-            agent_id: Agent ID that owns the runtime
-            agent_run_id: Unique identifier for the runtime to delete
+            session_id: Session ID that owns the runtime
+            run_id: Unique identifier for the runtime to delete
 
         Example:
-            >>> repo.delete_agent_runtime("my-agent", "1234567890.123")
-            >>> # Runtime and all its tool calls are now deleted
+            >>> repo.delete_agent_run(session.id, "1234567890.123")
+            >>> # Runtime and all its embedded tool calls are now deleted
 
         Note:
             This operation is safe to call on non-existent runtimes - it will
             not raise an error if the runtime doesn't exist.
         """
-        run_dir = self._get_run_dir(agent_id, agent_run_id)
+        run_file = self._get_run_file(session_id, run_id)
 
-        if run_dir.exists():
-            shutil.rmtree(run_dir)
+        if run_file.exists():
+            run_file.unlink()
 
-    def list_agent_runtimes(self, agent_id: str) -> List[AgentRun]:
+    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
         """
-        List all agent runtimes for a specific agent in chronological order.
+        List all agent runtimes for a specific session in chronological order.
 
-        Scans all run_* directories for the specified agent and loads their
-        metadata. Corrupted runtime files are skipped.
+        Scans all run_*.json files in the session directory for the specified session
+        and loads their metadata. Corrupted runtime files are skipped.
 
         Args:
-            agent_id: Agent ID to list runtimes for
+            session_id: Session ID to list runtimes for
 
         Returns:
-            List of AgentRun instances sorted by agent_run_id (timestamp)
+            List of AgentRun instances sorted by id (timestamp)
             in increasing order. Returns empty list if no runtimes exist.
 
         Example:
-            >>> runtimes = repo.list_agent_runtimes("my-agent")
+            >>> runtimes = repo.list_agent_runs(session.id)
             >>> for runtime in runtimes:
-            ...     print(f"{runtime.agent_run_id}: {runtime.status}")
+            ...     print(f"{runtime.id}: {runtime.status}")
 
         Note:
-            Results are sorted chronologically by agent_run_id (timestamp string)
+            Results are sorted chronologically by id (timestamp string)
             for consistent ordering. Earlier runs appear first in the list.
         """
         runtimes = []
-        agent_dir = self._get_agent_dir(agent_id)
 
-        if not agent_dir.exists():
+        session_dir = self._get_session_dir(session_id)
+
+        if not session_dir.exists():
             return runtimes
 
-        # Iterate through all run directories for this agent
-        for run_dir in agent_dir.glob("run_*"):
-            if not run_dir.is_dir():
+        # Iterate through all run_*.json files in the session directory
+        for run_file in session_dir.glob("run_*.json"):
+            if not run_file.is_file():
                 continue
 
-            # Extract agent_run_id from directory name
-            agent_run_id = run_dir.name.replace("run_", "")
+            try:
+                with open(run_file, "r", encoding="utf-8") as f:
+                    runtime_data = json.load(f)
 
-            # Load agent runtime
-            runtime = self.get_agent_runtime(agent_id, agent_run_id)
-            if runtime:
+                runtime = AgentRun.model_validate(runtime_data)
                 runtimes.append(runtime)
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error loading runtime from {run_file}: {e}")
 
-        # Sort by agent_run_id (timestamp string) in increasing order
-        runtimes.sort(key=lambda r: r.agent_run_id)
+        # Sort by id (timestamp string) in increasing order
+        runtimes.sort(key=lambda r: r.id)
 
         return runtimes
-
-    def get_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Optional[AgentRunToolCall]:
-        """
-        Retrieve a specific tool call by IDs.
-
-        Reads and deserializes the tool call JSON file for the specified
-        tool call within a runtime.
-
-        Args:
-            agent_id: Agent ID that owns the runtime
-            agent_run_id: Runtime ID that contains the tool call
-            tool_call_id: Unique identifier for the tool call
-
-        Returns:
-            AgentRunToolCall instance if found, None if tool call doesn't
-            exist or if the JSON file is corrupted
-
-        Example:
-            >>> tool_call = repo.get_agent_runtime_tool_call(
-            ...     "my-agent", "1234567890.123", "tool-call-1"
-            ... )
-            >>> if tool_call:
-            ...     print(f"Tool: {tool_call.tool_name}, Status: {tool_call.status}")
-
-        Note:
-            Corrupted JSON files are logged to stdout and return None.
-        """
-        tool_call_file = self._get_tool_call_file(agent_id, agent_run_id, tool_call_id)
-
-        if not tool_call_file.exists():
-            return None
-
-        try:
-            with open(tool_call_file, "r", encoding="utf-8") as f:
-                tool_call_data = json.load(f)
-
-            # Reconstruct AgentRunToolCall from JSON
-            return AgentRunToolCall.model_validate(tool_call_data)
-        except (json.JSONDecodeError, ValueError) as e:
-            # Log error and return None if file is corrupted
-            print(
-                f"Error loading tool call {tool_call_id} for agent {agent_id} run {agent_run_id}: {e}"
-            )
-            return None
-
-    def update_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call: AgentRunToolCall
-    ) -> None:
-        """
-        Create or update a tool call for an agent runtime.
-
-        Stores tool call data including tool name, input, result, status, and
-        timing information in a separate JSON file.
-
-        Args:
-            agent_id: Agent ID that owns the runtime
-            agent_run_id: Runtime ID that contains the tool call
-            tool_call: AgentRunToolCall instance to persist
-
-        Example:
-            >>> tool_call = AgentRunToolCall(
-            ...     tool_use_id="tool-call-1",
-            ...     tool_name="calculator",
-            ...     tool_input={"expression": "2+2"},
-            ...     status="pending"
-            ... )
-            >>> repo.update_agent_runtime_tool_call(
-            ...     "my-agent", "1234567890.123", tool_call
-            ... )
-
-        Note:
-            This operation is idempotent - calling it multiple times with the
-            same tool_use_id will overwrite the existing tool call.
-            Creates the tool_calls directory if it doesn't exist.
-        """
-        tool_calls_dir = self._get_tool_calls_dir(agent_id, agent_run_id)
-        tool_calls_dir.mkdir(parents=True, exist_ok=True)
-
-        tool_call_file = self._get_tool_call_file(
-            agent_id, agent_run_id, tool_call.tool_use_id
-        )
-
-        # Serialize tool call to JSON
-        tool_call_data = tool_call.model_dump(mode="json")
-
-        with open(tool_call_file, "w", encoding="utf-8") as f:
-            json.dump(tool_call_data, f, indent=2, ensure_ascii=False)
-
-    def list_agent_runtime_tool_calls(
-        self, agent_id: str, agent_run_id: str
-    ) -> List[AgentRunToolCall]:
-        """
-        List all tool calls for an agent runtime.
-
-        Scans all tool_call_*.json files in the runtime's tool_calls directory
-        and loads their data. Corrupted tool call files are skipped.
-
-        Args:
-            agent_id: Agent ID that owns the runtime
-            agent_run_id: Runtime ID to list tool calls for
-
-        Returns:
-            List of AgentRunToolCall instances for the specified runtime.
-            Returns empty list if no tool calls exist.
-
-        Example:
-            >>> tool_calls = repo.list_agent_runtime_tool_calls(
-            ...     "my-agent", "1234567890.123"
-            ... )
-            >>> for tc in tool_calls:
-            ...     print(f"{tc.tool_name}: {tc.status}")
-
-        Note:
-            The order of returned tool calls is not guaranteed. If you need
-            chronological ordering, sort by started_at or tool_use_id.
-        """
-        tool_calls = []
-        tool_calls_dir = self._get_tool_calls_dir(agent_id, agent_run_id)
-
-        if not tool_calls_dir.exists():
-            return tool_calls
-
-        # Iterate through all tool call files
-        for tool_call_file in tool_calls_dir.glob("tool_call_*.json"):
-            if not tool_call_file.is_file():
-                continue
-
-            # Extract tool_call_id from file name
-            tool_call_id = tool_call_file.stem.replace("tool_call_", "")
-
-            # Load tool call
-            tool_call = self.get_agent_runtime_tool_call(
-                agent_id, agent_run_id, tool_call_id
-            )
-            if tool_call:
-                tool_calls.append(tool_call)
-
-        return tool_calls

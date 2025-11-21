@@ -1,6 +1,6 @@
 __all__ = [
     "AgentConfig",
-    "AgentRunMeta",
+    "AgentRunSession",
     "AgentRun",
     "AgentRunToolCall",
     "AgentRunStatus",
@@ -20,7 +20,7 @@ from .base import (
     AgentRunStatus,
     AgentRunEvent,
     AgentRunContent,
-    AgentRunMeta,
+    AgentRunSession,
     AgentRun,
     AgentRunToolCall,
 )

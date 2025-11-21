@@ -162,7 +162,7 @@ class TestAgentsMonitorToolEvents:
 
         # Add a tool call to the runtime
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
         )
@@ -172,7 +172,7 @@ class TestAgentsMonitorToolEvents:
 
         # Verify tool call was tracked
         assert len(monitor.tool_calls) == 1
-        assert monitor.tool_calls[0].tool_use_id == "123"
+        assert monitor.tool_calls[0].id == "123"
         assert isinstance(monitor._runtime, AgentRun)
 
     def test_handle_tool_result_event(self):
@@ -184,7 +184,7 @@ class TestAgentsMonitorToolEvents:
 
         # Add tool call
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )
@@ -208,7 +208,7 @@ class TestAgentsMonitorToolEvents:
 
         # Add tool call
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )
@@ -233,7 +233,7 @@ class TestAgentsMonitorToolEvents:
 
         # Add tool call and update
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )
@@ -257,7 +257,7 @@ class TestAgentsMonitorToolEvents:
         # Add streaming text and tool call
         runtime.streaming_text = "Let me calculate that"
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={},
         )

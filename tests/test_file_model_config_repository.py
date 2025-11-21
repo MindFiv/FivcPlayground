@@ -39,7 +39,7 @@ class TestFileModelConfigRepository:
             # Create a model config
             model_config = ModelConfig(
                 id="gpt-4",
-                model_id="gpt-4",
+                model="gpt-4",
                 description="OpenAI GPT-4 model",
                 provider="openai",
                 api_key="sk-test-key",
@@ -58,7 +58,7 @@ class TestFileModelConfigRepository:
             # Retrieve model config
             retrieved_config = repo.get_model_config("gpt-4")
             assert retrieved_config is not None
-            assert retrieved_config.model_id == "gpt-4"
+            assert retrieved_config.model == "gpt-4"
             assert retrieved_config.provider == "openai"
             assert retrieved_config.api_key == "sk-test-key"
             assert retrieved_config.temperature == 0.7
@@ -83,7 +83,7 @@ class TestFileModelConfigRepository:
             # Create initial model config
             model_config = ModelConfig(
                 id="gpt-3.5",
-                model_id="gpt-3.5",
+                model="gpt-3.5",
                 provider="openai",
                 temperature=0.5,
             )
@@ -92,7 +92,7 @@ class TestFileModelConfigRepository:
             # Update model config
             updated_config = ModelConfig(
                 id="gpt-3.5",
-                model_id="gpt-3.5",
+                model="gpt-3.5",
                 provider="openai",
                 temperature=0.8,
                 max_tokens=4096,
@@ -112,9 +112,9 @@ class TestFileModelConfigRepository:
 
             # Create multiple model configs
             models = [
-                ModelConfig(id="gpt-4", model_id="gpt-4", provider="openai"),
-                ModelConfig(id="claude-3", model_id="claude-3", provider="anthropic"),
-                ModelConfig(id="llama-2", model_id="llama-2", provider="meta"),
+                ModelConfig(id="gpt-4", model="gpt-4", provider="openai"),
+                ModelConfig(id="claude-3", model="claude-3", provider="anthropic"),
+                ModelConfig(id="llama-2", model="llama-2", provider="meta"),
             ]
 
             for model in models:
@@ -126,8 +126,8 @@ class TestFileModelConfigRepository:
             assert all(isinstance(m, ModelConfig) for m in listed_models)
 
             # Verify models are sorted
-            model_ids = [m.model_id for m in listed_models]
-            assert model_ids == sorted(model_ids)
+            model_names = [m.model for m in listed_models]
+            assert model_names == sorted(model_names)
 
     def test_list_empty_repository(self):
         """Test listing models from empty repository"""
@@ -148,7 +148,7 @@ class TestFileModelConfigRepository:
             # Create a model config
             model_config = ModelConfig(
                 id="test-model",
-                model_id="test-model",
+                model="test-model",
                 provider="test-provider",
             )
             repo.update_model_config(model_config)
@@ -191,7 +191,7 @@ class TestFileModelConfigRepository:
             # Create and save model config
             model_config = ModelConfig(
                 id="test-model",
-                model_id="test-model",
+                model="test-model",
                 description="Test description",
                 provider="test-provider",
                 api_key="test-key",
@@ -206,7 +206,7 @@ class TestFileModelConfigRepository:
 
             # Verify JSON structure
             assert data["id"] == "test-model"
-            assert data["model_id"] == "test-model"
+            assert data["model"] == "test-model"
             assert data["provider"] == "test-provider"
             assert data["api_key"] == "test-key"
             assert data["temperature"] == 0.5
@@ -236,7 +236,7 @@ class TestFileModelConfigRepository:
             # Create model with minimal fields
             model_config = ModelConfig(
                 id="minimal-model",
-                model_id="minimal-model",
+                model="minimal-model",
                 provider="test-provider",
             )
             repo.update_model_config(model_config)
@@ -245,7 +245,7 @@ class TestFileModelConfigRepository:
             retrieved = repo.get_model_config("minimal-model")
             assert retrieved is not None
             assert retrieved.id == "minimal-model"
-            assert retrieved.model_id == "minimal-model"
+            assert retrieved.model == "minimal-model"
             assert retrieved.provider == "test-provider"
             assert retrieved.description is None
             assert retrieved.api_key is None

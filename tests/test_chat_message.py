@@ -243,7 +243,7 @@ class TestRenderToolCallMethod:
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
@@ -267,7 +267,7 @@ class TestRenderToolCallMethod:
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
         tool_call = AgentRunToolCall(
-            tool_use_id="123",
+            id="123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
@@ -289,7 +289,7 @@ class TestRenderToolCallMethod:
         mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
 
         tool_call = AgentRunToolCall(
-            tool_use_id="456",
+            id="456",
             tool_name="file_reader",
             tool_input={"path": "/test"},
             tool_result="File not found",
@@ -376,14 +376,14 @@ class TestIntegration:
         mock_assistant_msg.expander.return_value.__exit__ = Mock(return_value=False)
 
         tool_call1 = AgentRunToolCall(
-            tool_use_id="1",
+            id="1",
             tool_name="tool1",
             tool_input={},
             tool_result="result1",
             status="success",
         )
         tool_call2 = AgentRunToolCall(
-            tool_use_id="2",
+            id="2",
             tool_name="tool2",
             tool_input={},
             tool_result="result2",

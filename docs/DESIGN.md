@@ -78,7 +78,7 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 FivcPlayground includes a comprehensive runtime tracking system for agent execution:
 
 **Core Models:**
-- `AgentRunMeta`: Agent configuration and metadata
+- `AgentRunSession`: Agent configuration and metadata
 - `AgentRun`: Complete execution state and history
 - `AgentRunToolCall`: Individual tool invocation records
 - `AgentRunStatus`: Execution status (PENDING, EXECUTING, COMPLETED, FAILED)

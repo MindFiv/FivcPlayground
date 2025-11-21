@@ -15,7 +15,7 @@ class ModelConfig(BaseModel):
         default=None, description="Description of the model"
     )
     provider: str = Field(..., description="Provider of the model")
-    model_id: str = Field(..., description="Model name (e.g., 'gpt-4', 'llama2')")
+    model: str = Field(..., description="Model name (e.g., 'gpt-4', 'llama2')")
     api_key: str | None = Field(
         default=None, description="API key for the model (if required)"
     )

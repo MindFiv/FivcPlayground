@@ -45,7 +45,7 @@ from fivcplayground.tasks import create_briefing_task
 from fivcplayground.agents.types import (
     AgentRun,
     AgentMonitorManager,
-    AgentRunMeta,
+    AgentRunSession,
 )
 from fivcplayground.agents.types.repositories import (
     AgentRunRepository,
@@ -70,14 +70,14 @@ class Chat(object):
 
     Attributes:
         tool_retriever: Retriever for tool access
-        runtime_meta: Agent metadata (agent_id, name, system_prompt, description)
+        runtime_meta: Agent metadata (agent_id, description)
         runtime_repo: Repository for persisting agent runtime state
         monitor_manager: Manager for creating and monitoring agent executions
         running: Boolean flag indicating if agent is currently processing
 
     Properties:
-        id: The unique agent identifier (from runtime_meta.id)
-        description: The chat description (from runtime_meta.description or id)
+        id: The unique agent identifier (from runtime_meta.agent_id)
+        description: The chat description (from runtime_meta.description or agent_id)
         is_running: Whether the agent is currently processing a query
 
     Example:
@@ -110,7 +110,7 @@ class Chat(object):
 
     Note:
         - Agent metadata is auto-generated on first query if not provided
-        - Agent metadata (name, system_prompt) is automatically saved on first query
+        - Agent description is automatically saved on first query
         - Only completed runtimes are included in history
         - The default repository stores data in OutputDir().subdir("agents")
         - Use ChatManager to manage multiple chat instances
@@ -118,7 +118,7 @@ class Chat(object):
 
     def __init__(
         self,
-        agent_runtime_meta: Optional[AgentRunMeta] = None,
+        agent_runtime_meta: Optional[AgentRunSession] = None,
         agent_runtime_repo: Optional[AgentRunRepository] = None,
         tool_retriever: Optional[tools.ToolRetriever] = None,
     ):
@@ -151,11 +151,9 @@ class Chat(object):
             >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>>
             >>> # Resume existing chat with metadata
-            >>> from fivcplayground.agents.types import AgentRunMeta
-            >>> meta = AgentRunMeta(
+            >>> from fivcplayground.agents.types import AgentRunSession
+            >>> meta = AgentRunSession(
             ...     agent_id="my-agent-123",
-            ...     agent_name="My Assistant",
-            ...     system_prompt="You are a helpful assistant",
             ...     description="Customer support bot"
             ... )
             >>> chat = Chat(
@@ -214,9 +212,9 @@ class Chat(object):
             >>> chat = Chat(tool_retriever=tools.create_tool_retriever())
             >>> print(chat.id)  # None (not initialized yet)
             >>> await chat.ask("Hello")
-            >>> print(chat.id)  # UUID string like "abc-123-def-456"
+            >>> print(chat.id)  # "my-agent-id"
         """
-        return self.runtime_meta.id if self.runtime_meta else None
+        return self.runtime_meta.agent_id if self.runtime_meta else None
 
     @property
     def description(self):
@@ -231,8 +229,8 @@ class Chat(object):
             str: The chat description, agent ID, or empty string
 
         Example:
-            >>> from fivcplayground.agents.types import AgentRunMeta
-            >>> meta = AgentRunMeta(
+            >>> from fivcplayground.agents.types import AgentRunSession
+            >>> meta = AgentRunSession(
             ...     agent_id="my-agent",
             ...     description="Customer support bot"
             ... )
@@ -243,7 +241,7 @@ class Chat(object):
             >>> print(chat.description)  # "Customer support bot"
         """
         return (
-            (self.runtime_meta.description or self.runtime_meta.id)
+            (self.runtime_meta.description or self.runtime_meta.agent_id)
             if self.runtime_meta
             else ""
         )
@@ -313,12 +311,12 @@ class Chat(object):
             if not runtime.is_completed:
                 continue
 
-            # Load tool calls for completed runtimes
-            runtime_tool_calls = self.runtime_repo.list_agent_runtime_tool_calls(
-                self.runtime_meta.agent_id, runtime.agent_run_id
-            )
-            runtime_tool_calls.sort(key=lambda tc: tc.started_at)
-            runtime.tool_calls = {tc.tool_use_id: tc for tc in runtime_tool_calls}
+            # Tool calls are now embedded in the runtime, just sort them if needed
+            if runtime.tool_calls:
+                sorted_tool_calls = sorted(
+                    runtime.tool_calls.values(), key=lambda tc: tc.started_at or ""
+                )
+                runtime.tool_calls = {tc.id: tc for tc in sorted_tool_calls}
             completed_agent_runtimes.append(runtime)
         return completed_agent_runtimes
 
@@ -392,13 +390,9 @@ class Chat(object):
 
             # Load agent metadata if exists
             if self.runtime_meta:
-                agent_runtimes = self.runtime_repo.list_agent_runtimes(
-                    self.runtime_meta.agent_id
-                )
+                agent_runtimes = self.runtime_repo.list_agent_runs(self.runtime_meta.id)
                 agent_kwargs = {
                     "agent_id": self.runtime_meta.agent_id,
-                    "name": self.runtime_meta.agent_name,
-                    "system_prompt": self.runtime_meta.system_prompt,
                     "messages": agent_runtimes,
                 }
             else:
@@ -425,14 +419,12 @@ class Chat(object):
                     tool_retriever=self.tool_retriever,
                 )
                 agent_desc = await agent_desc.run_async()
-                self.runtime_meta = AgentRunMeta(
+                self.runtime_meta = AgentRunSession(
                     agent_id=agent.agent_id,
-                    agent_name=agent.name,
-                    system_prompt=agent.system_prompt,
                     description=agent_desc.text,
                     started_at=datetime.now(),
                 )
-                self.runtime_repo.update_agent(self.runtime_meta)
+                self.runtime_repo.update_agent_run_session(self.runtime_meta)
 
             return agent_result
 
@@ -479,7 +471,7 @@ class Chat(object):
             - The repository's delete_agent() handles cascading deletes
         """
         if self.runtime_meta:
-            self.runtime_repo.delete_agent(self.runtime_meta.id)
+            self.runtime_repo.delete_agent_run_session(self.runtime_meta.agent_id)
 
 
 class ChatManager(object):
@@ -612,7 +604,7 @@ class ChatManager(object):
                 tool_retriever=self.tool_retriever,
                 agent_runtime_meta=runtime_meta,
             )
-            for runtime_meta in self.runtime_repo.list_agents()
+            for runtime_meta in self.runtime_repo.list_agent_run_sessions()
         ]
         # Sort by started_at, treating None as the earliest time (datetime.min)
         chats.sort(

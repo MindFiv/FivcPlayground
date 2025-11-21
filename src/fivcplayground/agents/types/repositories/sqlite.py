@@ -8,7 +8,6 @@ Database Schema:
     agents:
         - id (INTEGER PRIMARY KEY)
         - agent_id (TEXT UNIQUE NOT NULL)
-        - agent_name (TEXT)
         - system_prompt (TEXT)
         - description (TEXT)
         - started_at (TIMESTAMP)
@@ -18,7 +17,6 @@ Database Schema:
         - id (INTEGER PRIMARY KEY)
         - agent_run_id (TEXT UNIQUE NOT NULL)
         - agent_id (TEXT NOT NULL, FOREIGN KEY)
-        - agent_name (TEXT)
         - status (TEXT)
         - started_at (TIMESTAMP)
         - completed_at (TIMESTAMP)
@@ -30,7 +28,7 @@ Database Schema:
 
     tool_calls:
         - id (INTEGER PRIMARY KEY)
-        - tool_use_id (TEXT NOT NULL)
+        - tool_call_id (TEXT NOT NULL)
         - agent_run_id (TEXT NOT NULL, FOREIGN KEY)
         - tool_name (TEXT NOT NULL)
         - tool_input (TEXT JSON)
@@ -50,25 +48,24 @@ This structure provides:
 
 Example:
     >>> from fivcplayground.agents.types.repositories.sqlite import SqliteAgentRunRepository
-    >>> from fivcplayground.agents.types import AgentRunMeta, AgentRun
+    >>> from fivcplayground.agents.types import AgentRunSession, AgentRun
     >>>
     >>> # Create repository
     >>> repo = SqliteAgentRunRepository(db_path="./agents.db")
     >>>
-    >>> # Store agent metadata
-    >>> agent_meta = AgentRunMeta(
+    >>> # Store agent session metadata
+    >>> agent_session = AgentRunSession(
     ...     agent_id="my-agent",
-    ...     agent_name="MyAgent",
-    ...     system_prompt="You are a helpful assistant"
+    ...     description="A helpful assistant agent"
     ... )
-    >>> repo.update_agent(agent_meta)
+    >>> repo.update_agent_run_session(agent_session)
     >>>
     >>> # Create and store a runtime
-    >>> runtime = AgentRun(agent_id="my-agent", agent_name="MyAgent")
-    >>> repo.update_agent_runtime("my-agent", runtime)
+    >>> runtime = AgentRun(agent_id="my-agent")
+    >>> repo.update_agent_run(agent_session.id, runtime)
     >>>
     >>> # List all agents
-    >>> agents = repo.list_agents()
+    >>> agents = repo.list_agent_run_sessions()
 """
 
 import json
@@ -77,7 +74,7 @@ import sqlite3
 from pathlib import Path
 from typing import Optional, List
 
-from fivcplayground.agents.types import AgentRunMeta
+from fivcplayground.agents.types import AgentRunSession
 from fivcplayground.agents.types.repositories import (
     AgentRun,
     AgentRunToolCall,
@@ -136,7 +133,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
             CREATE TABLE IF NOT EXISTS agents (
                 id INTEGER PRIMARY KEY,
                 agent_id TEXT UNIQUE NOT NULL,
-                agent_name TEXT,
                 system_prompt TEXT,
                 description TEXT,
                 started_at TIMESTAMP,
@@ -149,8 +145,8 @@ class SqliteAgentRunRepository(AgentRunRepository):
             CREATE TABLE IF NOT EXISTS agent_runtimes (
                 id INTEGER PRIMARY KEY,
                 agent_run_id TEXT UNIQUE NOT NULL,
+                session_id TEXT NOT NULL,
                 agent_id TEXT NOT NULL,
-                agent_name TEXT,
                 status TEXT,
                 started_at TIMESTAMP,
                 completed_at TIMESTAMP,
@@ -182,9 +178,27 @@ class SqliteAgentRunRepository(AgentRunRepository):
             )
         """)
 
+        # Migration: Add session_id column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("PRAGMA table_info(agent_runtimes)")
+            columns = cursor.fetchall()
+            column_names = [col[1] for col in columns]
+
+            if "session_id" not in column_names:
+                # Add session_id column with a default value
+                cursor.execute(
+                    "ALTER TABLE agent_runtimes ADD COLUMN session_id TEXT DEFAULT 'default-session'"
+                )
+        except Exception:
+            # If migration fails, continue - the column might already exist
+            pass
+
         # Create indexes for common queries
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_runtimes_session_id ON agent_runtimes(session_id)"
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_runtimes_agent_id ON agent_runtimes(agent_id)"
@@ -201,7 +215,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         self.connection.commit()
 
-    def update_agent(self, agent: AgentRunMeta) -> None:
+    def update_agent_run_session(self, agent: AgentRunSession) -> None:
         """Create or update an agent's metadata."""
         cursor = self.connection.cursor()
         agent_data = agent.model_dump(mode="json")
@@ -214,13 +228,11 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute(
             """
             INSERT OR IGNORE INTO agents
-            (agent_id, agent_name, system_prompt, description, started_at)
-            VALUES (?, ?, ?, ?, ?)
+            (agent_id, description, started_at)
+            VALUES (?, ?, ?)
         """,
             (
                 agent_id,
-                agent_data.get("agent_name"),
-                agent_data.get("system_prompt"),
                 agent_data.get("description"),
                 agent_data.get("started_at"),
             ),
@@ -230,12 +242,10 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute(
             """
             UPDATE agents
-            SET agent_name = ?, system_prompt = ?, description = ?, started_at = ?
+            SET description = ?, started_at = ?
             WHERE agent_id = ?
         """,
             (
-                agent_data.get("agent_name"),
-                agent_data.get("system_prompt"),
                 agent_data.get("description"),
                 agent_data.get("started_at"),
                 agent_id,
@@ -243,7 +253,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
         )
         self.connection.commit()
 
-    def get_agent(self, agent_id: str) -> Optional[AgentRunMeta]:
+    def get_agent_run_session(self, agent_id: str) -> Optional[AgentRunSession]:
         """Retrieve an agent's metadata by ID."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents WHERE agent_id = ?", (agent_id,))
@@ -253,11 +263,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
             return None
 
         try:
-            return AgentRunMeta.model_validate(
+            return AgentRunSession.model_validate(
                 {
                     "agent_id": row["agent_id"],
-                    "agent_name": row["agent_name"],
-                    "system_prompt": row["system_prompt"],
                     "description": row["description"],
                     "started_at": row["started_at"],
                 }
@@ -266,7 +274,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
             print(f"Error loading agent {agent_id}: {e}")
             return None
 
-    def list_agents(self) -> List[AgentRunMeta]:
+    def list_agent_run_sessions(self) -> List[AgentRunSession]:
         """List all agents in the repository."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents ORDER BY agent_id")
@@ -275,11 +283,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
         agents = []
         for row in rows:
             try:
-                agent = AgentRunMeta.model_validate(
+                agent = AgentRunSession.model_validate(
                     {
                         "agent_id": row["agent_id"],
-                        "agent_name": row["agent_name"],
-                        "system_prompt": row["system_prompt"],
                         "description": row["description"],
                         "started_at": row["started_at"],
                     }
@@ -290,40 +296,43 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    def delete_agent(self, agent_id: str) -> None:
+    def delete_agent_run_session(self, agent_id: str) -> None:
         """Delete an agent and all its associated runtimes."""
         cursor = self.connection.cursor()
         cursor.execute("DELETE FROM agents WHERE agent_id = ?", (agent_id,))
         self.connection.commit()
 
-    def update_agent_runtime(self, agent_id: str, agent_runtime: AgentRun) -> None:
-        """Create or update an agent runtime."""
+    def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
+        """Create or update an agent runtime with embedded tool calls."""
         cursor = self.connection.cursor()
-        runtime_data = agent_runtime.model_dump(mode="json", exclude={"tool_calls"})
+        runtime_data = agent_run.model_dump(mode="json", exclude={"tool_calls"})
+
+        # Get agent_id from the runtime data
+        agent_id = runtime_data.get("agent_id")
 
         # Ensure the agent exists (create a placeholder if needed)
         # This is necessary because of the foreign key constraint
-        cursor.execute(
-            """
-            INSERT OR IGNORE INTO agents (agent_id, agent_name)
-            VALUES (?, ?)
-        """,
-            (agent_id, runtime_data.get("agent_name")),
-        )
+        if agent_id:
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO agents (agent_id)
+                VALUES (?)
+            """,
+                (agent_id,),
+            )
 
-        # Use the passed agent_id parameter, not the one from runtime_data
-        # This ensures consistency even if agent_runtime.agent_id is None
+        # Use the passed session_id parameter for grouping runtimes
         cursor.execute(
             """
             INSERT OR REPLACE INTO agent_runtimes
-            (agent_run_id, agent_id, agent_name, status, started_at, completed_at,
+            (agent_run_id, session_id, agent_id, status, started_at, completed_at,
              query, reply, streaming_text, error)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
-                runtime_data.get("agent_run_id"),
-                agent_id,  # Use the parameter, not runtime_data.get("agent_id")
-                runtime_data.get("agent_name"),
+                runtime_data.get("id"),
+                session_id,
+                agent_id,
                 runtime_data.get("status"),
                 runtime_data.get("started_at"),
                 runtime_data.get("completed_at"),
@@ -337,14 +346,41 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 runtime_data.get("error"),
             ),
         )
+
+        # Store embedded tool calls in the tool_calls table
+        agent_run_id = runtime_data.get("id")
+        for tool_call_id, tool_call in agent_run.tool_calls.items():
+            tool_call_data = tool_call.model_dump(mode="json")
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO tool_calls
+                (tool_use_id, agent_run_id, tool_name, tool_input, tool_result,
+                 status, started_at, completed_at, error)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    tool_call_data.get("id"),
+                    agent_run_id,
+                    tool_call_data.get("tool_name"),
+                    json.dumps(tool_call_data.get("tool_input", {})),
+                    json.dumps(tool_call_data.get("tool_result"))
+                    if tool_call_data.get("tool_result")
+                    else None,
+                    tool_call_data.get("status"),
+                    tool_call_data.get("started_at"),
+                    tool_call_data.get("completed_at"),
+                    tool_call_data.get("error"),
+                ),
+            )
+
         self.connection.commit()
 
-    def get_agent_runtime(self, agent_id: str, agent_run_id: str) -> Optional[AgentRun]:
-        """Retrieve an agent runtime by agent ID and run ID."""
+    def get_agent_run(self, session_id: str, run_id: str) -> Optional[AgentRun]:
+        """Retrieve an agent runtime by session ID and run ID with embedded tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(
-            "SELECT * FROM agent_runtimes WHERE agent_id = ? AND agent_run_id = ?",
-            (agent_id, agent_run_id),
+            "SELECT * FROM agent_runtimes WHERE session_id = ? AND agent_run_id = ?",
+            (session_id, run_id),
         )
         row = cursor.fetchone()
 
@@ -355,11 +391,45 @@ class SqliteAgentRunRepository(AgentRunRepository):
             query = json.loads(row["query"]) if row["query"] else None
             reply = json.loads(row["reply"]) if row["reply"] else None
 
+            # Load embedded tool calls
+            cursor.execute(
+                "SELECT * FROM tool_calls WHERE agent_run_id = ? ORDER BY created_at",
+                (run_id,),
+            )
+            tool_call_rows = cursor.fetchall()
+
+            tool_calls = {}
+            for tc_row in tool_call_rows:
+                try:
+                    tool_input = (
+                        json.loads(tc_row["tool_input"]) if tc_row["tool_input"] else {}
+                    )
+                    tool_result = (
+                        json.loads(tc_row["tool_result"])
+                        if tc_row["tool_result"]
+                        else None
+                    )
+
+                    tool_call = AgentRunToolCall.model_validate(
+                        {
+                            "id": tc_row["tool_use_id"],
+                            "tool_name": tc_row["tool_name"],
+                            "tool_input": tool_input,
+                            "tool_result": tool_result,
+                            "status": tc_row["status"],
+                            "started_at": tc_row["started_at"],
+                            "completed_at": tc_row["completed_at"],
+                            "error": tc_row["error"],
+                        }
+                    )
+                    tool_calls[tc_row["tool_use_id"]] = tool_call
+                except (ValueError, json.JSONDecodeError) as e:
+                    print(f"Error loading tool call {tc_row['tool_use_id']}: {e}")
+
             return AgentRun.model_validate(
                 {
-                    "agent_run_id": row["agent_run_id"],
+                    "id": row["agent_run_id"],
                     "agent_id": row["agent_id"],
-                    "agent_name": row["agent_name"],
                     "status": row["status"],
                     "started_at": row["started_at"],
                     "completed_at": row["completed_at"],
@@ -367,27 +437,28 @@ class SqliteAgentRunRepository(AgentRunRepository):
                     "reply": reply,
                     "streaming_text": row["streaming_text"] or "",
                     "error": row["error"],
+                    "tool_calls": tool_calls,
                 }
             )
         except (ValueError, json.JSONDecodeError) as e:
-            print(f"Error loading runtime {agent_run_id}: {e}")
+            print(f"Error loading runtime {run_id}: {e}")
             return None
 
-    def delete_agent_runtime(self, agent_id: str, agent_run_id: str) -> None:
+    def delete_agent_run(self, session_id: str, run_id: str) -> None:
         """Delete an agent runtime and all its tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(
-            "DELETE FROM agent_runtimes WHERE agent_id = ? AND agent_run_id = ?",
-            (agent_id, agent_run_id),
+            "DELETE FROM agent_runtimes WHERE session_id = ? AND agent_run_id = ?",
+            (session_id, run_id),
         )
         self.connection.commit()
 
-    def list_agent_runtimes(self, agent_id: str) -> List[AgentRun]:
-        """List all agent runtimes for a specific agent."""
+    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
+        """List all agent runtimes for a specific session with embedded tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(
-            "SELECT * FROM agent_runtimes WHERE agent_id = ? ORDER BY agent_run_id",
-            (agent_id,),
+            "SELECT * FROM agent_runtimes WHERE session_id = ? ORDER BY agent_run_id",
+            (session_id,),
         )
         rows = cursor.fetchall()
 
@@ -397,11 +468,47 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 query = json.loads(row["query"]) if row["query"] else None
                 reply = json.loads(row["reply"]) if row["reply"] else None
 
+                # Load embedded tool calls for this runtime
+                cursor.execute(
+                    "SELECT * FROM tool_calls WHERE agent_run_id = ? ORDER BY created_at",
+                    (row["agent_run_id"],),
+                )
+                tool_call_rows = cursor.fetchall()
+
+                tool_calls = {}
+                for tc_row in tool_call_rows:
+                    try:
+                        tool_input = (
+                            json.loads(tc_row["tool_input"])
+                            if tc_row["tool_input"]
+                            else {}
+                        )
+                        tool_result = (
+                            json.loads(tc_row["tool_result"])
+                            if tc_row["tool_result"]
+                            else None
+                        )
+
+                        tool_call = AgentRunToolCall.model_validate(
+                            {
+                                "id": tc_row["tool_use_id"],
+                                "tool_name": tc_row["tool_name"],
+                                "tool_input": tool_input,
+                                "tool_result": tool_result,
+                                "status": tc_row["status"],
+                                "started_at": tc_row["started_at"],
+                                "completed_at": tc_row["completed_at"],
+                                "error": tc_row["error"],
+                            }
+                        )
+                        tool_calls[tc_row["tool_use_id"]] = tool_call
+                    except (ValueError, json.JSONDecodeError) as e:
+                        print(f"Error loading tool call {tc_row['tool_use_id']}: {e}")
+
                 runtime = AgentRun.model_validate(
                     {
-                        "agent_run_id": row["agent_run_id"],
+                        "id": row["agent_run_id"],
                         "agent_id": row["agent_id"],
-                        "agent_name": row["agent_name"],
                         "status": row["status"],
                         "started_at": row["started_at"],
                         "completed_at": row["completed_at"],
@@ -409,6 +516,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                         "reply": reply,
                         "streaming_text": row["streaming_text"] or "",
                         "error": row["error"],
+                        "tool_calls": tool_calls,
                     }
                 )
                 runtimes.append(runtime)
@@ -416,127 +524,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 print(f"Error loading runtime {row['agent_run_id']}: {e}")
 
         return runtimes
-
-    def get_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call_id: str
-    ) -> Optional[AgentRunToolCall]:
-        """Retrieve a specific tool call by IDs."""
-        cursor = self.connection.cursor()
-        cursor.execute(
-            "SELECT * FROM tool_calls WHERE agent_run_id = ? AND tool_use_id = ?",
-            (agent_run_id, tool_call_id),
-        )
-        row = cursor.fetchone()
-
-        if not row:
-            return None
-
-        try:
-            tool_input = json.loads(row["tool_input"]) if row["tool_input"] else {}
-            tool_result = json.loads(row["tool_result"]) if row["tool_result"] else None
-
-            return AgentRunToolCall.model_validate(
-                {
-                    "tool_use_id": row["tool_use_id"],
-                    "tool_name": row["tool_name"],
-                    "tool_input": tool_input,
-                    "tool_result": tool_result,
-                    "status": row["status"],
-                    "started_at": row["started_at"],
-                    "completed_at": row["completed_at"],
-                    "error": row["error"],
-                }
-            )
-        except (ValueError, json.JSONDecodeError) as e:
-            print(f"Error loading tool call {tool_call_id}: {e}")
-            return None
-
-    def update_agent_runtime_tool_call(
-        self, agent_id: str, agent_run_id: str, tool_call: AgentRunToolCall
-    ) -> None:
-        """Create or update a tool call for an agent runtime."""
-        cursor = self.connection.cursor()
-        tool_call_data = tool_call.model_dump(mode="json")
-
-        # Ensure the agent exists (create a placeholder if needed)
-        # This is necessary because of the foreign key constraint
-        cursor.execute(
-            """
-            INSERT OR IGNORE INTO agents (agent_id)
-            VALUES (?)
-        """,
-            (agent_id,),
-        )
-
-        # Ensure the runtime exists (create a placeholder if needed)
-        # This is necessary because of the foreign key constraint
-        cursor.execute(
-            """
-            INSERT OR IGNORE INTO agent_runtimes (agent_run_id, agent_id, status, streaming_text)
-            VALUES (?, ?, ?, ?)
-        """,
-            (agent_run_id, agent_id, "pending", ""),
-        )
-
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO tool_calls
-            (tool_use_id, agent_run_id, tool_name, tool_input, tool_result,
-             status, started_at, completed_at, error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                tool_call_data.get("tool_use_id"),
-                agent_run_id,
-                tool_call_data.get("tool_name"),
-                json.dumps(tool_call_data.get("tool_input", {})),
-                json.dumps(tool_call_data.get("tool_result"))
-                if tool_call_data.get("tool_result")
-                else None,
-                tool_call_data.get("status"),
-                tool_call_data.get("started_at"),
-                tool_call_data.get("completed_at"),
-                tool_call_data.get("error"),
-            ),
-        )
-        self.connection.commit()
-
-    def list_agent_runtime_tool_calls(
-        self, agent_id: str, agent_run_id: str
-    ) -> List[AgentRunToolCall]:
-        """List all tool calls for an agent runtime."""
-        cursor = self.connection.cursor()
-        cursor.execute(
-            "SELECT * FROM tool_calls WHERE agent_run_id = ? ORDER BY created_at",
-            (agent_run_id,),
-        )
-        rows = cursor.fetchall()
-
-        tool_calls = []
-        for row in rows:
-            try:
-                tool_input = json.loads(row["tool_input"]) if row["tool_input"] else {}
-                tool_result = (
-                    json.loads(row["tool_result"]) if row["tool_result"] else None
-                )
-
-                tool_call = AgentRunToolCall.model_validate(
-                    {
-                        "tool_use_id": row["tool_use_id"],
-                        "tool_name": row["tool_name"],
-                        "tool_input": tool_input,
-                        "tool_result": tool_result,
-                        "status": row["status"],
-                        "started_at": row["started_at"],
-                        "completed_at": row["completed_at"],
-                        "error": row["error"],
-                    }
-                )
-                tool_calls.append(tool_call)
-            except (ValueError, json.JSONDecodeError) as e:
-                print(f"Error loading tool call {row['tool_use_id']}: {e}")
-
-        return tool_calls
 
     def close(self) -> None:
         """Close the database connection."""

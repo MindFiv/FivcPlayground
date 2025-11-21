@@ -8,7 +8,6 @@ __all__ = [
     "create_engineering_agent",
     "create_evaluating_agent",
     "default_retriever",
-    "default_agent",
     "BaseAgentsCreator",
     "AgentRetriever",
 ]
@@ -202,4 +201,3 @@ def _load_retriever() -> AgentRetriever:
 
 
 default_retriever = utils.LazyValue(_load_retriever)
-default_agent = utils.LazyValue(lambda: create_companion_agent())

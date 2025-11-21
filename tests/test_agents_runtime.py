@@ -25,13 +25,12 @@ class TestAgentsRuntimeToolCall:
     def test_create_tool_call(self):
         """Test creating a tool call record."""
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
         )
 
-        assert tool_call.id == "test-123"  # id is computed from tool_use_id
-        assert tool_call.tool_use_id == "test-123"
+        assert tool_call.id == "test-123"
         assert tool_call.tool_name == "calculator"
         assert tool_call.tool_input == {"expression": "2+2"}
         assert tool_call.status == "pending"
@@ -41,7 +40,7 @@ class TestAgentsRuntimeToolCall:
     def test_tool_call_with_result(self):
         """Test tool call with result."""
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
@@ -55,7 +54,7 @@ class TestAgentsRuntimeToolCall:
     def test_tool_call_with_error(self):
         """Test tool call with error."""
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={"expression": "invalid"},
             status="error",
@@ -72,7 +71,7 @@ class TestAgentsRuntimeToolCall:
         end = datetime(2024, 1, 1, 12, 0, 5)
 
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={},
             started_at=start,
@@ -84,7 +83,7 @@ class TestAgentsRuntimeToolCall:
     def test_tool_call_duration_none_when_incomplete(self):
         """Test duration is None when tool call is incomplete."""
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={},
             started_at=datetime.now(),
@@ -92,16 +91,15 @@ class TestAgentsRuntimeToolCall:
 
         assert tool_call.duration is None
 
-    def test_tool_call_id_computed_field(self):
-        """Test that id is a computed field that returns tool_use_id."""
+    def test_tool_call_id_field(self):
+        """Test that id is the primary identifier for tool calls."""
         tool_call = AgentRunToolCall(
-            tool_use_id="unique-tool-call-id",
+            id="unique-tool-call-id",
             tool_name="calculator",
             tool_input={},
         )
 
-        # id should always equal tool_use_id
-        assert tool_call.id == tool_call.tool_use_id
+        # id should be the primary identifier
         assert tool_call.id == "unique-tool-call-id"
 
 
@@ -112,37 +110,33 @@ class TestAgentsRuntime:
         """Test creating an agent runtime record."""
         runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
         )
 
-        assert runtime.id == runtime.agent_run_id  # id is computed from agent_run_id
+        assert isinstance(runtime.id, str)
         assert runtime.agent_id == "agent-123"
-        assert runtime.agent_name == "TestAgent"
         assert runtime.status == AgentRunStatus.PENDING
         assert runtime.reply is None
         assert runtime.tool_calls == {}
         assert runtime.streaming_text == ""
         assert runtime.error is None
 
-    def test_runtime_id_computed_field(self):
-        """Test that id is a computed field that returns agent_run_id."""
+    def test_runtime_id_field(self):
+        """Test that id is the primary identifier for runtimes."""
         runtime = AgentRun(
             agent_id="custom-agent-id",
-            agent_name="TestAgent",
         )
 
-        # id should always equal agent_run_id
-        assert runtime.id == runtime.agent_run_id
+        # id should be a timestamp string
+        assert isinstance(runtime.id, str)
         assert runtime.agent_id == "custom-agent-id"
 
     def test_agent_run_id_is_timestamp(self):
-        """Test that agent_run_id is a timestamp string for chronological ordering."""
+        """Test that id is a timestamp string for chronological ordering."""
         import time
 
         # Create first runtime
         runtime1 = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
         )
 
         # Longer delay to ensure different timestamps
@@ -151,21 +145,16 @@ class TestAgentsRuntime:
         # Create second runtime
         runtime2 = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
         )
 
-        # Both should have timestamp-based agent_run_id
+        # Both should have timestamp-based id
         # Verify they are numeric strings (timestamps)
-        assert runtime1.agent_run_id.replace(".", "").isdigit()
-        assert runtime2.agent_run_id.replace(".", "").isdigit()
+        assert runtime1.id.replace(".", "").isdigit()
+        assert runtime2.id.replace(".", "").isdigit()
 
         # Verify they can be compared chronologically
         # runtime2 should have a larger timestamp than runtime1
-        assert float(runtime2.agent_run_id) > float(runtime1.agent_run_id)
-
-        # Verify id is computed from agent_run_id
-        assert runtime1.id == runtime1.agent_run_id
-        assert runtime2.id == runtime2.agent_run_id
+        assert float(runtime2.id) > float(runtime1.id)
 
     def test_runtime_status_transitions(self):
         """Test runtime status transitions."""
@@ -210,14 +199,14 @@ class TestAgentsRuntime:
         runtime = AgentRun(agent_id="agent-123")
 
         tool_call_1 = AgentRunToolCall(
-            tool_use_id="tc-1",
+            id="tc-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             status="success",
         )
 
         tool_call_2 = AgentRunToolCall(
-            tool_use_id="tc-2",
+            id="tc-2",
             tool_name="web_search",
             tool_input={"query": "test"},
             status="error",
@@ -257,17 +246,15 @@ class TestAgentsRuntime:
         """Test runtime can be serialized to dict."""
         runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             status=AgentRunStatus.COMPLETED,
         )
 
         data = runtime.model_dump()
 
         assert data["agent_id"] == "agent-123"
-        assert data["agent_name"] == "TestAgent"
         assert data["status"] == "completed"
         assert "id" in data
-        assert data["id"] == runtime.agent_run_id  # id should equal agent_run_id
+        assert data["id"] == runtime.id
         assert "duration" in data
         assert "is_running" in data
         assert "is_completed" in data
@@ -278,7 +265,7 @@ class TestAgentsRuntime:
     def test_tool_call_serialization(self):
         """Test tool call can be serialized to dict."""
         tool_call = AgentRunToolCall(
-            tool_use_id="test-123",
+            id="test-123",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             tool_result="4",
@@ -287,8 +274,7 @@ class TestAgentsRuntime:
 
         data = tool_call.model_dump()
 
-        assert data["tool_use_id"] == "test-123"
-        assert data["id"] == "test-123"  # id should equal tool_use_id
+        assert data["id"] == "test-123"
         assert data["tool_name"] == "calculator"
         assert data["tool_input"] == {"expression": "2+2"}
         assert data["tool_result"] == "4"
@@ -352,7 +338,6 @@ class TestAgentsRuntimeMessageSerialization:
         content = AgentRunContent(text="This is a user message")
         runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             reply=content,
         )
 
@@ -367,7 +352,6 @@ class TestAgentsRuntimeMessageSerialization:
         content = AgentRunContent(text="Test response with special chars: 中文 🎉")
         runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             query=AgentRunContent(text="What is 2+2?"),
             reply=content,
             status=AgentRunStatus.COMPLETED,
@@ -392,7 +376,6 @@ class TestAgentsRuntimeMessageSerialization:
         original_content = AgentRunContent(text="Test response")
         original_runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             query=AgentRunContent(text="What is 2+2?"),
             reply=original_content,
             status=AgentRunStatus.COMPLETED,
@@ -420,7 +403,6 @@ class TestAgentsRuntimeMessageSerialization:
         )
         original_runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             query=AgentRunContent(text="How are you?"),
             reply=content,
             status=AgentRunStatus.COMPLETED,
@@ -437,7 +419,6 @@ class TestAgentsRuntimeMessageSerialization:
 
         # Verify all fields are preserved
         assert restored_runtime.agent_id == original_runtime.agent_id
-        assert restored_runtime.agent_name == original_runtime.agent_name
         assert restored_runtime.query == original_runtime.query
         assert restored_runtime.status == original_runtime.status
         assert restored_runtime.reply is not None
@@ -448,7 +429,6 @@ class TestAgentsRuntimeMessageSerialization:
         """Test AgentRun with None reply."""
         runtime = AgentRun(
             agent_id="agent-123",
-            agent_name="TestAgent",
             reply=None,
         )
 

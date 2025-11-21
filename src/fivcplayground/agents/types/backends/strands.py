@@ -149,7 +149,7 @@ class AgentRunnable(Runnable):
                                 tool_use = cast(ToolUse, block["toolUse"])
                                 tool_use_id = tool_use.get("toolUseId")
                                 tool_call = AgentRunToolCall(
-                                    tool_use_id=tool_use_id,
+                                    id=tool_use_id,
                                     tool_name=tool_use.get("name"),
                                     tool_input=tool_use.get("input"),
                                     started_at=datetime.now(),

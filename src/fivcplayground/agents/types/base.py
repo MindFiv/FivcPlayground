@@ -7,7 +7,7 @@ system, providing structured data for agent configuration, execution state,
 and tool invocations.
 
 Core Models:
-    - AgentRunMeta: Agent configuration and metadata
+    - AgentRunSession: Agent configuration and metadata
     - AgentRun: Overall agent execution state and runtime data
     - AgentRunToolCall: Individual tool call record
     - AgentRunStatus: Execution status enumeration
@@ -21,23 +21,21 @@ suitable for:
 
 Example:
     >>> from fivcplayground.agents.types import (
-    ...     AgentRunMeta,
+    ...     AgentRunSession,
     ...     AgentRun,
     ...     AgentRunToolCall,
     ...     AgentRunStatus
     ... )
     >>>
-    >>> # Create agent metadata
-    >>> agent_meta = AgentRunMeta(
+    >>> # Create agent session metadata
+    >>> session = AgentRunSession(
     ...     agent_id="my-agent",
-    ...     agent_name="MyAgent",
-    ...     system_prompt="You are a helpful assistant"
+    ...     description="A helpful assistant agent"
     ... )
     >>>
     >>> # Create runtime instance
     >>> runtime = AgentRun(
     ...     agent_id="my-agent",
-    ...     agent_name="MyAgent",
     ...     status=AgentRunStatus.EXECUTING
     ... )
 
@@ -48,6 +46,7 @@ Note:
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
+from uuid import uuid4
 
 from pydantic import (
     BaseModel,
@@ -66,6 +65,9 @@ class AgentConfig(BaseModel):
     def name(self) -> str:
         return self.id  # id and name are the same for agents
 
+    model_id: str | None = Field(
+        default=None, description="Model name (e.g., 'default', 'chat')"
+    )
     description: str | None = Field(
         default=None, description="Description of the agent"
     )
@@ -124,66 +126,6 @@ class AgentRunEvent(str, Enum):
     TOOL = "tool"  # tool call
 
 
-class AgentRunMeta(BaseModel):
-    """
-    Agent metadata and configuration.
-
-    Stores the persistent configuration and identity information for an agent.
-    This metadata is separate from runtime execution data and represents the
-    agent's definition rather than a specific execution instance.
-
-    Attributes:
-        id: Computed field, same as agent_id for convenience
-        agent_id: Unique identifier for the agent (required)
-        agent_name: Human-readable name for the agent (optional)
-        system_prompt: System prompt/instructions for the agent (optional)
-        description: Description of the agent's purpose and capabilities (optional)
-
-    Example:
-        >>> agent_meta = AgentRunMeta(
-        ...     agent_id="customer-support-agent",
-        ...     agent_name="Customer Support Agent",
-        ...     system_prompt="You are a helpful customer support assistant.",
-        ...     description="Handles customer inquiries and support requests"
-        ... )
-        >>> print(agent_meta.id)  # Same as agent_id
-        'customer-support-agent'
-
-    Note:
-        - Only agent_id is required; all other fields are optional
-        - The id property is a computed field that mirrors agent_id
-        - This model is typically stored in agent.json files in repositories
-        - Use this for agent configuration, not runtime execution state
-    """
-
-    model_config = {"arbitrary_types_allowed": True}
-
-    @computed_field
-    @property
-    def id(self) -> str:
-        """
-        Computed field providing convenient access to agent_id.
-
-        Returns:
-            The agent_id value
-        """
-        return self.agent_id
-
-    agent_id: str = Field(description="Unique agent identifier")
-    agent_name: Optional[str] = Field(
-        default=None, description="Human-readable agent name"
-    )
-    system_prompt: Optional[str] = Field(
-        default=None, description="System prompt/instructions for the agent"
-    )
-    description: Optional[str] = Field(
-        default=None, description="Description of agent's purpose and capabilities"
-    )
-    started_at: Optional[datetime] = Field(
-        default=None, description="Timestamp when the agent was first created"
-    )
-
-
 class AgentRunToolCall(BaseModel):
     """
     Single tool call record.
@@ -194,8 +136,7 @@ class AgentRunToolCall(BaseModel):
     information, and any errors that occurred.
 
     Attributes:
-        id: Computed field, same as tool_use_id for convenience
-        tool_use_id: Unique identifier for this tool call (required)
+        id: Unique identifier for this tool call (required)
         tool_name: Name of the tool being invoked (required)
         tool_input: Dictionary of input parameters passed to the tool
         tool_result: Result returned by the tool (None until completed)
@@ -209,7 +150,7 @@ class AgentRunToolCall(BaseModel):
     Example:
         >>> # Create a pending tool call
         >>> tool_call = AgentRunToolCall(
-        ...     tool_use_id="call-123",
+        ...     id="call-123",
         ...     tool_name="calculator",
         ...     tool_input={"expression": "2+2"},
         ...     status="pending",
@@ -223,24 +164,13 @@ class AgentRunToolCall(BaseModel):
         >>> print(f"Duration: {tool_call.duration}s")
 
     Note:
-        - tool_use_id and tool_name are required fields
+        - id and tool_name are required fields
         - status should be one of: "pending", "success", "error"
         - duration is automatically calculated from timestamps
         - is_completed returns True for both "success" and "error" statuses
     """
 
-    @computed_field
-    @property
-    def id(self) -> str:
-        """
-        Computed field providing convenient access to tool_use_id.
-
-        Returns:
-            The tool_use_id value
-        """
-        return self.tool_use_id
-
-    tool_use_id: str = Field(description="Unique tool call identifier")
+    id: str = Field(description="Unique tool call identifier")
     tool_name: str = Field(description="Name of the tool being invoked")
     tool_input: Dict[str, Any] = Field(
         default_factory=dict, description="Input parameters passed to the tool"
@@ -298,6 +228,41 @@ class AgentRunToolCall(BaseModel):
         return self.status in ("success", "error")
 
 
+class AgentRunSession(BaseModel):
+    """
+    Agent session metadata.
+
+    Represents the metadata and configuration for an agent session, including
+    agent identification and session tracking.
+
+    Attributes:
+        id: Unique session identifier
+        agent_id: Unique agent identifier
+        description: Description of agent's purpose and capabilities (optional)
+        started_at: Timestamp when the agent session was created (optional)
+
+    Example:
+        >>> session = AgentRunSession(
+        ...     agent_id="my-agent",
+        ...     description="A helpful assistant agent"
+        ... )
+    """
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    id: str = Field(
+        default_factory=lambda: str(uuid4()),
+        description="Unique session identifier (auto-generated if not provided)",
+    )
+    agent_id: str = Field(..., description="Unique agent identifier")
+    description: str | None = Field(
+        default=None, description="Description of agent's purpose and capabilities"
+    )
+    started_at: datetime | None = Field(
+        default=None, description="Timestamp when the agent session was created"
+    )
+
+
 class AgentRun(BaseModel):
     """
     Agent execution state and runtime metadata.
@@ -307,19 +272,17 @@ class AgentRun(BaseModel):
     status, timing information, tool calls, streaming output, and final results.
 
     Each AgentRun instance represents one execution of an agent, identified
-    by a unique timestamp-based agent_run_id. Multiple runtimes can exist for
+    by a unique timestamp-based id. Multiple runtimes can exist for
     the same agent (identified by agent_id).
 
     Attributes:
-        id: Computed field, same as agent_run_id for convenience
-        agent_run_id: Unique run identifier (timestamp string, auto-generated)
+        id: Unique run identifier (timestamp string, auto-generated)
         agent_id: ID of the agent being executed (optional)
-        agent_name: Name of the agent (optional)
         status: Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)
         started_at: Timestamp when execution started
         completed_at: Timestamp when execution finished
         query: User query that initiated this agent run
-        tool_calls: Dictionary mapping tool_use_id to AgentRunToolCall instances
+        tool_calls: Dictionary mapping tool id to AgentRunToolCall instances
         reply: Final agent reply message
         streaming_text: Accumulated streaming text output from the agent
         error: Error message if execution failed
@@ -334,7 +297,6 @@ class AgentRun(BaseModel):
         >>> # Create a new runtime
         >>> runtime = AgentRun(
         ...     agent_id="my-agent",
-        ...     agent_name="MyAgent",
         ...     query="What is 2+2?",
         ...     status=AgentRunStatus.PENDING
         ... )
@@ -345,11 +307,11 @@ class AgentRun(BaseModel):
         >>>
         >>> # Add tool call
         >>> tool_call = AgentRunToolCall(
-        ...     tool_use_id="call-1",
+        ...     id="call-1",
         ...     tool_name="calculator",
         ...     tool_input={"expression": "2+2"}
         ... )
-        >>> runtime.tool_calls[tool_call.tool_use_id] = tool_call
+        >>> runtime.tool_calls[tool_call.id] = tool_call
         >>>
         >>> # Complete execution
         >>> runtime.status = AgentRunStatus.COMPLETED
@@ -358,34 +320,21 @@ class AgentRun(BaseModel):
         >>> print(f"Tool calls: {runtime.tool_call_count}")
 
     Note:
-        - agent_run_id is auto-generated as a timestamp if not provided
+        - id is auto-generated as a timestamp if not provided
         - tool_calls are stored separately in repositories (not in run.json)
-        - The id property is a computed field that mirrors agent_run_id
         - Use AgentRunStatus enum for status values
         - Computed fields are automatically included in serialization
     """
 
     model_config = {"arbitrary_types_allowed": True}
 
-    @computed_field
-    @property
-    def id(self) -> str:
-        """
-        Computed field providing convenient access to agent_run_id.
-
-        Returns:
-            The agent_run_id value
-        """
-        return self.agent_run_id
-
-    agent_run_id: str = Field(
+    id: str = Field(
         default_factory=lambda: str(datetime.now().timestamp()),
         description="Unique run identifier (timestamp string for chronological ordering)",
     )
     agent_id: Optional[str] = Field(
         default=None, description="ID of the agent being executed"
     )
-    agent_name: Optional[str] = Field(default=None, description="Name of the agent")
     status: AgentRunStatus = Field(
         default=AgentRunStatus.PENDING,
         description="Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)",
@@ -401,7 +350,7 @@ class AgentRun(BaseModel):
     )
     tool_calls: Dict[str, AgentRunToolCall] = Field(
         default_factory=dict,
-        description="Dictionary mapping tool_use_id to AgentRunToolCall instances",
+        description="Dictionary mapping tool id to AgentRunToolCall instances",
     )
     reply: Optional[AgentRunContent] = Field(
         default=None, description="Final agent reply message"

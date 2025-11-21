@@ -302,7 +302,7 @@ class AgentRunnable(Runnable):
                         elif isinstance(msg, ToolMessage):
                             event = AgentRunEvent.TOOL
                             tool_call = AgentRunToolCall(
-                                tool_use_id=msg.tool_call_id,
+                                id=msg.tool_call_id,
                                 tool_name=msg.name,
                                 # tool_input=msg.input,
                                 tool_result=msg.content,
@@ -310,7 +310,7 @@ class AgentRunnable(Runnable):
                                 completed_at=datetime.now(),
                                 status=msg.status,
                             )
-                            runtime.tool_calls[tool_call.tool_use_id] = tool_call
+                            runtime.tool_calls[tool_call.id] = tool_call
 
                     if self._callback_handler and event != AgentRunEvent.START:
                         self._callback_handler(event, runtime)

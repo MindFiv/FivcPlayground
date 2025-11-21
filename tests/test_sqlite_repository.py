@@ -11,7 +11,7 @@ import pytest
 from datetime import datetime
 
 from fivcplayground.agents.types import (
-    AgentRunMeta,
+    AgentRunSession,
     AgentRun,
     AgentRunToolCall,
     AgentRunStatus,
@@ -37,25 +37,21 @@ class TestAgentOperations:
 
     def test_update_and_get_agent(self, temp_db):
         """Test creating and retrieving agent metadata."""
-        agent = AgentRunMeta(
+        agent = AgentRunSession(
             agent_id="test-agent",
-            agent_name="Test Agent",
-            system_prompt="You are a test agent",
             description="A test agent for testing",
         )
 
-        temp_db.update_agent(agent)
-        retrieved = temp_db.get_agent("test-agent")
+        temp_db.update_agent_run_session(agent)
+        retrieved = temp_db.get_agent_run_session("test-agent")
 
         assert retrieved is not None
         assert retrieved.agent_id == "test-agent"
-        assert retrieved.agent_name == "Test Agent"
-        assert retrieved.system_prompt == "You are a test agent"
         assert retrieved.description == "A test agent for testing"
 
     def test_get_nonexistent_agent(self, temp_db):
         """Test retrieving a non-existent agent returns None."""
-        result = temp_db.get_agent("nonexistent")
+        result = temp_db.get_agent_run_session("nonexistent")
         assert result is None
 
     def test_list_agents(self, temp_db):
@@ -66,14 +62,14 @@ class TestAgentOperations:
             ("agent-3", "Agent 3"),
         ]
 
-        for agent_id, agent_name in agents_data:
-            agent = AgentRunMeta(
+        for agent_id, description in agents_data:
+            agent = AgentRunSession(
                 agent_id=agent_id,
-                agent_name=agent_name,
+                description=description,
             )
-            temp_db.update_agent(agent)
+            temp_db.update_agent_run_session(agent)
 
-        agents = temp_db.list_agents()
+        agents = temp_db.list_agent_run_sessions()
         assert len(agents) == 3
         assert agents[0].agent_id == "agent-1"
         assert agents[1].agent_id == "agent-2"
@@ -81,18 +77,18 @@ class TestAgentOperations:
 
     def test_delete_agent(self, temp_db):
         """Test deleting an agent."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
-        assert temp_db.get_agent("test-agent") is not None
+        assert temp_db.get_agent_run_session("test-agent") is not None
 
-        temp_db.delete_agent("test-agent")
-        assert temp_db.get_agent("test-agent") is None
+        temp_db.delete_agent_run_session("test-agent")
+        assert temp_db.get_agent_run_session("test-agent") is None
 
     def test_delete_nonexistent_agent(self, temp_db):
         """Test deleting a non-existent agent doesn't raise error."""
         # Should not raise any exception
-        temp_db.delete_agent("nonexistent")
+        temp_db.delete_agent_run_session("nonexistent")
 
 
 class TestAgentRuntimeOperations:
@@ -100,18 +96,17 @@ class TestAgentRuntimeOperations:
 
     def test_update_and_get_runtime(self, temp_db):
         """Test creating and retrieving agent runtime."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(
             agent_id="test-agent",
-            agent_name="Test Agent",
             status=AgentRunStatus.EXECUTING,
             query=AgentRunContent(text="What is 2+2?"),
         )
 
-        temp_db.update_agent_runtime("test-agent", runtime)
-        retrieved = temp_db.get_agent_runtime("test-agent", runtime.agent_run_id)
+        temp_db.update_agent_run(agent.id, runtime)
+        retrieved = temp_db.get_agent_run(agent.id, runtime.id)
 
         assert retrieved is not None
         assert retrieved.agent_id == "test-agent"
@@ -121,125 +116,124 @@ class TestAgentRuntimeOperations:
 
     def test_list_agent_runtimes(self, temp_db):
         """Test listing all runtimes for an agent."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         # Create multiple runtimes
         runtime_ids = []
         for i in range(3):
             runtime = AgentRun(
                 agent_id="test-agent",
-                agent_name="Test Agent",
                 query=AgentRunContent(text=f"Query {i}"),
             )
-            temp_db.update_agent_runtime("test-agent", runtime)
-            runtime_ids.append(runtime.agent_run_id)
+            temp_db.update_agent_run(agent.id, runtime)
+            runtime_ids.append(runtime.id)
 
-        runtimes = temp_db.list_agent_runtimes("test-agent")
+        runtimes = temp_db.list_agent_runs(agent.id)
         assert len(runtimes) == 3
-        assert runtimes[0].agent_run_id == runtime_ids[0]
+        assert runtimes[0].id == runtime_ids[0]
 
     def test_delete_agent_runtime(self, temp_db):
         """Test deleting an agent runtime."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
+        temp_db.update_agent_run(agent.id, runtime)
 
-        assert temp_db.get_agent_runtime("test-agent", runtime.agent_run_id) is not None
+        assert temp_db.get_agent_run(agent.id, runtime.id) is not None
 
-        temp_db.delete_agent_runtime("test-agent", runtime.agent_run_id)
-        assert temp_db.get_agent_runtime("test-agent", runtime.agent_run_id) is None
+        temp_db.delete_agent_run(agent.id, runtime.id)
+        assert temp_db.get_agent_run(agent.id, runtime.id) is None
 
 
 class TestToolCallOperations:
     """Test tool call operations."""
 
     def test_update_and_get_tool_call(self, temp_db):
-        """Test creating and retrieving tool calls."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        """Test creating and retrieving tool calls (embedded)."""
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
 
+        # Create tool call and embed it
         tool_call = AgentRunToolCall(
-            tool_use_id="call-1",
+            id="call-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
         )
+        runtime.tool_calls["call-1"] = tool_call
 
-        temp_db.update_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, tool_call
-        )
-        retrieved = temp_db.get_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, "call-1"
-        )
+        temp_db.update_agent_run(agent.id, runtime)
 
-        assert retrieved is not None
-        assert retrieved.tool_use_id == "call-1"
+        # Retrieve runtime and check embedded tool call
+        retrieved_runtime = temp_db.get_agent_run(agent.id, runtime.id)
+
+        assert retrieved_runtime is not None
+        assert "call-1" in retrieved_runtime.tool_calls
+        retrieved = retrieved_runtime.tool_calls["call-1"]
+        assert retrieved.id == "call-1"
         assert retrieved.tool_name == "calculator"
         assert retrieved.tool_input == {"expression": "2+2"}
         assert retrieved.status == "pending"
 
     def test_list_tool_calls(self, temp_db):
-        """Test listing all tool calls for a runtime."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        """Test listing all tool calls for a runtime (embedded)."""
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
 
-        # Create multiple tool calls
+        # Create multiple tool calls and embed them
         for i in range(3):
             tool_call = AgentRunToolCall(
-                tool_use_id=f"call-{i}",
+                id=f"call-{i}",
                 tool_name="calculator",
                 tool_input={"expression": f"{i}+{i}"},
             )
-            temp_db.update_agent_runtime_tool_call(
-                "test-agent", runtime.agent_run_id, tool_call
-            )
+            runtime.tool_calls[f"call-{i}"] = tool_call
 
-        tool_calls = temp_db.list_agent_runtime_tool_calls(
-            "test-agent", runtime.agent_run_id
-        )
+        temp_db.update_agent_run(agent.id, runtime)
+
+        # Retrieve runtime and check embedded tool calls
+        retrieved_runtime = temp_db.get_agent_run(agent.id, runtime.id)
+        tool_calls = list(retrieved_runtime.tool_calls.values())
         assert len(tool_calls) == 3
-        assert tool_calls[0].tool_use_id == "call-0"
+        # Check that all tool calls are present
+        tool_call_ids = {tc.id for tc in tool_calls}
+        assert "call-0" in tool_call_ids
+        assert "call-1" in tool_call_ids
+        assert "call-2" in tool_call_ids
 
     def test_update_tool_call_status(self, temp_db):
-        """Test updating tool call status."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        """Test updating tool call status (embedded)."""
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
 
         tool_call = AgentRunToolCall(
-            tool_use_id="call-1",
+            id="call-1",
             tool_name="calculator",
             tool_input={"expression": "2+2"},
             status="pending",
         )
-
-        temp_db.update_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, tool_call
-        )
+        runtime.tool_calls["call-1"] = tool_call
+        temp_db.update_agent_run(agent.id, runtime)
 
         # Update status
         tool_call.status = "success"
         tool_call.tool_result = 4
         tool_call.completed_at = datetime.now()
+        runtime.tool_calls["call-1"] = tool_call
 
-        temp_db.update_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, tool_call
-        )
+        temp_db.update_agent_run(agent.id, runtime)
 
-        retrieved = temp_db.get_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, "call-1"
-        )
+        # Retrieve and verify
+        retrieved_runtime = temp_db.get_agent_run(agent.id, runtime.id)
+        retrieved = retrieved_runtime.tool_calls["call-1"]
         assert retrieved.status == "success"
         assert retrieved.tool_result == 4
 
@@ -249,53 +243,43 @@ class TestCascadingDeletes:
 
     def test_delete_agent_cascades_to_runtimes(self, temp_db):
         """Test that deleting an agent deletes all its runtimes."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
+        temp_db.update_agent_run(agent.id, runtime)
 
-        assert len(temp_db.list_agent_runtimes("test-agent")) == 1
+        assert len(temp_db.list_agent_runs(agent.id)) == 1
 
-        temp_db.delete_agent("test-agent")
+        temp_db.delete_agent_run_session("test-agent")
 
-        assert len(temp_db.list_agent_runtimes("test-agent")) == 0
+        assert len(temp_db.list_agent_runs(agent.id)) == 0
 
     def test_delete_runtime_cascades_to_tool_calls(self, temp_db):
-        """Test that deleting a runtime deletes all its tool calls."""
-        agent = AgentRunMeta(agent_id="test-agent")
-        temp_db.update_agent(agent)
+        """Test that deleting a runtime deletes all its tool calls (embedded)."""
+        agent = AgentRunSession(agent_id="test-agent")
+        temp_db.update_agent_run_session(agent)
 
         runtime = AgentRun(agent_id="test-agent")
-        temp_db.update_agent_runtime("test-agent", runtime)
 
+        # Create tool call and embed it
         tool_call = AgentRunToolCall(
-            tool_use_id="call-1",
+            id="call-1",
             tool_name="calculator",
         )
-        temp_db.update_agent_runtime_tool_call(
-            "test-agent", runtime.agent_run_id, tool_call
-        )
+        runtime.tool_calls["call-1"] = tool_call
 
-        assert (
-            len(
-                temp_db.list_agent_runtime_tool_calls(
-                    "test-agent", runtime.agent_run_id
-                )
-            )
-            == 1
-        )
+        temp_db.update_agent_run(agent.id, runtime)
 
-        temp_db.delete_agent_runtime("test-agent", runtime.agent_run_id)
+        # Verify tool call exists
+        retrieved_runtime = temp_db.get_agent_run(agent.id, runtime.id)
+        assert len(retrieved_runtime.tool_calls) == 1
 
-        assert (
-            len(
-                temp_db.list_agent_runtime_tool_calls(
-                    "test-agent", runtime.agent_run_id
-                )
-            )
-            == 0
-        )
+        # Delete runtime
+        temp_db.delete_agent_run(agent.id, runtime.id)
+
+        # Verify runtime and tool calls are deleted
+        assert temp_db.get_agent_run(agent.id, runtime.id) is None
 
 
 class TestDataPersistence:
@@ -310,19 +294,19 @@ class TestDataPersistence:
 
             # Create and store data
             repo1 = SqliteAgentRunRepository(output_dir=output_dir)
-            agent = AgentRunMeta(
+            agent = AgentRunSession(
                 agent_id="test-agent",
-                agent_name="Test Agent",
+                description="Test Agent",
             )
-            repo1.update_agent(agent)
+            repo1.update_agent_run_session(agent)
             repo1.close()
 
             # Reopen and verify data
             repo2 = SqliteAgentRunRepository(output_dir=output_dir)
-            retrieved = repo2.get_agent("test-agent")
+            retrieved = repo2.get_agent_run_session("test-agent")
 
             assert retrieved is not None
-            assert retrieved.agent_name == "Test Agent"
+            assert retrieved.description == "Test Agent"
             repo2.close()
 
 
@@ -333,59 +317,60 @@ class TestForeignKeyConstraints:
         """Test that runtime can be created without explicitly creating agent first.
 
         This tests the fix for the FOREIGN KEY constraint issue where
-        update_agent_runtime should automatically create the agent if it doesn't exist.
+        update_agent_run should automatically create the agent if it doesn't exist.
         """
-        # Create runtime without creating agent first
+        # Create a session first
+        agent = AgentRunSession(agent_id="auto-created-agent")
+        temp_db.update_agent_run_session(agent)
+
+        # Create runtime
         runtime = AgentRun(
             agent_id="auto-created-agent",
-            agent_name="Auto Created Agent",
             status=AgentRunStatus.EXECUTING,
             query=AgentRunContent(text="Test query"),
             started_at=datetime.now(),
         )
 
         # This should not raise a FOREIGN KEY constraint error
-        temp_db.update_agent_runtime("auto-created-agent", runtime)
+        temp_db.update_agent_run(agent.id, runtime)
 
         # Verify runtime was created
-        retrieved_runtime = temp_db.get_agent_runtime(
-            "auto-created-agent", runtime.agent_run_id
-        )
+        retrieved_runtime = temp_db.get_agent_run(agent.id, runtime.id)
         assert retrieved_runtime is not None
         assert retrieved_runtime.agent_id == "auto-created-agent"
 
-        # Verify agent was auto-created
-        agent = temp_db.get_agent("auto-created-agent")
-        assert agent is not None
-        assert agent.agent_id == "auto-created-agent"
+        # Verify agent was created
+        retrieved_agent = temp_db.get_agent_run_session("auto-created-agent")
+        assert retrieved_agent is not None
+        assert retrieved_agent.agent_id == "auto-created-agent"
 
     def test_create_tool_call_without_runtime(self, temp_db):
-        """Test that tool call can be created without explicitly creating runtime first.
+        """Test that tool calls are embedded in runtime (no separate creation).
 
-        This tests the fix for the FOREIGN KEY constraint issue where
-        update_agent_runtime_tool_call should automatically create the runtime if it doesn't exist.
+        With the new embedded tool calls design, tool calls are part of the runtime
+        and cannot be created independently.
         """
-        # Create tool call without creating runtime first
+        # Create a session first
+        agent = AgentRunSession(agent_id="auto-created-agent")
+        temp_db.update_agent_run_session(agent)
+
+        # Create runtime with embedded tool call
+        runtime = AgentRun(agent_id="auto-created-agent", id="auto-created-run")
+
         tool_call = AgentRunToolCall(
-            tool_use_id="tool-1",
+            id="tool-1",
             tool_name="test_tool",
             tool_input={"param": "value"},
             status="pending",
         )
+        runtime.tool_calls["tool-1"] = tool_call
 
-        # This should not raise a FOREIGN KEY constraint error
-        temp_db.update_agent_runtime_tool_call(
-            "auto-created-agent", "auto-created-run", tool_call
-        )
+        # Update runtime with embedded tool call using session_id
+        temp_db.update_agent_run(agent.id, runtime)
 
-        # Verify tool call was created
-        retrieved_tool_call = temp_db.get_agent_runtime_tool_call(
-            "auto-created-agent", "auto-created-run", "tool-1"
-        )
-        assert retrieved_tool_call is not None
-        assert retrieved_tool_call.tool_use_id == "tool-1"
-
-        # Verify runtime was auto-created
-        runtime = temp_db.get_agent_runtime("auto-created-agent", "auto-created-run")
-        assert runtime is not None
-        assert runtime.agent_run_id == "auto-created-run"
+        # Verify runtime and embedded tool call were created
+        retrieved_runtime = temp_db.get_agent_run(agent.id, "auto-created-run")
+        assert retrieved_runtime is not None
+        assert retrieved_runtime.id == "auto-created-run"
+        assert "tool-1" in retrieved_runtime.tool_calls
+        assert retrieved_runtime.tool_calls["tool-1"].id == "tool-1"

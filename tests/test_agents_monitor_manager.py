@@ -3,7 +3,6 @@
 Tests for AgentMonitorManager functionality.
 """
 
-import os
 import tempfile
 from unittest.mock import Mock
 
@@ -12,6 +11,7 @@ from fivcplayground.agents.types import (
     AgentMonitor,
     AgentRunToolCall,
     AgentRunStatus,
+    AgentRunSession,
 )
 from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
 from fivcplayground.utils import OutputDir
@@ -83,8 +83,8 @@ class TestAgentsMonitorManager:
 
             # Verify monitor has a runtime with auto-generated IDs
             assert monitor._runtime is not None
-            assert monitor._runtime.agent_run_id is not None
-            assert len(monitor._runtime.agent_run_id) > 0
+            assert monitor._runtime.id is not None
+            assert len(monitor._runtime.id) > 0
 
     def test_list_agent_runtimes(self):
         """Test listing agent runtimes"""
@@ -96,17 +96,21 @@ class TestAgentsMonitorManager:
             # Create multiple monitors manually
             agent_id = "test-agent-123"
 
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
+
             # Create first monitor
             monitor1 = manager.create_agent_runtime()
             runtime1 = monitor1._runtime
             runtime1.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime1)
+            repo.update_agent_run(session.id, runtime1)
 
             # Create second monitor
             monitor2 = manager.create_agent_runtime()
             runtime2 = monitor2._runtime
             runtime2.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime2)
+            repo.update_agent_run(session.id, runtime2)
 
             monitors = manager.list_agent_runtimes(agent_id)
             assert len(monitors) == 2
@@ -136,40 +140,44 @@ class TestAgentsMonitorManager:
             # Use same agent_id for all runtimes
             agent_id = "test-agent-123"
 
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
+
             # Create monitors and manually set their statuses
             monitor1 = manager.create_agent_runtime()
             runtime1 = monitor1._runtime
             runtime1.agent_id = agent_id
             runtime1.status = AgentRunStatus.PENDING
-            repo.update_agent_runtime(agent_id, runtime1)
+            repo.update_agent_run(session.id, runtime1)
 
             monitor2 = manager.create_agent_runtime()
             runtime2 = monitor2._runtime
             runtime2.agent_id = agent_id
             runtime2.status = AgentRunStatus.EXECUTING
-            repo.update_agent_runtime(agent_id, runtime2)
+            repo.update_agent_run(session.id, runtime2)
 
             monitor3 = manager.create_agent_runtime()
             runtime3 = monitor3._runtime
             runtime3.agent_id = agent_id
             runtime3.status = AgentRunStatus.COMPLETED
-            repo.update_agent_runtime(agent_id, runtime3)
+            repo.update_agent_run(session.id, runtime3)
 
             # Filter by EXECUTING status
             executing_agents = manager.list_agent_runtimes(
                 agent_id, status=[AgentRunStatus.EXECUTING]
             )
             assert len(executing_agents) == 1
-            assert executing_agents[0]._runtime.agent_run_id == runtime2.agent_run_id
+            assert executing_agents[0]._runtime.id == runtime2.id
 
             # Filter by multiple statuses
             pending_or_completed = manager.list_agent_runtimes(
                 agent_id, status=[AgentRunStatus.PENDING, AgentRunStatus.COMPLETED]
             )
             assert len(pending_or_completed) == 2
-            run_ids = {agent._runtime.agent_run_id for agent in pending_or_completed}
-            assert runtime1.agent_run_id in run_ids
-            assert runtime3.agent_run_id in run_ids
+            run_ids = {agent._runtime.id for agent in pending_or_completed}
+            assert runtime1.id in run_ids
+            assert runtime3.id in run_ids
 
     def test_get_agent_runtime(self):
         """Test getting a specific agent runtime monitor"""
@@ -182,12 +190,16 @@ class TestAgentsMonitorManager:
             # Create a monitor
             monitor = manager.create_agent_runtime()
             agent_id = "test-agent-123"
-            agent_run_id = monitor._runtime.agent_run_id
+            agent_run_id = monitor._runtime.id
+
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
 
             # Update runtime with agent_id
             runtime = monitor._runtime
             runtime.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime)
+            repo.update_agent_run(session.id, runtime)
 
             result = manager.get_agent_runtime(agent_id, agent_run_id)
             assert result is not None
@@ -216,12 +228,16 @@ class TestAgentsMonitorManager:
             # Create a monitor
             monitor = manager.create_agent_runtime()
             agent_id = "test-agent-123"
-            agent_run_id = monitor._runtime.agent_run_id
+            agent_run_id = monitor._runtime.id
+
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
 
             # Update runtime with agent_id
             runtime = monitor._runtime
             runtime.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime)
+            repo.update_agent_run(session.id, runtime)
 
             callback = Mock()
             result = manager.get_agent_runtime(
@@ -241,12 +257,16 @@ class TestAgentsMonitorManager:
             # Create a monitor
             monitor = manager.create_agent_runtime()
             agent_id = "test-agent-123"
-            agent_run_id = monitor._runtime.agent_run_id
+            agent_run_id = monitor._runtime.id
+
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
 
             # Update runtime with agent_id
             runtime = monitor._runtime
             runtime.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime)
+            repo.update_agent_run(session.id, runtime)
 
             assert len(manager.list_agent_runtimes(agent_id)) == 1
 
@@ -277,25 +297,30 @@ class TestAgentsMonitorManager:
             # Create a monitor
             monitor = manager.create_agent_runtime()
             agent_id = "test-agent-123"
-            agent_run_id = monitor._runtime.agent_run_id
+            agent_run_id = monitor._runtime.id
 
-            # Update runtime with agent_id
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
+
+            # Update runtime with agent_id and embedded tool call
             runtime = monitor._runtime
             runtime.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime)
 
-            # Add a tool call directly to repository
+            # Add a tool call to the runtime
             tool_call = AgentRunToolCall(
-                tool_use_id="tool-1",
+                id="tool-1",
                 tool_name="calculator",
                 tool_input={"expression": "2+2"},
                 status="success",
             )
-            repo.update_agent_runtime_tool_call(agent_id, agent_run_id, tool_call)
+            runtime.tool_calls["tool-1"] = tool_call
 
-            # Verify agent directory was created
-            agent_dir = os.path.join(tmpdir, f"agent_{agent_id}")
-            assert os.path.exists(agent_dir)
+            repo.update_agent_run(session.id, runtime)
+
+            # Verify session directory was created
+            session_dir = repo._get_session_dir(session.id)
+            assert session_dir.exists()
 
             # Load in new manager with same repository
             manager2 = AgentMonitorManager(runtime_repo=repo)
@@ -307,12 +332,10 @@ class TestAgentsMonitorManager:
             loaded_monitor = manager2.get_agent_runtime(agent_id, agent_run_id)
             assert loaded_monitor is not None
 
-            # Load tool calls through the repository
-            loaded_tool_calls = repo.list_agent_runtime_tool_calls(
-                agent_id, agent_run_id
-            )
-            assert len(loaded_tool_calls) == 1
-            assert loaded_tool_calls[0].tool_name == "calculator"
+            # Load tool calls from the runtime
+            loaded_runtime = repo.get_agent_run(session.id, agent_run_id)
+            assert len(loaded_runtime.tool_calls) == 1
+            assert loaded_runtime.tool_calls["tool-1"].tool_name == "calculator"
 
     def test_list_tool_calls(self):
         """Test listing tool calls for an agent runtime"""
@@ -325,26 +348,32 @@ class TestAgentsMonitorManager:
             # Create a monitor
             monitor = manager.create_agent_runtime()
             agent_id = "test-agent-123"
-            agent_run_id = monitor._runtime.agent_run_id
+            agent_run_id = monitor._runtime.id
 
-            # Update runtime with agent_id
+            # Create session first
+            session = AgentRunSession(agent_id=agent_id)
+            repo.update_agent_run_session(session)
+
+            # Update runtime with agent_id and embedded tool calls
             runtime = monitor._runtime
             runtime.agent_id = agent_id
-            repo.update_agent_runtime(agent_id, runtime)
 
-            # Add some tool calls
-            tool_call1 = AgentRunToolCall(tool_use_id="tool-1", tool_name="calculator")
-            tool_call2 = AgentRunToolCall(tool_use_id="tool-2", tool_name="search")
-            repo.update_agent_runtime_tool_call(agent_id, agent_run_id, tool_call1)
-            repo.update_agent_runtime_tool_call(agent_id, agent_run_id, tool_call2)
+            # Add some tool calls (embedded)
+            tool_call1 = AgentRunToolCall(id="tool-1", tool_name="calculator")
+            tool_call2 = AgentRunToolCall(id="tool-2", tool_name="search")
+            runtime.tool_calls["tool-1"] = tool_call1
+            runtime.tool_calls["tool-2"] = tool_call2
 
-            # Get agent runtime monitor and list tool calls through the repository
+            repo.update_agent_run(session.id, runtime)
+
+            # Get agent runtime monitor and verify tool calls
             monitor = manager.get_agent_runtime(agent_id, agent_run_id)
             assert monitor is not None
 
-            tool_calls = repo.list_agent_runtime_tool_calls(agent_id, agent_run_id)
+            # Tool calls are now embedded in the runtime
+            tool_calls = list(monitor._runtime.tool_calls.values())
             assert len(tool_calls) == 2
 
-            tool_call_ids = {tc.tool_use_id for tc in tool_calls}
+            tool_call_ids = {tc.id for tc in tool_calls}
             assert "tool-1" in tool_call_ids
             assert "tool-2" in tool_call_ids
