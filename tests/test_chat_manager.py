@@ -468,7 +468,9 @@ class TestChatManager:
 
     def test_init_with_defaults(self):
         """Test ChatManager initialization with default settings."""
-        with patch("fivcplayground.app.utils.chats.tools.create_tool_retriever") as mock_create:
+        with patch(
+            "fivcplayground.app.utils.chats.tools.create_tool_retriever"
+        ) as mock_create:
             mock_retriever = Mock(spec=tools.ToolRetriever)
             mock_create.return_value = mock_retriever
 
@@ -545,7 +547,9 @@ class TestChatManager:
 
     def test_add_chat_creates_independent_instances(self):
         """Test add_chat creates independent Chat instances."""
-        with patch("fivcplayground.app.utils.chats.tools.create_tool_retriever") as mock_create:
+        with patch(
+            "fivcplayground.app.utils.chats.tools.create_tool_retriever"
+        ) as mock_create:
             mock_retriever = Mock(spec=tools.ToolRetriever)
             mock_create.return_value = mock_retriever
 

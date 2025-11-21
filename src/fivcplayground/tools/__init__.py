@@ -1,5 +1,6 @@
 __all__ = [
     "create_tool_retriever",
+    "create_tool_loader",
     "setup_tools",
     "Tool",
     "ToolBundle",
@@ -44,14 +45,18 @@ def create_tool_retriever(
 def create_tool_loader(
     tool_retriever: ToolRetriever | None = None,
     tool_config_repository: ToolConfigRepository | None = None,
-    **kwargs,
+    **kwargs,  # ignore additional kwargs
 ) -> ToolLoader:
     """Create a new ToolLoader instance."""
+    if not tool_retriever:
+        raise ValueError("tool_retriever must be provided")
+
     return ToolLoader(
         tool_retriever=tool_retriever,
         tool_config_repository=tool_config_repository,
         **kwargs,
     )
+
 
 @asynccontextmanager
 async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:

@@ -32,8 +32,7 @@ Note:
 import asyncio
 import dotenv
 
-from fivcplayground.tools.types.loaders import ToolLoader
-from fivcplayground.tools.types.retrievers import ToolRetriever
+from fivcplayground.tools import create_tool_loader, create_tool_retriever
 from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
 from fivcplayground import agents
 from fivcplayground.agents.types import AgentsMonitor
@@ -59,12 +58,12 @@ async def main():
     try:
         # Create a ToolRetriever to manage tools
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tools_retriever = ToolRetriever()
+        tools_retriever = create_tool_retriever()
 
         # Create a ToolLoader with the retriever
         # ToolLoader handles loading tools from MCP servers configured in mcp.yaml
-        loader = ToolLoader(
-            tools_retriever=tools_retriever,
+        loader = create_tool_loader(
+            tool_retriever=tools_retriever,
             config_file="configs/mcp.yaml"
         )
 

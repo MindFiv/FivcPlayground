@@ -37,9 +37,11 @@ class ToolLoader(object):
         client: Persistent MultiServerMCPClient instance for connecting to MCP servers
 
     Example:
-        >>> retriever = ToolRetriever()
+        >>> from fivcplayground.tools import create_tool_loader, create_tool_retriever
+        >>> from fivcplayground.tools.types.repositories import FileToolConfigRepository
+        >>> retriever = create_tool_retriever()
         >>> repo = FileToolConfigRepository()
-        >>> loader = ToolLoader(tool_retriever=retriever, tool_config_repository=repo)
+        >>> loader = create_tool_loader(tool_retriever=retriever, tool_config_repository=repo)
         >>> await loader.load_async()  # Load all configured tools
         >>> # ... use tools ...
         >>> await loader.cleanup_async()  # Clean up resources

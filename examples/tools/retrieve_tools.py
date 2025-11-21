@@ -12,8 +12,8 @@ import dotenv
 
 from fivcplayground.utils import OutputDir
 from fivcplayground.tools import (
-    ToolRetriever,
-    ToolLoader,
+    create_tool_retriever,
+    create_tool_loader,
 )
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
@@ -30,7 +30,7 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a retriever instance
-    retriever = ToolRetriever()
+    retriever = create_tool_retriever()
 
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
@@ -39,7 +39,7 @@ async def main():
 
         # Load MCP tools using ToolLoader
         print("Loading MCP tools...")
-        loader = ToolLoader(tools_retriever=retriever)
+        loader = create_tool_loader(tool_retriever=retriever)
         await loader.load_async()
 
         print("Tools loaded successfully!")

@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
-from fivcplayground.tools.types.loaders import ToolLoader
+from fivcplayground.tools import create_tool_loader
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.utils import OutputDir
 from fivcplayground import __backend__
@@ -58,7 +58,9 @@ class TestToolsIntegration:
             assert len(repo.list_tool_configs()) == 1
 
             # Setup retriever with mocked embedding DB
-            with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+            with patch(
+                "fivcplayground.embeddings.create_embedding_db"
+            ) as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
                 mock_collection.clear = Mock()
@@ -74,7 +76,7 @@ class TestToolsIntegration:
                 )
 
                 # Setup loader
-                loader = ToolLoader(
+                loader = create_tool_loader(
                     tool_retriever=retriever,
                     tool_config_repository=repo,
                 )
@@ -90,7 +92,9 @@ class TestToolsIntegration:
                     weather_tool = create_mock_tool(
                         "get_weather", "Get weather information"
                     )
-                    forecast_tool = create_mock_tool("get_forecast", "Get weather forecast")
+                    forecast_tool = create_mock_tool(
+                        "get_forecast", "Get weather forecast"
+                    )
 
                     # Mock async context manager
                     mock_bundle.load_async.return_value.__aenter__.return_value = [
@@ -153,7 +157,9 @@ class TestToolsIntegration:
             repo.update_tool_config(config1)
 
             # Setup retriever and loader with mocked embedding DB
-            with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+            with patch(
+                "fivcplayground.embeddings.create_embedding_db"
+            ) as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
                 mock_collection.clear = Mock()
@@ -167,7 +173,7 @@ class TestToolsIntegration:
                     embedding_config_repository=None,
                     embedding_config_id="default",
                 )
-                loader = ToolLoader(
+                loader = create_tool_loader(
                     tool_retriever=retriever,
                     tool_config_repository=repo,
                 )
@@ -179,7 +185,9 @@ class TestToolsIntegration:
                     mock_bundle = MagicMock()
                     mock_bundle_class.return_value = mock_bundle
                     tool1 = create_mock_tool("tool1", "Tool 1")
-                    mock_bundle.load_async.return_value.__aenter__.return_value = [tool1]
+                    mock_bundle.load_async.return_value.__aenter__.return_value = [
+                        tool1
+                    ]
                     mock_bundle.load_async.return_value.__aexit__.return_value = None
 
                     await loader.load_async()
@@ -201,13 +209,16 @@ class TestToolsIntegration:
                     mock_bundle = MagicMock()
                     mock_bundle_class.return_value = mock_bundle
                     tool2 = create_mock_tool("tool2", "Tool 2")
-                    mock_bundle.load_async.return_value.__aenter__.return_value = [tool2]
+                    mock_bundle.load_async.return_value.__aenter__.return_value = [
+                        tool2
+                    ]
                     mock_bundle.load_async.return_value.__aexit__.return_value = None
 
                     await loader.load_async()
                     # Both servers should be in bundles
                     assert (
-                        "server1" in loader.tool_bundles or "server2" in loader.tool_bundles
+                        "server1" in loader.tool_bundles
+                        or "server2" in loader.tool_bundles
                     )
 
 

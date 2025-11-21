@@ -11,7 +11,7 @@ import tempfile
 import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from fivcplayground import __backend__
-from fivcplayground.tools.types.loaders import ToolLoader
+from fivcplayground.tools import create_tool_loader
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.tools.types.repositories import ToolConfigRepository
 
@@ -42,7 +42,7 @@ class TestToolLoaderInit:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -55,9 +55,9 @@ class TestToolLoaderInit:
             os.unlink(config_path)
 
     def test_init_without_retriever_raises_assertion(self):
-        """Test that initialization without retriever raises AssertionError."""
-        with pytest.raises(AssertionError):
-            ToolLoader(tool_retriever=None)
+        """Test that initialization without retriever raises ValueError."""
+        with pytest.raises(ValueError):
+            create_tool_loader(tool_retriever=None)
 
     def test_init_with_default_config_file(self):
         """Test initialization with default config file from environment."""
@@ -73,7 +73,7 @@ class TestToolLoaderInit:
             old_env = os.environ.get("MCP_FILE")
             try:
                 os.environ["MCP_FILE"] = config_path
-                loader = ToolLoader(
+                loader = create_tool_loader(
                     tool_retriever=mock_retriever, tool_config_repository=mock_repo
                 )
                 assert loader.tool_config_repository == mock_repo
@@ -98,7 +98,7 @@ class TestToolLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -125,7 +125,7 @@ class TestToolLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -162,7 +162,7 @@ class TestToolLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -222,7 +222,7 @@ class TestToolLoaderLoad:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -257,7 +257,7 @@ class TestToolLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -290,7 +290,7 @@ class TestToolLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -314,7 +314,7 @@ class TestToolLoaderCleanup:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -356,7 +356,7 @@ class TestToolLoaderIncrementalUpdates:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -409,7 +409,7 @@ class TestToolLoaderIncrementalUpdates:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -464,7 +464,7 @@ class TestToolLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -504,7 +504,7 @@ class TestToolLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,
@@ -539,7 +539,7 @@ class TestToolLoaderPersistentConnections:
             config_path = f.name
 
         try:
-            loader = ToolLoader(
+            loader = create_tool_loader(
                 tool_retriever=mock_retriever,
                 tool_config_repository=mock_repo,
                 config_file=config_path,

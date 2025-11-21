@@ -12,7 +12,7 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fivcplayground import __backend__
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
