@@ -2,18 +2,19 @@
 File-based embedding configuration repository implementation.
 
 This module provides FileEmbeddingConfigRepository, a file-based implementation
-of EmbeddingConfigRepository that stores embedding configurations in a hierarchical
-directory structure with JSON files.
+of EmbeddingConfigRepository that stores embedding configurations in a single
+consolidated YAML file.
 
 Storage Structure:
-    /<output_dir>/
-    └── embedding_<embedding_id>.json    # Embedding configuration (EmbeddingConfig)
+    /<output_dir>/configs/
+    └── embeddings.yaml    # All embedding configurations (mapping of embedding_id -> EmbeddingConfig)
 
 This structure allows for:
     - Simple file-based storage
     - Easy inspection of embedding data
-    - Human-readable JSON format
+    - Human-readable YAML format
     - Simple backup and version control
+    - Atomic updates of all embeddings
 
 Example:
     >>> from fivcplayground.embeddings.types.repositories.files import FileEmbeddingConfigRepository
@@ -40,7 +41,7 @@ Example:
     >>> embeddings = repo.list_embedding_configs()
 """
 
-import json
+import yaml
 from pathlib import Path
 from typing import Optional, List, Any
 
@@ -53,20 +54,21 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
     """
     File-based repository for embedding configurations.
 
-    Stores embedding configurations in JSON files within a directory structure.
+    Stores all embedding configurations in a single consolidated YAML file.
     All operations are thread-safe for single-process usage.
 
     Storage structure:
-        /<output_dir>/
-        └── embedding_<embedding_id>.json    # Embedding configuration
+        /<output_dir>/configs/
+        └── embeddings.yaml    # All embedding configurations (mapping of embedding_id -> EmbeddingConfig)
 
     Attributes:
         output_dir: OutputDir instance for the repository base directory
         base_path: Path object pointing to the repository root
+        embeddings_file: Path to the embeddings.yaml file
 
     Note:
-        - All JSON files use UTF-8 encoding with 2-space indentation
-        - Corrupted JSON files are logged and skipped during reads
+        - YAML file uses UTF-8 encoding
+        - Corrupted YAML files are logged and skipped during reads
         - Delete operations are safe to call on non-existent items
         - All write operations create necessary directories automatically
     """
@@ -80,30 +82,63 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
                        defaults to OutputDir().subdir("embeddings")
 
         Note:
-            The base directory is created automatically if it doesn't exist.
+            The base directory and configs subdirectory are created automatically
+            if they don't exist.
         """
-        self.output_dir = output_dir or OutputDir().subdir("embeddings")
+        self.output_dir = output_dir or OutputDir().subdir("configs")
         self.base_path = Path(str(self.output_dir))
+        self.embeddings_file = self.base_path / "embeddings.yaml"
+
+        # Create directories if they don't exist
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_embedding_file(self, embedding_id: str) -> Path:
+    def _get_embeddings_file(self) -> Path:
         """
-        Get the file path for an embedding configuration.
-
-        Args:
-            embedding_id: Embedding identifier
+        Get the file path for the consolidated embeddings YAML file.
 
         Returns:
-            Path to embedding configuration file (e.g., /<base_path>/embedding_<embedding_id>.json)
+            Path to embeddings.yaml file
         """
-        return self.base_path / f"embedding_{embedding_id}.json"
+        return self.embeddings_file
+
+    def _load_embeddings_data(self) -> dict:
+        """
+        Load all embeddings from the YAML file.
+
+        Returns:
+            Dictionary mapping embedding_id to embedding data. Returns empty dict if file
+            doesn't exist or is corrupted.
+        """
+        embeddings_file = self._get_embeddings_file()
+
+        if not embeddings_file.exists():
+            return {}
+
+        try:
+            with open(embeddings_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data if data is not None else {}
+        except (yaml.YAMLError, ValueError) as e:
+            print(f"Error loading embeddings from {embeddings_file.name}: {e}")
+            return {}
+
+    def _save_embeddings_data(self, embeddings_data: dict) -> None:
+        """
+        Save all embeddings to the YAML file.
+
+        Args:
+            embeddings_data: Dictionary mapping embedding_id to embedding data
+        """
+        embeddings_file = self._get_embeddings_file()
+        with open(embeddings_file, "w", encoding="utf-8") as f:
+            yaml.dump(embeddings_data, f, default_flow_style=False, allow_unicode=True)
 
     def update_embedding_config(self, embedding_config: EmbeddingConfig) -> None:
         """
         Create or update an embedding configuration.
 
-        Stores embedding configuration in a JSON file. The embedding_id is derived from
-        the embedding_config.id field.
+        Stores embedding configuration in the consolidated YAML file. The embedding_id
+        is derived from the embedding_config.id field.
 
         Args:
             embedding_config: EmbeddingConfig instance to persist
@@ -113,13 +148,18 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
             same embedding will overwrite the existing configuration.
         """
         embedding_id = embedding_config.id
-        embedding_file = self._get_embedding_file(embedding_id)
 
-        # Serialize embedding config to JSON
+        # Load existing embeddings
+        embeddings_data = self._load_embeddings_data()
+
+        # Serialize embedding config to dict
         embedding_data = embedding_config.model_dump(mode="json")
 
-        with open(embedding_file, "w", encoding="utf-8") as f:
-            json.dump(embedding_data, f, indent=2, ensure_ascii=False)
+        # Update the embedding in the data
+        embeddings_data[embedding_id] = embedding_data
+
+        # Save all embeddings back to file
+        self._save_embeddings_data(embeddings_data)
 
     def get_embedding_config(self, embedding_id: str) -> EmbeddingConfig | None:
         """
@@ -130,19 +170,17 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
 
         Returns:
             EmbeddingConfig instance if found, None if embedding doesn't exist
-            or if the JSON file is corrupted
+            or if the YAML file is corrupted
         """
-        embedding_file = self._get_embedding_file(embedding_id)
+        embeddings_data = self._load_embeddings_data()
 
-        if not embedding_file.exists():
+        if embedding_id not in embeddings_data:
             return None
 
         try:
-            with open(embedding_file, "r", encoding="utf-8") as f:
-                embedding_data = json.load(f)
-
+            embedding_data = embeddings_data[embedding_id]
             return EmbeddingConfig.model_validate(embedding_data)
-        except (json.JSONDecodeError, ValueError) as e:
+        except ValueError as e:
             print(f"Error loading embedding {embedding_id}: {e}")
             return None
 
@@ -154,19 +192,17 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
             List of EmbeddingConfig instances sorted by embedding_id.
             Returns empty list if no embeddings exist.
         """
+        embeddings_data = self._load_embeddings_data()
         embeddings = []
 
-        if not self.base_path.exists():
-            return embeddings
-
-        for embedding_file in sorted(self.base_path.glob("embedding_*.json")):
+        # Sort by embedding_id for consistent ordering
+        for embedding_id in sorted(embeddings_data.keys()):
             try:
-                with open(embedding_file, "r", encoding="utf-8") as f:
-                    embedding_data = json.load(f)
+                embedding_data = embeddings_data[embedding_id]
                 config = EmbeddingConfig.model_validate(embedding_data)
                 embeddings.append(config)
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"Error loading embedding from {embedding_file.name}: {e}")
+            except ValueError as e:
+                print(f"Error loading embedding {embedding_id}: {e}")
 
         return embeddings
 
@@ -180,9 +216,11 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         Note:
             This operation is safe to call on non-existent embeddings.
         """
-        embedding_file = self._get_embedding_file(embedding_id)
-        if embedding_file.exists():
-            embedding_file.unlink()
+        embeddings_data = self._load_embeddings_data()
+
+        if embedding_id in embeddings_data:
+            del embeddings_data[embedding_id]
+            self._save_embeddings_data(embeddings_data)
 
     def filter_repository(
         self,

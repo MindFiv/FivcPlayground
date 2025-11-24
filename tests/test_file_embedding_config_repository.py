@@ -3,7 +3,7 @@
 Tests for FileEmbeddingConfigRepository functionality and EmbeddingDB/EmbeddingTable integration.
 """
 
-import json
+import yaml
 import tempfile
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
@@ -52,9 +52,9 @@ class TestFileEmbeddingConfigRepository:
             # Save embedding config
             repo.update_embedding_config(embedding_config)
 
-            # Verify embedding file exists
-            embedding_file = repo._get_embedding_file("openai-ada")
-            assert embedding_file.exists()
+            # Verify embeddings file exists
+            embeddings_file = repo._get_embeddings_file()
+            assert embeddings_file.exists()
 
             # Retrieve embedding config
             retrieved_config = repo.get_embedding_config("openai-ada")
@@ -156,7 +156,10 @@ class TestFileEmbeddingConfigRepository:
 
             # Verify embedding is deleted
             assert repo.get_embedding_config("test-embedding") is None
-            assert not repo._get_embedding_file("test-embedding").exists()
+
+            # Verify embedding is not in the YAML file
+            embeddings_data = repo._load_embeddings_data()
+            assert "test-embedding" not in embeddings_data
 
     def test_delete_nonexistent_embedding(self):
         """Test deleting an embedding that doesn't exist (should be safe)"""
@@ -177,8 +180,8 @@ class TestFileEmbeddingConfigRepository:
             filtered_repo = repo.filter_repository(some_filter="value")
             assert filtered_repo is repo
 
-    def test_json_file_format(self):
-        """Test that embedding configs are stored in correct JSON format"""
+    def test_yaml_file_format(self):
+        """Test that embedding configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileEmbeddingConfigRepository(output_dir=output_dir)
@@ -195,18 +198,20 @@ class TestFileEmbeddingConfigRepository:
             )
             repo.update_embedding_config(embedding_config)
 
-            # Read JSON file directly
-            embedding_file = repo._get_embedding_file("test-embedding")
-            with open(embedding_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            # Read YAML file directly
+            embeddings_file = repo._get_embeddings_file()
+            with open(embeddings_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
 
-            # Verify JSON structure
-            assert data["id"] == "test-embedding"
-            assert data["description"] == "Test embedding"
-            assert data["provider"] == "openai"
-            assert data["model_id"] == "text-embedding-ada-002"
-            assert data["api_key"] == "sk-test"
-            assert data["dimension"] == 1536
+            # Verify YAML structure - should have embedding_id as key
+            assert "test-embedding" in data
+            embedding_data = data["test-embedding"]
+            assert embedding_data["id"] == "test-embedding"
+            assert embedding_data["description"] == "Test embedding"
+            assert embedding_data["provider"] == "openai"
+            assert embedding_data["model_id"] == "text-embedding-ada-002"
+            assert embedding_data["api_key"] == "sk-test"
+            assert embedding_data["dimension"] == 1536
 
 
 class TestEmbeddingDBIntegration:

@@ -3,7 +3,7 @@
 Tests for FileToolConfigRepository functionality.
 """
 
-import json
+import yaml
 import tempfile
 
 from fivcplayground.tools.types.base import ToolConfig
@@ -138,7 +138,9 @@ class TestFileToolConfigRepository:
 
             # Verify tool is deleted
             assert repo.get_tool_config("test-tool") is None
-            assert not repo._get_tool_file("test-tool").exists()
+            # Verify deletion in YAML data
+            tools_data = repo._load_tools_data()
+            assert "test-tool" not in tools_data
 
     def test_delete_nonexistent_tool(self):
         """Test deleting a tool that doesn't exist (should be safe)"""
@@ -159,8 +161,8 @@ class TestFileToolConfigRepository:
             filtered_repo = repo.filter_repository(some_filter="value")
             assert filtered_repo is repo
 
-    def test_json_file_format(self):
-        """Test that tool configs are stored in correct JSON format"""
+    def test_yaml_file_format(self):
+        """Test that tool configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileToolConfigRepository(output_dir=output_dir)
@@ -175,31 +177,31 @@ class TestFileToolConfigRepository:
             )
             repo.update_tool_config(tool_config)
 
-            # Read JSON file directly
-            tool_file = repo._get_tool_file("test-tool")
-            with open(tool_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            # Read YAML file directly
+            tools_file = repo._get_tools_file()
+            with open(tools_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
 
-            # Verify JSON structure
-            assert data["id"] == "test-tool"
-            assert data["description"] == "Test description"
-            assert data["transport"] == "stdio"
+            # Verify YAML structure - tool_id is the key
+            assert "test-tool" in data
+            assert data["test-tool"]["id"] == "test-tool"
+            assert data["test-tool"]["description"] == "Test description"
+            assert data["test-tool"]["transport"] == "stdio"
 
-    def test_corrupted_json_handling(self):
-        """Test handling of corrupted JSON files"""
+    def test_corrupted_yaml_handling(self):
+        """Test handling of corrupted YAML files"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileToolConfigRepository(output_dir=output_dir)
 
-            # Create a corrupted JSON file
-            tool_file = repo._get_tool_file("corrupted-tool")
-            tool_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(tool_file, "w", encoding="utf-8") as f:
-                f.write("{ invalid json }")
+            # Create a corrupted YAML file
+            tools_file = repo._get_tools_file()
+            with open(tools_file, "w", encoding="utf-8") as f:
+                f.write("{ invalid: yaml: content: }")
 
-            # Try to get corrupted tool (should return None)
-            config = repo.get_tool_config("corrupted-tool")
-            assert config is None
+            # Try to load tools (should return empty dict)
+            tools_data = repo._load_tools_data()
+            assert tools_data == {}
 
 
 if __name__ == "__main__":

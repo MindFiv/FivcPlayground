@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Any, List, Type, Union, Callable, cast
+from typing import List, Type, Callable, cast
 from uuid import uuid4
 from warnings import warn
 
@@ -21,52 +21,32 @@ from fivcplayground.agents.types import (
     AgentRun,
     AgentRunToolCall,
 )
-from fivcplayground.tools import setup_tools, Tool
+from fivcplayground.agents.types.repositories import (
+    AgentRunRepository,
+    AgentRunSessionSpan,
+)
+
+from fivcplayground.tools import (
+    setup_tools,
+    Tool,
+    ToolRetriever,
+)
 from fivcplayground.utils import Runnable
 
 
 class AgentRunnable(Runnable):
     def __init__(
         self,
+        id: str | None = None,
+        description: str | None = None,
         model: Model | None = None,
-        tools: List[Tool] | None = None,
-        agent_id: str | None = None,
-        agent_name: str = "Default",
         system_prompt: str | None = None,
-        messages: List[AgentRun] | None = None,
-        response_model: Type[BaseModel] | None = None,
-        callback_handler: Callable[[AgentRunEvent, AgentRun], None] | None = None,
-        **kwargs,
+        **kwargs,  # ignore additional kwargs
     ):
-        self._id = agent_id or str(uuid4())
-        self._name = agent_name
-        self._system_prompt = system_prompt
-        self._callback_handler = callback_handler
-        self._response_model = response_model
+        self._id = id or str(uuid4())
+        self._description = description or ""
         self._model = model
-        self._tools = tools or []
-        self._messages = []
-
-        # Convert messages to Strands format
-        for m in messages or []:
-            if not m.is_completed:
-                continue
-
-            if m.query and m.query.text:
-                self._messages.append(
-                    Message(
-                        role="user",
-                        content=[ContentBlock(text=m.query.text)],
-                    )
-                )
-
-            if m.reply and m.reply.text:
-                self._messages.append(
-                    Message(
-                        role="assistant",
-                        content=[ContentBlock(text=m.reply.text)],
-                    )
-                )
+        self._system_prompt = system_prompt
 
     @property
     def id(self) -> str:
@@ -74,61 +54,84 @@ class AgentRunnable(Runnable):
 
     @property
     def name(self) -> str:
-        return self._name
-
-    @property
-    def agent_id(self):
         return self._id
 
     @property
-    def system_prompt(self):
-        return self._system_prompt
+    def description(self) -> str:
+        return self._description
 
     def run(
         self,
         query: str | AgentRunContent = "",
-        **kwargs: Any,
-    ) -> Union[BaseModel, AgentRunContent]:
-        return asyncio.run(self.run_async(query, **kwargs))
+        agent_run_repository: AgentRunRepository | None = None,
+        agent_run_session_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
+        **kwargs,  # ignore additional kwargs
+    ) -> BaseModel:
+        return asyncio.run(
+            self.run_async(
+                query,
+                agent_run_repository=agent_run_repository,
+                agent_run_session_id=agent_run_session_id,
+                tool_retriever=tool_retriever,
+                tool_ids=tool_ids,
+                response_model=response_model,
+                event_callback=event_callback,
+                **kwargs,
+            )
+        )
 
     async def run_async(
         self,
         query: str | AgentRunContent = "",
-        **kwargs: Any,
-    ) -> Union[BaseModel, AgentRunContent]:
-        if query:
-            if isinstance(query, str):
-                query = AgentRunContent(text=query)
+        agent_run_repository: AgentRunRepository | None = None,
+        agent_run_session_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
+        **kwargs,  # ignore additional kwargs
+    ) -> BaseModel:
+        if query and not isinstance(query, AgentRunContent):
+            query = AgentRunContent(text=str(query))
 
-            if isinstance(query, AgentRunContent):
-                self._messages.append(
-                    Message(role="user", content=[ContentBlock(text=query.text)])
-                )
+        agent_messages = _list_messages(
+            agent_run_repository,
+            agent_run_session_id,
+            query,
+        )
 
-        async with setup_tools(self._tools) as tools_expanded:
+        async with (
+            setup_tools(_list_tools(tool_retriever, tool_ids, query)) as tools_expanded,
+            AgentRunSessionSpan(
+                agent_run_repository,
+                agent_run_session_id,
+                self._id,
+            ) as agent_run_session_span,
+        ):
             agent = Agent(
-                agent_id=self._id,
+                name=self._id,
                 model=self._model,
                 tools=tools_expanded,
-                name=self._name,
                 system_prompt=self._system_prompt,
-                conversation_manager=SlidingWindowConversationManager(window_size=10),
+                conversation_manager=SlidingWindowConversationManager(window_size=20),
             )
-            runtime = AgentRun(
+            agent_run = AgentRun(
                 agent_id=self._id,
-                agent_name=self._name,
                 status=AgentRunStatus.EXECUTING,
                 query=query or None,
                 started_at=datetime.now(),
             )
             output = None
-            if self._callback_handler:
-                self._callback_handler(AgentRunEvent.START, runtime)
+            event_callback(AgentRunEvent.START, agent_run)
 
             try:
                 async for event_data in agent.stream_async(
-                    prompt=self._messages,
-                    structured_output_model=self._response_model,
+                    prompt=agent_messages,
+                    structured_output_model=response_model,
                 ):
                     event = AgentRunEvent.START
                     if "result" in event_data:
@@ -136,11 +139,11 @@ class AgentRunnable(Runnable):
 
                     elif "data" in event_data:
                         event = AgentRunEvent.STREAM
-                        runtime.streaming_text += event_data["data"]
+                        agent_run.streaming_text += event_data["data"]
 
                     elif "message" in event_data:
                         event = AgentRunEvent.UPDATE
-                        runtime.streaming_text = ""
+                        agent_run.streaming_text = ""
 
                         message = event_data["message"]
                         for block in message.get("content", []):
@@ -155,13 +158,13 @@ class AgentRunnable(Runnable):
                                     started_at=datetime.now(),
                                     status=AgentRunStatus.EXECUTING,
                                 )
-                                runtime.tool_calls[tool_use_id] = tool_call
+                                agent_run.tool_calls[tool_use_id] = tool_call
 
                             if "toolResult" in block:
                                 event = AgentRunEvent.TOOL
                                 tool_result = cast(ToolResult, block["toolResult"])
                                 tool_use_id = tool_result.get("toolUseId")
-                                tool_call = runtime.tool_calls.get(tool_use_id)
+                                tool_call = agent_run.tool_calls.get(tool_use_id)
                                 if not tool_call:
                                     warn(
                                         f"Tool result received for unknown tool call: {tool_use_id}",
@@ -174,31 +177,91 @@ class AgentRunnable(Runnable):
                                 tool_call.tool_result = tool_result.get("content")
                                 tool_call.completed_at = datetime.now()
 
-                    if self._callback_handler and event != AgentRunEvent.START:
-                        self._callback_handler(event, runtime)
+                    if event != AgentRunEvent.START:
+                        event_callback(event, agent_run)
 
-                runtime.status = AgentRunStatus.COMPLETED
+                    if event == AgentRunEvent.UPDATE:
+                        agent_run_session_span(agent_run)
+
+                agent_run.status = AgentRunStatus.COMPLETED
 
             except Exception as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
                 output = await agent.invoke_async(prompt=error_msg)
 
-                runtime.status = AgentRunStatus.FAILED
+                agent_run.status = AgentRunStatus.FAILED
 
             finally:
-                runtime.completed_at = datetime.now()
+                agent_run.completed_at = datetime.now()
 
             if not isinstance(output, AgentResult):
                 raise ValueError(f"Expected AgentResult, got {type(output)}")
 
-            self._messages.append(output.message)
-
-            runtime.reply = AgentRunContent(text=str(output))
-
-            if self._callback_handler:
-                self._callback_handler(AgentRunEvent.FINISH, runtime)
+            agent_run.reply = AgentRunContent(text=str(output))
+            event_callback(AgentRunEvent.FINISH, agent_run)
 
             if output.structured_output:
                 return output.structured_output
 
-            return runtime.reply
+            return agent_run.reply
+
+
+def _list_messages(
+    agent_run_repository: AgentRunRepository | None = None,
+    agent_run_session_id: str | None = None,
+    agent_query: AgentRunContent | None = None,
+) -> List[Message]:
+    if not agent_run_repository:
+        return []
+
+    if not agent_run_session_id:
+        return []
+
+    agent_messages = []
+    agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+    for m in agent_runs:
+        if not m.is_completed:
+            continue
+
+        if m.query and m.query.text:
+            agent_messages.append(
+                Message(
+                    role="user",
+                    content=[ContentBlock(text=m.query.text)],
+                )
+            )
+
+        if m.reply and m.reply.text:
+            agent_messages.append(
+                Message(
+                    role="assistant",
+                    content=[ContentBlock(text=m.reply.text)],
+                )
+            )
+
+    if agent_query:
+        agent_messages.append(
+            Message(
+                role="user",
+                content=[ContentBlock(text=str(agent_query))],
+            )
+        )
+    return agent_messages
+
+
+def _list_tools(
+    tool_retriever: ToolRetriever | None = None,
+    tool_ids: List[str] | None = None,
+    tool_query: AgentRunContent | None = None,
+) -> List[Tool]:
+    if not tool_retriever:
+        return []
+
+    if tool_ids:
+        tools = [tool_retriever.get_tool(name) for name in tool_ids]
+        return [t for t in tools if t is not None]
+
+    if not tool_query:
+        return tool_retriever.list_tools()
+
+    return tool_retriever.retrieve_tools(str(tool_query))

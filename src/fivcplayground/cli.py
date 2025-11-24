@@ -17,7 +17,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from fivcplayground import agents, tools
+from fivcplayground.agents import create_agent
+from fivcplayground.agents.types.repositories import FileAgentConfigRepository
+from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
+from fivcplayground.models.types.repositories import FileModelConfigRepository
+from fivcplayground.tools import create_tool_retriever, create_tool_loader
+from fivcplayground.tools.types.repositories import FileToolConfigRepository
 from fivcplayground.utils import OutputDir
 
 load_dotenv()
@@ -53,6 +58,11 @@ def run(
     """
     Run a FivcPlayground agent
     """
+    embedding_config_repository = FileEmbeddingConfigRepository()
+    tool_config_repository = FileToolConfigRepository()
+    model_config_repository = FileModelConfigRepository()
+    agent_config_repository = FileAgentConfigRepository()
+
     console.print(
         Panel.fit(
             Text("FivcPlayground Agent Runner", style="bold blue"),
@@ -66,10 +76,15 @@ def run(
             console.print("[red]❌ Query cannot be empty[/red]")
             raise typer.Exit(1)
 
-    agent_creator = agents.default_retriever.get(agent_name)
-    if not agent_creator:
+    agent_runnable = create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id=agent_name,
+    )
+    if not agent_runnable:
         console.print(f"[red]❌ Unknown agent type: {agent_name}[/red]")
-        console.print(f"Available agents: {agents.default_retriever.get_all()}")
+        console.print(f"Available agents: {[
+            i.id for i in agent_config_repository.list_agent_configs()]}")
         raise typer.Exit(1)
 
     if dry_run:
@@ -80,14 +95,22 @@ def run(
             console.print(f"[yellow]Output:[/yellow] {output}")
         return
 
-    agent = agent_creator(
-        tool_retriever=tools.create_tool_retriever(),
-        verbose=verbose,
+    tool_retriever = create_tool_retriever(
+        embedding_config_repository=embedding_config_repository,
+        embedding_config_id="default",
     )
+    tool_loader = create_tool_loader(
+        tool_retriever=tool_retriever,
+        tool_config_repository=tool_config_repository,
+    )
+    tool_loader.load()
 
     with OutputDir(base=output):
         try:
-            agent(query)
+            agent_runnable.run(
+                query,
+                tool_retriever=tool_retriever,
+            )
             console.print("[green]✅ Agent completed successfully![/green]")
         except Exception as e:
             console.print(f"[red]❌ Error runtime agent: {e}[/red]")

@@ -15,7 +15,6 @@ These tests work with both Strands and LangChain backends.
 """
 
 from unittest.mock import MagicMock
-from pydantic import BaseModel
 
 from fivcplayground.agents.types import AgentRunnable
 
@@ -27,11 +26,10 @@ class TestAgentsRunnableInitialization:
         """Test AgentRunnable initialization with required parameters."""
         mock_model = MagicMock()
 
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
-        assert agent._name == "TestAgent"
         assert agent._model == mock_model
-        assert agent.id is not None
+        assert agent.id == "test-agent"
 
     def test_init_with_system_prompt(self):
         """Test AgentRunnable initialization with system prompt."""
@@ -40,19 +38,18 @@ class TestAgentsRunnableInitialization:
 
         agent = AgentRunnable(
             model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
+            id="test-agent",
             system_prompt=system_prompt,
         )
 
         assert agent._system_prompt == system_prompt
 
     def test_init_generates_unique_ids(self):
-        """Test that each AgentRunnable gets a unique ID."""
+        """Test that each AgentRunnable gets a unique ID when not provided."""
         mock_model = MagicMock()
 
-        agent1 = AgentRunnable(model=mock_model, tools=[], agent_name="Agent1")
-        agent2 = AgentRunnable(model=mock_model, tools=[], agent_name="Agent2")
+        agent1 = AgentRunnable(model=mock_model)
+        agent2 = AgentRunnable(model=mock_model)
 
         assert agent1.id != agent2.id
 
@@ -63,7 +60,7 @@ class TestAgentsRunnableProperties:
     def test_id_property(self):
         """Test that id property returns a string."""
         mock_model = MagicMock()
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
         assert isinstance(agent.id, str)
         assert len(agent.id) > 0
@@ -71,12 +68,22 @@ class TestAgentsRunnableProperties:
     def test_id_property_consistency(self):
         """Test that id property returns the same value on multiple calls."""
         mock_model = MagicMock()
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
         id1 = agent.id
         id2 = agent.id
 
         assert id1 == id2
+
+    def test_description_property(self):
+        """Test that description property returns a string."""
+        mock_model = MagicMock()
+        agent = AgentRunnable(
+            model=mock_model, id="test-agent", description="Test description"
+        )
+
+        assert isinstance(agent.description, str)
+        assert agent.description == "Test description"
 
 
 class TestAgentsRunnableExecution:
@@ -85,7 +92,7 @@ class TestAgentsRunnableExecution:
     def test_run_method_exists(self):
         """Test that run method exists and is callable."""
         mock_model = MagicMock()
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
         assert hasattr(agent, "run")
         assert callable(agent.run)
@@ -93,7 +100,7 @@ class TestAgentsRunnableExecution:
     def test_run_async_method_exists(self):
         """Test that run_async method exists and is callable."""
         mock_model = MagicMock()
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
         assert hasattr(agent, "run_async")
         assert callable(agent.run_async)
@@ -101,7 +108,7 @@ class TestAgentsRunnableExecution:
     def test_callable_interface(self):
         """Test that AgentRunnable is callable via __call__."""
         mock_model = MagicMock()
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
         assert callable(agent)
 
@@ -109,61 +116,30 @@ class TestAgentsRunnableExecution:
 class TestAgentsRunnableToolHandling:
     """Test AgentRunnable tool handling."""
 
-    def test_init_with_empty_tools(self):
-        """Test initialization with empty tools list."""
+    def test_init_without_tools(self):
+        """Test initialization without tools parameter."""
         mock_model = MagicMock()
 
-        agent = AgentRunnable(model=mock_model, tools=[], agent_name="TestAgent")
+        agent = AgentRunnable(model=mock_model, id="test-agent")
 
-        assert agent._tools == []
-
-    def test_init_with_tools(self):
-        """Test initialization with tools."""
-        mock_model = MagicMock()
-        mock_tool = MagicMock()
-
-        agent = AgentRunnable(
-            model=mock_model, tools=[mock_tool], agent_name="TestAgent"
-        )
-
-        # Verify tools are stored
-        assert len(agent._tools) > 0
+        # Tools are no longer stored in AgentRunnable
+        assert not hasattr(agent, "_tools") or agent._tools is None
 
 
 class TestAgentsRunnableStructuredResponse:
     """Test AgentRunnable structured response handling."""
 
-    def test_init_with_response_model(self):
-        """Test initialization with response_model parameter."""
-
-        class TestResponse(BaseModel):
-            answer: str
-            confidence: float
-
+    def test_init_with_description(self):
+        """Test initialization with description parameter."""
         mock_model = MagicMock()
 
         agent = AgentRunnable(
             model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
-            response_model=TestResponse,
+            id="test-agent",
+            description="Test agent description",
         )
 
-        assert agent._response_model == TestResponse
-
-    def test_init_with_callback_handler(self):
-        """Test initialization with callback handler."""
-        mock_model = MagicMock()
-        mock_callback = MagicMock()
-
-        agent = AgentRunnable(
-            model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
-            callback_handler=mock_callback,
-        )
-
-        assert agent._callback_handler == mock_callback
+        assert agent._description == "Test agent description"
 
 
 class TestAgentsRunnableIntegration:
@@ -175,12 +151,12 @@ class TestAgentsRunnableIntegration:
 
         agent = AgentRunnable(
             model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
+            id="test-agent",
             system_prompt="You are helpful",
+            description="Test agent",
         )
 
-        assert agent._name == "TestAgent"
         assert agent._system_prompt == "You are helpful"
-        assert agent.id is not None
+        assert agent.id == "test-agent"
         assert agent._model == mock_model
+        assert agent._description == "Test agent"

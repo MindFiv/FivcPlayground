@@ -1,5 +1,5 @@
 __all__ = [
-    "create_default_agent",
+    "create_agent",
     "create_companion_agent",
     "create_tooling_agent",
     "create_consultant_agent",
@@ -7,197 +7,154 @@ __all__ = [
     "create_research_agent",
     "create_engineering_agent",
     "create_evaluating_agent",
-    "default_retriever",
-    "BaseAgentsCreator",
-    "AgentRetriever",
+    "AgentRunnable",
+    "AgentRun",
+    "AgentRunContent",
+    "AgentRunEvent",
+    "AgentRunStatus",
+    "AgentRunToolCall",
+    "AgentRunSession",
+    "AgentRunRepository",
+    "AgentConfigRepository",
 ]
 
-from typing import cast, List
-from uuid import uuid4
-
-from fivcplayground import (
-    tools,
-    utils,
+from fivcplayground.agents.types.base import (
+    AgentRun,
+    AgentRunContent,
+    AgentRunEvent,
+    AgentRunStatus,
+    AgentRunToolCall,
+    AgentRunSession,
+)
+from fivcplayground.agents.types.repositories import (
+    AgentConfigRepository,
+    AgentRunRepository,
 )
 from fivcplayground.models import (
+    ModelConfigRepository,
     create_model,
-    create_chat_model,
-    create_reasoning_model,
 )
 from fivcplayground.agents.types import (
-    agents_creator,
     AgentRunnable,
-    AgentRetriever,
-    BaseAgentsCreator,
 )
 
 
-@agents_creator("Generic")
-def create_default_agent(**kwargs) -> AgentRunnable:
+def create_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    agent_config_id: str = "default",
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
     """Create a standard ReAct agent for task execution."""
-
-    # Set default role if not provided
-    # Support both 'name' and 'agent_name' for backward compatibility
-    if "agent_name" not in kwargs:
-        kwargs["agent_name"] = kwargs.pop("name", "Generic")
-
-    if "agent_id" not in kwargs:
-        kwargs["agent_id"] = str(uuid4())
-
-    if "tools" not in kwargs:
-        kwargs["tools"] = tools.create_tool_retriever().list_tools()
-
-    if "model" not in kwargs:
-        kwargs["model"] = create_model()
-
-    return AgentRunnable(**kwargs)
-
-
-@agents_creator("Companion")
-def create_companion_agent(*args, **kwargs) -> AgentRunnable:
-    """Create a friend agent for chat."""
-    kwargs["agent_name"] = "Companion"
-    kwargs.setdefault(
-        "system_prompt", "You are a companion, or even a close friend of the user. "
-    )
-    if "model" not in kwargs:
-        kwargs["model"] = create_chat_model()
-
-    if "tools" not in kwargs:
-        kwargs["tools"] = tools.create_tool_retriever().list_tools()
-
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator("Tooling")
-def create_tooling_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can retrieve tools."""
-    kwargs["agent_name"] = "Tooling"
-    kwargs.setdefault(
-        "system_prompt",
-        "You are a tool retrieval specialist with deep expertise "
-        "in identifying the most appropriate tools for a given task. "
-        "Skilled at quickly assessing task requirements, "
-        "analyzing available toolsets, and "
-        "selecting the best tools for the job.",
-    )
-
-    if "model" not in kwargs:
-        kwargs["model"] = create_reasoning_model()
-
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator(name="Consultant")
-def create_consultant_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can assess tasks."""
-    kwargs["agent_name"] = "Consultant"
-    kwargs.setdefault(
-        "system_prompt",
-        """
-        You are a task assessment specialist with deep expertise in
-        determining the best approach for handling a given task.
-        Skilled at quickly assessing task requirements, identifying
-        the optimal tools and resources needed, or given an answer if
-        the task can be handled directly.
-        """,
-    )
-    if "model" not in kwargs:
-        kwargs["model"] = create_reasoning_model()
-
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator(name="Planner")
-def create_planning_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can plan tasks."""
-    kwargs["agent_name"] = "Planner"
-    kwargs.setdefault(
-        "system_prompt",
-        "You are a task planning specialist with deep expertise "
-        "in breaking down complex tasks into manageable components. "
-        "Skilled at identifying the optimal crew composition, "
-        "task prioritization, and workflow orchestration. "
-        "Your goal is to create a plan for executing the task "
-        "that is both efficient and effective.",
-    )
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator(name="Researcher")
-def create_research_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can research tasks."""
-    kwargs["agent_name"] = "Researcher"
-    kwargs.setdefault(
-        "system_prompt",
-        "You are a pattern recognition specialist and domain analysis expert "
-        "with deep expertise in workflow optimization. "
-        "Skilled at identifying recurring task sequences, "
-        "analyzing execution patterns across different domains, "
-        "and extracting actionable insights from complex data flows. "
-        "Experienced in comprehensive logging analysis and "
-        "workflow pattern summarization to "
-        "drive continuous system improvement.",
-    )
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator(name="Engineer")
-def create_engineering_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can engineer tools."""
-    kwargs["agent_name"] = "Engineer"
-    kwargs.setdefault(
-        "system_prompt",
-        "You are a tool development specialist and code generation expert "
-        "with extensive experience in creating composite tools from "
-        "existing components. "
-        "Skilled at autonomous tool creation, "
-        "combining multiple functionalities into cohesive solutions, "
-        "and implementing self-improving systems based on usage patterns. "
-        "Expert in maintaining toolset ecosystems and "
-        "optimizing tool performance for maximum efficiency.",
-    )
-    return create_default_agent(*args, **kwargs)
-
-
-@agents_creator(name="Evaluator")
-def create_evaluating_agent(*args, **kwargs) -> AgentRunnable:
-    """Create an agent that can evaluate performance."""
-    kwargs["agent_name"] = "Evaluator"
-    kwargs.setdefault(
-        "system_prompt",
-        "You are a performance assessment specialist and "
-        "quality assurance expert with "
-        "deep expertise in automated evaluation systems. "
-        "Skilled at monitoring multi-agent workflows, "
-        "identifying optimization opportunities, "
-        "and implementing human-in-the-loop validation processes. "
-        "Expert in performance tracking, "
-        "tool effectiveness validation, "
-        "and continuous monitoring for decision pattern recognition to "
-        "drive system-wide improvements.",
-    )
-    return create_default_agent(*args, **kwargs)
-
-
-def _load_retriever() -> AgentRetriever:
-    retriever = AgentRetriever()
-    retriever.add_batch(
-        cast(
-            List[BaseAgentsCreator],
-            [
-                create_default_agent,
-                create_companion_agent,
-                create_tooling_agent,
-                create_consultant_agent,
-                create_planning_agent,
-                create_research_agent,
-                create_engineering_agent,
-                create_evaluating_agent,
-            ],
+    if not agent_config_repository:
+        from fivcplayground.agents.types.repositories.files import (
+            FileAgentConfigRepository,
         )
+
+        agent_config_repository = FileAgentConfigRepository()
+
+    agent_config = agent_config_repository.get_agent_config(agent_config_id)
+    if not agent_config:
+        raise ValueError(f"Agent config not found: {agent_config_id}")
+
+    model = create_model(model_config_repository, agent_config.model_id)
+    if not model:
+        raise ValueError(f"Model not found: {agent_config.model_id}")
+
+    return AgentRunnable(
+        model=model,
+        id=agent_config.id,
+        description=agent_config.description,
+        system_prompt=agent_config.system_prompt,
     )
-    return retriever
 
 
-default_retriever = utils.LazyValue(_load_retriever)
+def create_companion_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create a friend agent for chat."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="companion",
+    )
+
+
+def create_tooling_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can retrieve tools."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="tooling",
+    )
+
+
+def create_consultant_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can assess tasks."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="consultant",
+    )
+
+
+def create_planning_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can plan tasks."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="planner",
+    )
+
+
+def create_research_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can research tasks."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="researcher",
+    )
+
+
+def create_engineering_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can engineer tools."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="engineer",
+    )
+
+
+def create_evaluating_agent(
+    model_config_repository: ModelConfigRepository | None = None,
+    agent_config_repository: AgentConfigRepository | None = None,
+    **kwargs,  # ignore additional kwargs
+) -> AgentRunnable:
+    """Create an agent that can evaluate performance."""
+    return create_agent(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
+        agent_config_id="evaluator",
+    )

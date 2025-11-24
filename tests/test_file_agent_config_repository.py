@@ -1,6 +1,6 @@
 """Tests for FileAgentConfigRepository class."""
 
-import json
+import yaml
 import tempfile
 
 from fivcplayground.agents.types.base import AgentConfig
@@ -43,9 +43,9 @@ class TestFileAgentConfigRepository:
             # Save agent config
             repo.update_agent_config(agent_config)
 
-            # Verify file exists
-            config_file = repo._get_agent_config_file("test-agent")
-            assert config_file.exists()
+            # Verify YAML file exists
+            agents_file = repo._get_agents_file()
+            assert agents_file.exists()
 
             # Retrieve agent config
             retrieved_config = repo.get_agent_config("test-agent")
@@ -102,9 +102,10 @@ class TestFileAgentConfigRepository:
             # Delete config
             repo.delete_agent_config("test-agent")
 
-            # Verify it's deleted
+            # Verify it's deleted from YAML data
+            agents_data = repo._load_agents_data()
+            assert "test-agent" not in agents_data
             assert repo.get_agent_config("test-agent") is None
-            assert not repo._get_agent_config_file("test-agent").exists()
 
     def test_delete_nonexistent_agent_config(self):
         """Test deleting a non-existent agent configuration (should be safe)"""
@@ -125,8 +126,8 @@ class TestFileAgentConfigRepository:
             filtered_repo = repo.filter_repository(some_filter="value")
             assert filtered_repo is repo
 
-    def test_json_file_format(self):
-        """Test that agent configs are stored in correct JSON format"""
+    def test_yaml_file_format(self):
+        """Test that agent configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentConfigRepository(output_dir=output_dir)
@@ -139,18 +140,20 @@ class TestFileAgentConfigRepository:
             )
             repo.update_agent_config(agent_config)
 
-            # Read JSON file directly
-            config_file = repo._get_agent_config_file("test-agent")
-            with open(config_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            # Read YAML file directly
+            agents_file = repo._get_agents_file()
+            with open(agents_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
 
-            # Verify JSON structure
-            assert data["id"] == "test-agent"
-            assert data["description"] == "Test description"
-            assert data["system_prompt"] == "Test prompt"
+            # Verify YAML structure - should have agent_id as key
+            assert "test-agent" in data
+            agent_data = data["test-agent"]
+            assert agent_data["id"] == "test-agent"
+            assert agent_data["description"] == "Test description"
+            assert agent_data["system_prompt"] == "Test prompt"
 
-    def test_file_naming_pattern(self):
-        """Test that agent configs use the correct file naming pattern"""
+    def test_yaml_file_location(self):
+        """Test that agent configs are stored in the correct YAML file location"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentConfigRepository(output_dir=output_dir)
@@ -159,12 +162,13 @@ class TestFileAgentConfigRepository:
             agent_config = AgentConfig(id="my-agent", description="Test")
             repo.update_agent_config(agent_config)
 
-            # Verify file naming pattern is agent_<agent_id>.json
-            config_file = repo._get_agent_config_file("my-agent")
-            assert config_file.name == "agent_my-agent.json"
-            assert config_file.exists()
+            # Verify YAML file location is configs/agents.yaml
+            agents_file = repo._get_agents_file()
+            assert agents_file.name == "agents.yaml"
+            assert agents_file.parent.name == "configs"
+            assert agents_file.exists()
 
-            # Verify glob pattern matches the file
-            glob_results = list(repo.base_path.glob("agent_*.json"))
-            assert len(glob_results) == 1
-            assert glob_results[0].name == "agent_my-agent.json"
+            # Verify the file contains the agent
+            with open(agents_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            assert "my-agent" in data

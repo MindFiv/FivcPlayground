@@ -8,6 +8,8 @@ for objects that support both synchronous and asynchronous execution.
 from abc import ABC, abstractmethod
 from typing import Any
 
+from pydantic import BaseModel
+
 
 class Runnable(ABC):
     """
@@ -64,7 +66,7 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    async def run_async(self, **kwargs: Any) -> Any:
+    async def run_async(self, **kwargs: Any) -> BaseModel:
         """
         Execute the runnable asynchronously (abstract method).
 
@@ -80,7 +82,7 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    def run(self, **kwargs: Any) -> Any:
+    def run(self, **kwargs: Any) -> BaseModel:
         """
         Execute the runnable synchronously (abstract method).
 
@@ -94,7 +96,7 @@ class Runnable(ABC):
             The result of the synchronous execution
         """
 
-    def __call__(self, **kwargs: Any) -> Any:
+    def __call__(self, **kwargs: Any) -> BaseModel:
         """
         Execute the runnable synchronously.
 
@@ -135,12 +137,12 @@ class ProxyRunnable(Runnable):
     def name(self) -> str:
         return self._runnable.name
 
-    async def run_async(self, **kwargs: Any) -> Any:
+    async def run_async(self, **kwargs: Any) -> BaseModel:
         for k, v in self._kwargs.items():
             kwargs.setdefault(k, v)
         return await self._runnable.run_async(**kwargs)
 
-    def run(self, **kwargs: Any) -> Any:
+    def run(self, **kwargs: Any) -> BaseModel:
         for k, v in self._kwargs.items():
             kwargs.setdefault(k, v)
         return self._runnable.run(**kwargs)

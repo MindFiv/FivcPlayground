@@ -27,10 +27,11 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a companion agent
-    from fivcplayground.agents.types import AgentMonitor
-    agent_monitor = AgentMonitor()
-    agent = agents.create_companion_agent(
-        callback_handler=agent_monitor)
+    from fivcplayground import tools
+
+    agent = agents.create_companion_agent()
+    tool_retriever = tools.create_tool_retriever()
+
     print(f"Agent ID: {agent.id}")
     print(f"Agent Name: {agent.name}")
     print()
@@ -40,7 +41,10 @@ async def main():
     print("-" * 50)
     query = "What time is it now?"
     print(f"Query: {query}")
-    result = agent.run(query=query)
+    result = agent.run(
+        query=query,
+        tool_retriever=tool_retriever,
+    )
     print(f"Result: {result}")
     print()
 
@@ -49,7 +53,10 @@ async def main():
     print("-" * 50)
     query = "Tell me a fun fact about AI"
     print(f"Query: {query}")
-    result = await agent.run_async(query=query)
+    result = await agent.run_async(
+        query=query,
+        tool_retriever=tool_retriever,
+    )
     print(f"Result: {result}")
     print()
 
@@ -64,7 +71,10 @@ async def main():
 
     for query in queries:
         print(f"Query: {query}")
-        result = agent(query=query)
+        result = agent.run(
+            query=query,
+            tool_retriever=tool_retriever,
+        )
         print(f"Result: {result}\n")
 
 

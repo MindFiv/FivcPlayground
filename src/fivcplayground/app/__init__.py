@@ -41,10 +41,9 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    agent_runtime_repo = SqliteAgentRunRepository()
-    # agent_runtime_repo = FileAgentRunRepository()
+    agent_run_repository = SqliteAgentRunRepository()
     chat_manager = ChatManager(
-        agent_runtime_repo=agent_runtime_repo,
+        agent_run_repository=agent_run_repository,
         tool_retriever=create_tool_retriever(),
     )
 

@@ -35,7 +35,6 @@ import dotenv
 from fivcplayground.tools import create_tool_loader, create_tool_retriever
 from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
 from fivcplayground import agents
-from fivcplayground.agents.types import AgentMonitor
 
 dotenv.load_dotenv()
 
@@ -58,12 +57,12 @@ async def main():
     try:
         # Create a ToolRetriever to manage tools
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tools_retriever = create_tool_retriever()
+        tool_retriever = create_tool_retriever()
 
         # Create a ToolLoader with the retriever
         # ToolLoader handles loading tools from MCP servers configured in mcp.yaml
         loader = create_tool_loader(
-            tool_retriever=tools_retriever,
+            tool_retriever=tool_retriever,
             config_file="configs/mcp.yaml"
         )
 
@@ -73,7 +72,7 @@ async def main():
 
         # Get all loaded tools from the retriever
         # These tools are now available for use by the agent
-        all_tools = tools_retriever.list_tools()
+        all_tools = tool_retriever.list_tools()
 
         print(f"✓ Successfully loaded {len(all_tools)} tools total")
 
@@ -94,15 +93,9 @@ async def main():
         print("Step 2: Creating companion agent with MCP tools...")
         print("-" * 70)
 
-        # Create an AgentMonitor to track agent execution
-        agent_monitor = AgentMonitor()
-
         # Create a companion agent with all loaded MCP tools
         # The agent will use these tools to fulfill user requests
-        agent = agents.create_companion_agent(
-            callback_handler=agent_monitor,
-            tools=all_tools  # Pass all loaded MCP tools to the agent
-        )
+        agent = agents.create_companion_agent()
         print(f"✓ Agent created successfully")
         print(f"  Agent ID: {agent.id}")
         print(f"  Agent Name: {agent.name}")
@@ -128,7 +121,10 @@ async def main():
         try:
             # Run the agent asynchronously
             # The agent will use the MCP tools to complete the task
-            result = await agent.run_async(query=query)
+            result = await agent.run_async(
+                query=query,
+                tool_retriever=tool_retriever,
+            )
 
             print("\n✓ Agent response received:")
             print("-" * 70)
@@ -155,7 +151,6 @@ async def main():
         print("2. ToolLoader provides framework-agnostic tool loading (Strands & LangChain)")
         print("3. Agent was created with access to these tools")
         print("4. Agent attempted to use the tools to fulfill the user's request")
-        print("5. Tool execution can be monitored and debugged using AgentMonitor")
 
     except Exception as e:
         print(f"✗ Error: {e}")

@@ -1,11 +1,4 @@
-default_embedding:
-  provider: "openai"
-  model: "text-embedding-v3"
-  api_key: "sk-..."
-  base_url: "https://api.openai.com/v1"
-  dimension: 1024
-
-default_llm:
+default:
   provider: "openai"
   model: "gpt-4o-mini"
   api_key: "sk-..."
@@ -13,7 +6,7 @@ default_llm:
   temperature: 0.5
   max_tokens: 2000
 
-chat_llm:
+chat:
   provider: "openai"
   model: "gpt-4o-mini"
   api_key: "sk-..."
@@ -21,7 +14,7 @@ chat_llm:
   temperature: 1.0
   max_tokens: 2000
 
-reasoning_llm:
+reasoning:
   provider: "openai"
   model: "gpt-4o-mini"
   api_key: "sk-..."
@@ -29,7 +22,7 @@ reasoning_llm:
   temperature: 0.1
   max_tokens: 2000
 
-coding_llm:
+coding:
   provider: "openai"
   model: "gpt-4o-mini"
   api_key: "sk-..."

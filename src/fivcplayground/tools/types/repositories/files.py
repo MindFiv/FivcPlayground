@@ -2,18 +2,19 @@
 File-based tool configuration repository implementation.
 
 This module provides FileToolConfigRepository, a file-based implementation
-of ToolConfigRepository that stores tool configurations in a hierarchical
-directory structure with JSON files.
+of ToolConfigRepository that stores tool configurations in a single
+consolidated YAML file.
 
 Storage Structure:
-    /<output_dir>/
-    └── tool_<tool_id>.json    # Tool configuration (ToolConfig)
+    /<output_dir>/configs/
+    └── tools.yaml    # All tool configurations (mapping of tool_id -> ToolConfig)
 
 This structure allows for:
     - Simple file-based storage
     - Easy inspection of tool data
-    - Human-readable JSON format
+    - Human-readable YAML format
     - Simple backup and version control
+    - Atomic updates of all tools
 
 Example:
     >>> from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
@@ -40,7 +41,7 @@ Example:
     >>> tools = repo.list_tool_configs()
 """
 
-import json
+import yaml
 from pathlib import Path
 from typing import Optional, List, Any
 
@@ -53,20 +54,21 @@ class FileToolConfigRepository(ToolConfigRepository):
     """
     File-based repository for tool configurations.
 
-    Stores tool configurations in JSON files within a directory structure.
+    Stores all tool configurations in a single consolidated YAML file.
     All operations are thread-safe for single-process usage.
 
     Storage structure:
-        /<output_dir>/
-        └── tool_<tool_id>.json    # Tool configuration
+        /<output_dir>/configs/
+        └── tools.yaml    # All tool configurations (mapping of tool_id -> ToolConfig)
 
     Attributes:
         output_dir: OutputDir instance for the repository base directory
         base_path: Path object pointing to the repository root
+        tools_file: Path to the tools.yaml file
 
     Note:
-        - All JSON files use UTF-8 encoding with 2-space indentation
-        - Corrupted JSON files are logged and skipped during reads
+        - YAML file uses UTF-8 encoding
+        - Corrupted YAML files are logged and skipped during reads
         - Delete operations are safe to call on non-existent items
         - All write operations create necessary directories automatically
     """
@@ -80,29 +82,59 @@ class FileToolConfigRepository(ToolConfigRepository):
                        defaults to OutputDir().subdir("tools")
 
         Note:
-            The base directory is created automatically if it doesn't exist.
+            The base directory and configs directory are created automatically if they don't exist.
         """
-        self.output_dir = output_dir or OutputDir().subdir("tools")
+        self.output_dir = output_dir or OutputDir().subdir("configs")
         self.base_path = Path(str(self.output_dir))
+        self.tools_file = self.base_path / "tools.yaml"
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_tool_file(self, tool_id: str) -> Path:
+    def _get_tools_file(self) -> Path:
         """
-        Get the file path for a tool configuration.
-
-        Args:
-            tool_id: Tool identifier
+        Get the file path for the consolidated tools YAML file.
 
         Returns:
-            Path to tool configuration file (e.g., /<base_path>/tool_<tool_id>.json)
+            Path to tools.yaml file
         """
-        return self.base_path / f"tool_{tool_id}.json"
+        return self.tools_file
+
+    def _load_tools_data(self) -> dict:
+        """
+        Load all tools from the YAML file.
+
+        Returns:
+            Dictionary mapping tool_id to tool data. Returns empty dict if file
+            doesn't exist or is corrupted.
+        """
+        tools_file = self._get_tools_file()
+
+        if not tools_file.exists():
+            return {}
+
+        try:
+            with open(tools_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data if data is not None else {}
+        except (yaml.YAMLError, ValueError) as e:
+            print(f"Error loading tools from {tools_file.name}: {e}")
+            return {}
+
+    def _save_tools_data(self, tools_data: dict) -> None:
+        """
+        Save all tools to the YAML file.
+
+        Args:
+            tools_data: Dictionary mapping tool_id to tool data
+        """
+        tools_file = self._get_tools_file()
+        with open(tools_file, "w", encoding="utf-8") as f:
+            yaml.dump(tools_data, f, default_flow_style=False, allow_unicode=True)
 
     def update_tool_config(self, tool_config: ToolConfig) -> None:
         """
         Create or update a tool configuration.
 
-        Stores tool configuration in a JSON file. The tool_id is derived from
+        Stores tool configuration in the consolidated YAML file. The tool_id is derived from
         the tool_config.id field.
 
         Args:
@@ -113,13 +145,18 @@ class FileToolConfigRepository(ToolConfigRepository):
             same tool will overwrite the existing configuration.
         """
         tool_id = tool_config.id
-        tool_file = self._get_tool_file(tool_id)
 
-        # Serialize tool config to JSON
+        # Load existing tools
+        tools_data = self._load_tools_data()
+
+        # Serialize tool config to dict
         tool_data = tool_config.model_dump(mode="json")
 
-        with open(tool_file, "w", encoding="utf-8") as f:
-            json.dump(tool_data, f, indent=2, ensure_ascii=False)
+        # Update the tool in the data
+        tools_data[tool_id] = tool_data
+
+        # Save all tools back to file
+        self._save_tools_data(tools_data)
 
     def get_tool_config(self, tool_id: str) -> ToolConfig | None:
         """
@@ -130,19 +167,17 @@ class FileToolConfigRepository(ToolConfigRepository):
 
         Returns:
             ToolConfig instance if found, None if tool doesn't exist
-            or if the JSON file is corrupted
+            or if the YAML file is corrupted
         """
-        tool_file = self._get_tool_file(tool_id)
+        tools_data = self._load_tools_data()
 
-        if not tool_file.exists():
+        if tool_id not in tools_data:
             return None
 
         try:
-            with open(tool_file, "r", encoding="utf-8") as f:
-                tool_data = json.load(f)
-
+            tool_data = tools_data[tool_id]
             return ToolConfig.model_validate(tool_data)
-        except (json.JSONDecodeError, ValueError) as e:
+        except ValueError as e:
             print(f"Error loading tool {tool_id}: {e}")
             return None
 
@@ -154,19 +189,17 @@ class FileToolConfigRepository(ToolConfigRepository):
             List of ToolConfig instances sorted by tool_id.
             Returns empty list if no tools exist.
         """
+        tools_data = self._load_tools_data()
         tools = []
 
-        if not self.base_path.exists():
-            return tools
-
-        for tool_file in sorted(self.base_path.glob("tool_*.json")):
+        # Sort by tool_id for consistent ordering
+        for tool_id in sorted(tools_data.keys()):
             try:
-                with open(tool_file, "r", encoding="utf-8") as f:
-                    tool_data = json.load(f)
+                tool_data = tools_data[tool_id]
                 config = ToolConfig.model_validate(tool_data)
                 tools.append(config)
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"Error loading tool from {tool_file.name}: {e}")
+            except ValueError as e:
+                print(f"Error loading tool {tool_id}: {e}")
 
         return tools
 
@@ -180,9 +213,11 @@ class FileToolConfigRepository(ToolConfigRepository):
         Note:
             This operation is safe to call on non-existent tools.
         """
-        tool_file = self._get_tool_file(tool_id)
-        if tool_file.exists():
-            tool_file.unlink()
+        tools_data = self._load_tools_data()
+
+        if tool_id in tools_data:
+            del tools_data[tool_id]
+            self._save_tools_data(tools_data)
 
     def filter_repository(
         self,

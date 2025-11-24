@@ -3,7 +3,7 @@
 Tests for FileModelConfigRepository functionality.
 """
 
-import json
+import yaml
 import tempfile
 
 from fivcplayground.models.types.base import ModelConfig
@@ -51,9 +51,9 @@ class TestFileModelConfigRepository:
             # Save model config
             repo.update_model_config(model_config)
 
-            # Verify model file exists
-            model_file = repo._get_model_file("gpt-4")
-            assert model_file.exists()
+            # Verify models file exists
+            models_file = repo._get_models_file()
+            assert models_file.exists()
 
             # Retrieve model config
             retrieved_config = repo.get_model_config("gpt-4")
@@ -161,7 +161,10 @@ class TestFileModelConfigRepository:
 
             # Verify model is deleted
             assert repo.get_model_config("test-model") is None
-            assert not repo._get_model_file("test-model").exists()
+
+            # Verify model is not in the YAML file
+            models_data = repo._load_models_data()
+            assert "test-model" not in models_data
 
     def test_delete_nonexistent_model(self):
         """Test deleting a model that doesn't exist (should be safe)"""
@@ -182,8 +185,8 @@ class TestFileModelConfigRepository:
             filtered_repo = repo.filter_repository(some_filter="value")
             assert filtered_repo is repo
 
-    def test_json_file_format(self):
-        """Test that model configs are stored in correct JSON format"""
+    def test_yaml_file_format(self):
+        """Test that model configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileModelConfigRepository(output_dir=output_dir)
@@ -199,33 +202,39 @@ class TestFileModelConfigRepository:
             )
             repo.update_model_config(model_config)
 
-            # Read JSON file directly
-            model_file = repo._get_model_file("test-model")
-            with open(model_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            # Read YAML file directly
+            models_file = repo._get_models_file()
+            with open(models_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
 
-            # Verify JSON structure
-            assert data["id"] == "test-model"
-            assert data["model"] == "test-model"
-            assert data["provider"] == "test-provider"
-            assert data["api_key"] == "test-key"
-            assert data["temperature"] == 0.5
+            # Verify YAML structure - should have model_id as key
+            assert "test-model" in data
+            model_data = data["test-model"]
+            assert model_data["id"] == "test-model"
+            assert model_data["model"] == "test-model"
+            assert model_data["provider"] == "test-provider"
+            assert model_data["api_key"] == "test-key"
+            assert model_data["temperature"] == 0.5
 
-    def test_corrupted_json_handling(self):
-        """Test handling of corrupted JSON files"""
+    def test_corrupted_yaml_handling(self):
+        """Test handling of corrupted YAML files"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileModelConfigRepository(output_dir=output_dir)
 
-            # Create a corrupted JSON file
-            model_file = repo._get_model_file("corrupted-model")
-            model_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(model_file, "w", encoding="utf-8") as f:
-                f.write("{ invalid json }")
+            # Create a corrupted YAML file
+            models_file = repo._get_models_file()
+            models_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(models_file, "w", encoding="utf-8") as f:
+                f.write("{ invalid: yaml: content: [")
 
-            # Try to get corrupted model (should return None)
-            config = repo.get_model_config("corrupted-model")
-            assert config is None
+            # Try to load models (should return empty dict)
+            models_data = repo._load_models_data()
+            assert models_data == {}
+
+            # Try to list models (should return empty list)
+            models = repo.list_model_configs()
+            assert models == []
 
     def test_model_config_with_minimal_fields(self):
         """Test model config with only required fields"""

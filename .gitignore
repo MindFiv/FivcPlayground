@@ -22,8 +22,10 @@ venv/
 
 # Temporary files and generated content
 dist/
-configs/settings.yaml
-configs/mcp.yaml
+configs/models.yaml
+configs/tools.yaml
+configs/embeddings.yaml
+configs/agents.yaml
 repl_state/
 tmp/
 temp/

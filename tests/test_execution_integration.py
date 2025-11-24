@@ -85,11 +85,18 @@ class TestExecutionTaskIntegration:
         assert "kwargs" in params
 
         # Check it's callable and returns a Runnable
-        # Mock model creation and embedding database to avoid needing actual configs
-        with patch("fivcplayground.agents.create_model") as mock_create_model, patch(
+        # Mock agent and model creation to avoid needing actual configs
+        with patch(
+            "fivcplayground.tasks.create_planning_agent"
+        ) as mock_create_agent, patch(
             "fivcplayground.embeddings.create_embedding_db"
         ) as mock_create_db:
-            mock_create_model.return_value = Mock()
+            # Mock the agent runnable
+            mock_agent = Mock()
+            mock_agent.run = Mock()
+            mock_agent.run_async = Mock()
+            mock_create_agent.return_value = mock_agent
+
             # Mock the embedding database
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -136,7 +143,7 @@ class TestExecutionTaskIntegration:
         assert "TaskMonitorManager" in tasks.__all__
 
         # Agents module
-        assert "create_default_agent" in agents.__all__
+        assert "create_agent" in agents.__all__
 
 
 def run_tests():

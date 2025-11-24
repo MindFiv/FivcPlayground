@@ -6,21 +6,19 @@ This module provides two separate file-based repository implementations:
 1. **FileAgentConfigRepository**: Stores simple agent configurations
    - Stores: agent id, name, description, system_prompt
    - Use case: Configuration management for agents
-   - Storage: Flat directory with individual JSON files per agent
+   - Storage: Single consolidated YAML file with all agent configurations
 
 2. **FileAgentRunRepository**: Stores agent runtime execution data
    - Stores: agent metadata, execution runs, tool calls, execution state
    - Use case: Tracking agent execution history and performance
    - Storage: Hierarchical directory structure with nested runs and tool calls
 
-Both implementations use JSON files with UTF-8 encoding and are thread-safe
-for single-process usage.
+FileAgentConfigRepository uses YAML files with UTF-8 encoding and is thread-safe
+for single-process usage. FileAgentRunRepository uses JSON files.
 
 FileAgentConfigRepository Storage Structure:
-    /<output_dir>/
-    ├── agent_<agent_id>.json        # Agent configuration (id, name, description, system_prompt)
-    ├── agent_<agent_id>.json
-    └── ...
+    /<output_dir>/configs/
+    └── agents.yaml    # All agent configurations (mapping of agent_id -> AgentConfig)
 
 FileAgentRunRepository Storage Structure:
     /<output_dir>/
@@ -29,6 +27,7 @@ FileAgentRunRepository Storage Structure:
         └── run_<agent_run_id>.json  # Agent Runtime metadata (AgentRun) with embedded tool calls
 """
 
+import yaml
 import json
 import shutil
 from pathlib import Path
@@ -49,18 +48,15 @@ class FileAgentConfigRepository(AgentConfigRepository):
     """
     File-based repository for agent configurations.
 
-    Stores simple agent configurations (id, name, description, system_prompt)
-    in JSON files within a flat directory structure. This repository is designed
-    for configuration management and is separate from FileAgentRunRepository
-    which handles runtime execution data.
+    Stores all agent configurations in a single consolidated YAML file.
+    This repository is designed for configuration management and is separate
+    from FileAgentRunRepository which handles runtime execution data.
 
     All operations are thread-safe for single-process usage.
 
     Storage structure:
-        /<output_dir>/
-        ├── agent_<agent_id>.json           # Agent configuration
-        ├── agent_<agent_id>.json
-        └── ...
+        /<output_dir>/configs/
+        └── agents.yaml    # All agent configurations (mapping of agent_id -> AgentConfig)
 
     Data stored per agent:
         - id: Unique agent identifier
@@ -71,10 +67,12 @@ class FileAgentConfigRepository(AgentConfigRepository):
     Attributes:
         output_dir: OutputDir instance for the repository base directory
         base_path: Path object pointing to the repository root
+        config_dir: Path to the configs subdirectory
+        agents_file: Path to the agents.yaml file
 
     Note:
-        - All JSON files use UTF-8 encoding with 2-space indentation
-        - Corrupted JSON files are logged and skipped during reads
+        - YAML file uses UTF-8 encoding
+        - Corrupted YAML files are logged and skipped during reads
         - Delete operations are safe to call on non-existent items
         - All write operations create necessary directories automatically
         - This repository stores ONLY configuration, not execution data
@@ -110,30 +108,60 @@ class FileAgentConfigRepository(AgentConfigRepository):
                        defaults to OutputDir().subdir("agents")
 
         Note:
-            The base directory is created automatically if it doesn't exist.
+            The base directory and configs directory are created automatically if they don't exist.
         """
         self.output_dir = output_dir or OutputDir().subdir("agents")
         self.base_path = Path(str(self.output_dir))
+        self.config_dir = self.base_path / "configs"
+        self.agents_file = self.config_dir / "agents.yaml"
         self.base_path.mkdir(parents=True, exist_ok=True)
+        self.config_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_agent_config_file(self, agent_id: str) -> Path:
+    def _get_agents_file(self) -> Path:
         """
-        Get the file path for an agent configuration.
-
-        Args:
-            agent_id: Agent identifier
+        Get the file path for the consolidated agents YAML file.
 
         Returns:
-            Path to agent configuration file (e.g., /<base_path>/agent_<agent_id>.json)
+            Path to agents.yaml file
         """
-        return self.base_path / f"agent_{agent_id}.json"
+        return self.agents_file
+
+    def _load_agents_data(self) -> dict:
+        """
+        Load all agents from the YAML file.
+
+        Returns:
+            Dictionary mapping agent_id to agent configuration data.
+            Returns empty dict if file doesn't exist or is corrupted.
+        """
+        agents_file = self._get_agents_file()
+        if not agents_file.exists():
+            return {}
+        try:
+            with open(agents_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data if data is not None else {}
+        except (yaml.YAMLError, ValueError) as e:
+            print(f"Error loading agents from {agents_file.name}: {e}")
+            return {}
+
+    def _save_agents_data(self, agents_data: dict) -> None:
+        """
+        Save all agents to the YAML file.
+
+        Args:
+            agents_data: Dictionary mapping agent_id to agent configuration data
+        """
+        agents_file = self._get_agents_file()
+        with open(agents_file, "w", encoding="utf-8") as f:
+            yaml.dump(agents_data, f, default_flow_style=False, allow_unicode=True)
 
     def update_agent_config(self, agent_config: AgentConfig) -> None:
         """
         Create or update an agent configuration.
 
-        Stores agent configuration in a JSON file. The agent_id is derived from
-        the agent_config.id field.
+        Stores agent configuration in the consolidated YAML file. The agent_id
+        is derived from the agent_config.id field.
 
         Args:
             agent_config: AgentConfig instance to persist
@@ -143,13 +171,12 @@ class FileAgentConfigRepository(AgentConfigRepository):
             same agent will overwrite the existing configuration.
         """
         agent_id = agent_config.id
-        agent_config_file = self._get_agent_config_file(agent_id)
 
-        # Serialize agent config to JSON
+        # Load all agents, update the one we're saving, and save back
+        agents_data = self._load_agents_data()
         agent_data = agent_config.model_dump(mode="json")
-
-        with open(agent_config_file, "w", encoding="utf-8") as f:
-            json.dump(agent_data, f, indent=2, ensure_ascii=False)
+        agents_data[agent_id] = agent_data
+        self._save_agents_data(agents_data)
 
     def get_agent_config(self, agent_id: str) -> Optional[AgentConfig]:
         """
@@ -160,19 +187,17 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
         Returns:
             AgentConfig instance if found, None if agent doesn't exist
-            or if the JSON file is corrupted
+            or if the YAML file is corrupted
         """
-        agent_config_file = self._get_agent_config_file(agent_id)
+        agents_data = self._load_agents_data()
 
-        if not agent_config_file.exists():
+        if agent_id not in agents_data:
             return None
 
         try:
-            with open(agent_config_file, "r", encoding="utf-8") as f:
-                agent_data = json.load(f)
-
+            agent_data = agents_data[agent_id]
             return AgentConfig.model_validate(agent_data)
-        except (json.JSONDecodeError, ValueError) as e:
+        except ValueError as e:
             print(f"Error loading agent config {agent_id}: {e}")
             return None
 
@@ -184,19 +209,16 @@ class FileAgentConfigRepository(AgentConfigRepository):
             List of AgentConfig instances sorted by agent_id.
             Returns empty list if no agents exist.
         """
+        agents_data = self._load_agents_data()
         configs = []
 
-        if not self.base_path.exists():
-            return configs
-
-        for config_file in sorted(self.base_path.glob("agent_*.json")):
+        for agent_id in sorted(agents_data.keys()):
             try:
-                with open(config_file, "r", encoding="utf-8") as f:
-                    agent_data = json.load(f)
+                agent_data = agents_data[agent_id]
                 config = AgentConfig.model_validate(agent_data)
                 configs.append(config)
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"Error loading agent config from {config_file.name}: {e}")
+            except ValueError as e:
+                print(f"Error loading agent config {agent_id}: {e}")
 
         return configs
 
@@ -210,9 +232,10 @@ class FileAgentConfigRepository(AgentConfigRepository):
         Note:
             This operation is safe to call on non-existent agents.
         """
-        agent_config_file = self._get_agent_config_file(agent_id)
-        if agent_config_file.exists():
-            agent_config_file.unlink()
+        agents_data = self._load_agents_data()
+        if agent_id in agents_data:
+            del agents_data[agent_id]
+            self._save_agents_data(agents_data)
 
     def filter_repository(
         self,

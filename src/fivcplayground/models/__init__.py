@@ -3,10 +3,13 @@ __all__ = [
     "create_chat_model",
     "create_reasoning_model",
     "create_coding_model",
+    "Model",
+    "ModelConfig",
+    "ModelConfigRepository",
 ]
 
 from fivcplayground.models.types.backends import create_model as _create_model, Model
-from fivcplayground.models.types.repositories import ModelConfigRepository
+from fivcplayground.models.types.repositories import ModelConfig, ModelConfigRepository
 
 
 def create_model(

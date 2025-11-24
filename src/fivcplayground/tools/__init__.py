@@ -35,6 +35,8 @@ def create_tool_retriever(
         embedding_config_repository=embedding_config_repository,
         embedding_config_id=embedding_config_id,
     )
+    retriever.add_tool(retriever.to_tool())  # Add self to retriever
+
     if load_builtin_tools:
         from fivcplayground.tools.clock import clock
         from fivcplayground.tools.calculator import calculator

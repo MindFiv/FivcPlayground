@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from datetime import datetime
 from typing import List, Any
 
 from fivcplayground.agents.types.base import (
@@ -187,3 +188,46 @@ class AgentRunRepository(ABC):
             Tool calls are embedded within each AgentRun instance.
         """
         ...
+
+
+class AgentRunSessionSpan:
+    """Context manager for tracking agent run sessions."""
+
+    def __init__(
+        self,
+        agent_run_repository: AgentRunRepository | None = None,
+        agent_run_session_id: str | None = None,
+        agent_id: str | None = None,
+        **kwargs,  # ignore additional kwargs
+    ):
+        self._agent_run_repository = agent_run_repository
+        self._agent_run_session_id = agent_run_session_id
+        self._agent_id = agent_id
+
+    def __aenter__(self) -> "AgentRunSessionSpan":
+        if not self._agent_run_repository or not self._agent_run_session_id:
+            return self
+
+        agent_session = self._agent_run_repository.get_agent_run_session(
+            self._agent_run_session_id
+        )
+        if not agent_session:
+            self._agent_run_repository.update_agent_run_session(
+                AgentRunSession(
+                    id=self._agent_run_session_id,
+                    agent_id=self._agent_id,
+                    started_at=datetime.now(),
+                )
+            )
+        return self
+
+    def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass  # do nothing
+
+    def __call__(self, agent_run: AgentRun, **kwargs):
+        if not self._agent_run_repository or not self._agent_run_session_id:
+            return
+
+        self._agent_run_repository.update_agent_run(
+            self._agent_run_session_id, agent_run
+        )

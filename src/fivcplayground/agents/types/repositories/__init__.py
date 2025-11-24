@@ -4,6 +4,7 @@ __all__ = [
     "AgentRun",
     "AgentRunToolCall",
     "AgentRunRepository",
+    "AgentRunSessionSpan",
     "FileAgentConfigRepository",
     "FileAgentRunRepository",
     "SqliteAgentRunRepository",
@@ -17,6 +18,7 @@ from fivcplayground.agents.types import (
 from fivcplayground.agents.types.repositories.base import (
     AgentConfigRepository,
     AgentRunRepository,
+    AgentRunSessionSpan,
 )
 from fivcplayground.agents.types.repositories.files import (
     FileAgentConfigRepository,
