@@ -17,7 +17,7 @@ FileAgentConfigRepository uses YAML files with UTF-8 encoding and is thread-safe
 for single-process usage. FileAgentRunRepository uses JSON files.
 
 FileAgentConfigRepository Storage Structure:
-    /<output_dir>/configs/
+    /<output_dir>/
     └── agents.yaml    # All agent configurations (mapping of agent_id -> AgentConfig)
 
 FileAgentRunRepository Storage Structure:
@@ -55,7 +55,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
     All operations are thread-safe for single-process usage.
 
     Storage structure:
-        /<output_dir>/configs/
+        /<output_dir>/
         └── agents.yaml    # All agent configurations (mapping of agent_id -> AgentConfig)
 
     Data stored per agent:
@@ -67,7 +67,6 @@ class FileAgentConfigRepository(AgentConfigRepository):
     Attributes:
         output_dir: OutputDir instance for the repository base directory
         base_path: Path object pointing to the repository root
-        config_dir: Path to the configs subdirectory
         agents_file: Path to the agents.yaml file
 
     Note:
@@ -84,7 +83,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
         >>> from fivcplayground.utils import OutputDir
         >>>
         >>> # Create repository
-        >>> repo = FileAgentConfigRepository(output_dir=OutputDir("./agents"))
+        >>> repo = FileAgentConfigRepository()
         >>>
         >>> # Store agent configuration
         >>> config = AgentConfig(
@@ -105,17 +104,17 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
         Args:
             output_dir: Optional OutputDir for the repository. If not provided,
-                       defaults to OutputDir().subdir("agents")
+                       defaults to OutputDir().subdir("configs")
 
         Note:
-            The base directory and configs directory are created automatically if they don't exist.
+            The base directory is created automatically if it doesn't exist.
         """
-        self.output_dir = output_dir or OutputDir().subdir("agents")
+        self.output_dir = output_dir or OutputDir().subdir("configs")
         self.base_path = Path(str(self.output_dir))
-        self.config_dir = self.base_path / "configs"
-        self.agents_file = self.config_dir / "agents.yaml"
+        self.agents_file = self.base_path / "agents.yaml"
+
+        # Create directories if they don't exist
         self.base_path.mkdir(parents=True, exist_ok=True)
-        self.config_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_agents_file(self) -> Path:
         """

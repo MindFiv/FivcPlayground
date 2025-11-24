@@ -162,10 +162,10 @@ class TestFileAgentConfigRepository:
             agent_config = AgentConfig(id="my-agent", description="Test")
             repo.update_agent_config(agent_config)
 
-            # Verify YAML file location is configs/agents.yaml
+            # Verify YAML file location is agents.yaml (directly in output_dir)
             agents_file = repo._get_agents_file()
             assert agents_file.name == "agents.yaml"
-            assert agents_file.parent.name == "configs"
+            assert agents_file.parent == repo.base_path
             assert agents_file.exists()
 
             # Verify the file contains the agent
