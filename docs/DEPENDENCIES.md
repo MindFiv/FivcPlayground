@@ -58,16 +58,28 @@ pip install -e ".[dev]"
 | typer | >=0.12.3 | CLI framework |
 | rich | >=13.7.1 | Terminal formatting |
 | streamlit | >=1.49.1 | Web interface |
-| strands-agents | >=1.9.1 | AI agent framework |
-| strands-agents-tools | >=0.2.8 | Agent tools library |
-| openai | >=1.109.1 | OpenAI API client |
 | pydantic | >=2.7.0 | Data validation |
 | PyYAML | >=6.0.1 | Configuration files |
 | python-dotenv | >=1.0.1 | Environment variables |
 | httpx | >=0.28.1 | HTTP client |
 | chromadb | >=1.1.0 | Vector database |
-| langchain-text-splitters | >=0.3.11 | Text processing |
 | audioread | >=3.0.1 | Audio file support |
+
+### Agent Framework Dependencies (Strands - Default)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| strands-agents | >=1.9.1 | AI agent framework (default backend) |
+| strands-agents-tools | >=0.2.8 | Agent tools library |
+
+### LLM Provider Dependencies
+| Package | Version | Purpose |
+|---------|---------|---------|
+| openai | >=1.109.1 | OpenAI API client |
+| langchain-core | >=0.3.0 | LangChain core (alternative backend) |
+| langchain-openai | >=0.2.0 | LangChain OpenAI integration |
+| langchain-ollama | >=0.2.0 | LangChain Ollama integration |
+| langchain-mcp-adapters | >=0.1.0 | MCP tool integration for LangChain |
+| langchain-text-splitters | >=0.3.11 | Text processing utilities |
 
 ### Development Dependencies
 | Package | Version | Purpose |
@@ -76,6 +88,37 @@ pip install -e ".[dev]"
 | pytest-asyncio | >=0.21.0 | Async testing support |
 | pytest-cov | >=4.1.0 | Test coverage reporting |
 | ruff | >=0.4.0,<0.6 | Linting and formatting |
+
+## 🔄 Backend Selection
+
+FivcPlayground supports two agent frameworks:
+
+### Strands Backend (Default)
+- Uses `strands-agents` framework
+- Optimized for agent orchestration
+- All dependencies included by default
+- **No action needed** - this is the default
+
+### LangChain Backend (Alternative)
+To use LangChain instead of Strands:
+
+1. Edit `src/fivcplayground/__init__.py`:
+```python
+# Change from:
+__backend__ = "strands"
+
+# To:
+__backend__ = "langchain"
+```
+
+2. Ensure LangChain dependencies are installed:
+```bash
+uv sync  # or pip install -e .
+```
+
+3. Restart your application
+
+**Note**: Both backends are installed by default. You only need to change the `__backend__` variable to switch.
 
 ## 🔧 Dependency Management
 

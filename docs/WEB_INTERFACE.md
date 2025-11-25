@@ -350,6 +350,6 @@ This provides a unified experience across command-line and web interfaces, with 
 
 ---
 
-**Last Updated**: 2025-10-16
+**Last Updated**: 2025-11-25
 **Version**: 0.1.0
-**Framework**: Streamlit 1.49.1+, Strands (strands-agents 1.9.1+)
+**Framework**: Streamlit 1.49.1+, Strands (strands-agents 1.9.1+) / LangChain (langchain-core 0.3+)

@@ -203,9 +203,18 @@ uv run pytest tests/ --cov=src/fivcplayground
 
 ### Adding New Tools
 
-1. Configure MCP server in `mcp.yml`
+1. Configure MCP server in `configs/tools.yaml`
 2. Restart Streamlit app
 3. Tools automatically load
+
+Example tool configuration:
+```yaml
+my_server:
+  description: "My MCP server"
+  transport: "stdio"
+  command: "python"
+  args: ["server.py"]
+```
 
 ### Debugging
 

@@ -21,11 +21,28 @@ FivcPlayground is a multi-agent system built on the **Strands framework** that p
 
 ### Technology Stack
 
-- **Framework**: Strands (strands-agents)
+- **Framework**: Strands (strands-agents) - Default backend
+  - **Alternative**: LangChain (langchain-core) - Optional backend
 - **Web Interface**: Streamlit
 - **Vector Database**: ChromaDB
 - **LLM Support**: OpenAI, Ollama
 - **Tool Protocol**: MCP (Model Context Protocol)
+
+### Backend Architecture
+
+FivcPlayground supports a **dual-backend architecture** allowing you to choose between:
+
+1. **Strands Backend** (Default)
+   - Uses `strands-agents` framework
+   - Optimized for agent orchestration
+   - Set via: `__backend__ = "strands"` in `src/fivcplayground/__init__.py`
+
+2. **LangChain Backend** (Alternative)
+   - Uses `langchain-core` framework
+   - Broader ecosystem integration
+   - Set via: `__backend__ = "langchain"` in `src/fivcplayground/__init__.py`
+
+See [Backend Selection Guide](BACKEND_SELECTION.md) for detailed instructions on switching backends.
 
 ---
 
@@ -174,23 +191,28 @@ FivcPlayground provides a flexible agent system with specialized agents for diff
 
 ### Agent Creation
 
-Agents are created using factory functions with the `@agent_creator` decorator:
+Agents are created using factory functions:
 
 ```python
 from fivcplayground import agents
 
 # Create a generic agent
-agent = agents.create_default_agent()
+agent = agents.create_agent()
 
 # Create a specialized agent
 consultant = agents.create_consultant_agent()
+tooling = agents.create_tooling_agent()
+planner = agents.create_planning_agent()
 
-# Create with custom configuration
-custom_agent = agents.create_default_agent(
-    name="CustomAgent",
-    system_prompt="You are a specialized assistant...",
-    tools=[tool1, tool2]
-)
+# Available agent creators:
+# - create_agent() - Generic agent
+# - create_companion_agent() - Friendly chat agent
+# - create_tooling_agent() - Tool specialist
+# - create_consultant_agent() - Task assessment
+# - create_planning_agent() - Planning and orchestration
+# - create_research_agent() - Pattern analysis
+# - create_engineering_agent() - Tool development
+# - create_evaluating_agent() - Performance evaluation
 ```
 
 ---
@@ -303,10 +325,11 @@ retriever = tools.create_tool_retriever()
 # Get all tools
 all_tools = retriever.list_tools()
 
-# Get specific tools (note: get_batch() method has been removed, use get_tool() instead)
-selected_tools = [retriever.get_tool("calculator"), retriever.get_tool("python_repl")]
+# Get specific tools by name
+calculator = retriever.get_tool("calculator")
+clock = retriever.get_tool("clock")
 
-# Search for relevant tools (returns bundles as-is)
+# Search for relevant tools using semantic search
 relevant_tools = retriever.retrieve_tools("I need to calculate something")
 
 # Search and expand bundles into individual tools
@@ -317,12 +340,18 @@ expanded_tools = retriever.retrieve_tools("I need to calculate something", expan
 
 Tools from MCP servers are automatically organized into **bundles** by server. When retrieving tools:
 
-- **`expand=False` (default)**: Returns `ToolsBundle` objects that group related tools
+- **`expand=False` (default)**: Returns `ToolBundle` objects that group related tools from the same MCP server
 - **`expand=True`**: Expands bundles and returns individual tools
 
 This is useful for:
 - **Bundle mode**: When you want to treat a server's tools as a cohesive unit
 - **Expanded mode**: When you need individual tools for fine-grained control
+
+#### Built-in Tools
+
+FivcPlayground includes these built-in tools:
+- **`calculator`** - Mathematical calculations
+- **`clock`** - Current date and time information
 
 ---
 
@@ -499,6 +528,6 @@ UI Update (st.rerun)
 
 ---
 
-**Last Updated**: 2025-10-16
+**Last Updated**: 2025-11-25
 **Version**: 0.1.0
-**Framework**: Strands (strands-agents 1.9.1+)
+**Framework**: Strands (strands-agents 1.9.1+) / LangChain (langchain-core 0.3+)

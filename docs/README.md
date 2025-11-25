@@ -28,8 +28,26 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 **Dependency Management Guide**
 - Installation options (uv, pip, make)
 - Complete dependency list with versions
+- Backend selection and switching
 - Troubleshooting and maintenance
 - Best practices for development
+
+#### [🔄 BACKEND_SELECTION.md](BACKEND_SELECTION.md)
+**Backend Selection Guide**
+- Strands vs LangChain comparison
+- How to switch backends
+- When to use each backend
+- Implementation details
+- Troubleshooting backend issues
+
+#### [🏗️ ARCHITECTURE_PATTERNS.md](ARCHITECTURE_PATTERNS.md)
+**Architecture Patterns Guide**
+- Repository pattern usage
+- Factory pattern implementation
+- Dependency injection patterns
+- Configuration management
+- Component organization
+- Design principles
 
 ## 🚀 Quick Start
 
@@ -37,12 +55,15 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 1. **Installation**: Start with [DEPENDENCIES.md](DEPENDENCIES.md) for setup instructions
 2. **Getting Started**: Read [WEB_INTERFACE.md](WEB_INTERFACE.md) for web interface usage
 3. **Understanding the System**: Review [DESIGN.md](DESIGN.md) for architecture overview
+4. **Backend Selection**: See [BACKEND_SELECTION.md](BACKEND_SELECTION.md) to choose Strands or LangChain
 
 ### For Developers
 1. **Setup**: Start with [DEPENDENCIES.md](DEPENDENCIES.md) for development environment
 2. **Architecture**: Study [DESIGN.md](DESIGN.md) for system design and components
-3. **Web Interface**: Review [WEB_INTERFACE.md](WEB_INTERFACE.md) for interface development
-4. **Examples**: Check `../examples/` directory for code examples
+3. **Patterns**: Review [ARCHITECTURE_PATTERNS.md](ARCHITECTURE_PATTERNS.md) for design patterns
+4. **Web Interface**: Review [WEB_INTERFACE.md](WEB_INTERFACE.md) for interface development
+5. **Backend Details**: Check [BACKEND_SELECTION.md](BACKEND_SELECTION.md) for backend architecture
+6. **Examples**: Check `../examples/` directory for code examples
 
 ## 📖 Documentation Categories
 
