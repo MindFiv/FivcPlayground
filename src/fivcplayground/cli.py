@@ -58,10 +58,19 @@ def run(
     """
     Run a FivcPlayground agent
     """
-    embedding_config_repository = FileEmbeddingConfigRepository()
-    tool_config_repository = FileToolConfigRepository()
     model_config_repository = FileModelConfigRepository()
     agent_config_repository = FileAgentConfigRepository()
+    embedding_config_repository = FileEmbeddingConfigRepository()
+    tool_config_repository = FileToolConfigRepository()
+    tool_retriever = create_tool_retriever(
+        embedding_config_repository=embedding_config_repository,
+        embedding_config_id="default",
+    )
+    tool_loader = create_tool_loader(
+        tool_retriever=tool_retriever,
+        tool_config_repository=tool_config_repository,
+    )
+    tool_loader.load()
 
     console.print(
         Panel.fit(
@@ -96,26 +105,15 @@ def run(
             console.print(f"[yellow]Output:[/yellow] {output}")
         return
 
-    tool_retriever = create_tool_retriever(
-        embedding_config_repository=embedding_config_repository,
-        embedding_config_id="default",
-    )
-    tool_loader = create_tool_loader(
-        tool_retriever=tool_retriever,
-        tool_config_repository=tool_config_repository,
-    )
-    tool_loader.load()
-
-    with OutputDir(base=output):
-        try:
-            agent_runnable.run(
-                query,
-                tool_retriever=tool_retriever,
-            )
-            console.print("[green]✅ Agent completed successfully![/green]")
-        except Exception as e:
-            console.print(f"[red]❌ Error runtime agent: {e}[/red]")
-            raise typer.Exit(1)
+    try:
+        agent_runnable.run(
+            query=query,
+            tool_retriever=tool_retriever,
+        )
+        console.print("[green]✅ Agent completed successfully![/green]")
+    except Exception as e:
+        console.print(f"[red]❌ Error runtime agent: {e}[/red]")
+        raise typer.Exit(1)
 
 
 @app.command()

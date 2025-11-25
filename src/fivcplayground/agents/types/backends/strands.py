@@ -211,33 +211,29 @@ def _list_messages(
     agent_run_session_id: str | None = None,
     agent_query: AgentRunContent | None = None,
 ) -> List[Message]:
-    if not agent_run_repository:
-        return []
-
-    if not agent_run_session_id:
-        return []
-
+    """List all messages for a specific session."""
     agent_messages = []
-    agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
-    for m in agent_runs:
-        if not m.is_completed:
-            continue
+    if agent_run_repository and agent_run_session_id:
+        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        for m in agent_runs:
+            if not m.is_completed:
+                continue
 
-        if m.query and m.query.text:
-            agent_messages.append(
-                Message(
-                    role="user",
-                    content=[ContentBlock(text=m.query.text)],
+            if m.query and m.query.text:
+                agent_messages.append(
+                    Message(
+                        role="user",
+                        content=[ContentBlock(text=m.query.text)],
+                    )
                 )
-            )
 
-        if m.reply and m.reply.text:
-            agent_messages.append(
-                Message(
-                    role="assistant",
-                    content=[ContentBlock(text=m.reply.text)],
+            if m.reply and m.reply.text:
+                agent_messages.append(
+                    Message(
+                        role="assistant",
+                        content=[ContentBlock(text=m.reply.text)],
+                    )
                 )
-            )
 
     if agent_query:
         agent_messages.append(

@@ -5,6 +5,6 @@ __all__ = [
     "__embedding_backend__",
 ]
 __version__ = "0.1.0"
-# __backend__ = "langchain"
-__backend__ = "strands"
+__backend__ = "langchain"
+# __backend__ = "strands"
 __embedding_backend__ = "chroma"

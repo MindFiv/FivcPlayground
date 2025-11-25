@@ -131,8 +131,7 @@ class AgentRunnable(Runnable):
         agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
         response_model: Type[BaseModel] | None = None,
-        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda *args,
-        **kwargs: None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
         return asyncio.run(
@@ -154,8 +153,7 @@ class AgentRunnable(Runnable):
         agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
         response_model: Type[BaseModel] | None = None,
-        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda *args,
-        **kwargs: None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
         if query and not isinstance(query, AgentRunContent):
@@ -276,23 +274,18 @@ def _list_messages(
     agent_run_session_id: str | None = None,
     agent_query: AgentRunContent | None = None,
 ) -> List[BaseMessage]:
-    if not agent_run_repository:
-        return []
-
-    if not agent_run_session_id:
-        return []
-
     agent_messages = []
-    agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
-    for m in agent_runs:
-        if not m.is_completed:
-            continue
+    if agent_run_repository and agent_run_session_id:
+        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        for m in agent_runs:
+            if not m.is_completed:
+                continue
 
-        if m.query and m.query.text:
-            agent_messages.append(HumanMessage(content=m.query.text))
+            if m.query and m.query.text:
+                agent_messages.append(HumanMessage(content=m.query.text))
 
-        if m.reply and m.reply.text:
-            agent_messages.append(AIMessage(content=m.reply.text))
+            if m.reply and m.reply.text:
+                agent_messages.append(AIMessage(content=m.reply.text))
 
     if agent_query:
         agent_messages.append(HumanMessage(content=str(agent_query)))

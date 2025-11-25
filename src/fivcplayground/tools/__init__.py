@@ -71,7 +71,7 @@ async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
         for tool in tools:
             if isinstance(tool, ToolBundle):
                 bundle_tools = await stack.enter_async_context(tool.load_async())
-                tools_expanded.append(bundle_tools)
+                tools_expanded.extend(bundle_tools)
             else:
                 tools_expanded.append(tool)
 
