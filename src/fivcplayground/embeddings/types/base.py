@@ -9,7 +9,7 @@ class EmbeddingConfig(BaseModel):
         default=None, description="Description of the embedding function"
     )
     provider: str = Field(..., description="Provider of the embedding function")
-    model_id: str = Field(
+    model: str = Field(
         ...,
         description="Model name (e.g., 'text-embedding-ada-002', 'all-MiniLM-L6-v2')",
     )

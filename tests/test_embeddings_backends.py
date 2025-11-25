@@ -27,7 +27,7 @@ class TestCreateEmbeddingFunction:
         config = EmbeddingConfig(
             id="openai-embed",
             provider="openai",
-            model_id="text-embedding-3-small",
+            model="text-embedding-3-small",
             api_key="sk-test",
             base_url="https://api.openai.com/v1",
         )
@@ -52,7 +52,7 @@ class TestCreateEmbeddingFunction:
         config = EmbeddingConfig(
             id="ollama-embed",
             provider="ollama",
-            model_id="nomic-embed-text",
+            model="nomic-embed-text",
             base_url="http://localhost:11434",
         )
 
@@ -75,7 +75,7 @@ class TestCreateEmbeddingFunction:
         config = EmbeddingConfig(
             id="unknown",
             provider="unknown_provider",
-            model_id="model",
+            model="model",
         )
 
         with pytest.raises(ValueError, match="Unknown provider"):
@@ -90,7 +90,7 @@ class TestEmbeddingDB:
         config = EmbeddingConfig(
             id="test",
             provider="openai",
-            model_id="text-embedding-3-small",
+            model="text-embedding-3-small",
             api_key="sk-test",
         )
 
@@ -111,7 +111,7 @@ class TestEmbeddingDB:
         config = EmbeddingConfig(
             id="test",
             provider="openai",
-            model_id="text-embedding-3-small",
+            model="text-embedding-3-small",
             api_key="sk-test",
         )
 

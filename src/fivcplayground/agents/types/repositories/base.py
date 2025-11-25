@@ -204,7 +204,7 @@ class AgentRunSessionSpan:
         self._agent_run_session_id = agent_run_session_id
         self._agent_id = agent_id
 
-    def __aenter__(self) -> "AgentRunSessionSpan":
+    async def __aenter__(self) -> "AgentRunSessionSpan":
         if not self._agent_run_repository or not self._agent_run_session_id:
             return self
 
@@ -221,7 +221,7 @@ class AgentRunSessionSpan:
             )
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass  # do nothing
 
     def __call__(self, agent_run: AgentRun, **kwargs):

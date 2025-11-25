@@ -8,7 +8,7 @@ def create_model(model_config: ModelConfig) -> Model:
         from langchain_openai import ChatOpenAI
 
         return ChatOpenAI(
-            model=model_config.id,
+            model=model_config.model,
             api_key=model_config.api_key,
             base_url=model_config.base_url,
             temperature=model_config.temperature,
@@ -18,7 +18,7 @@ def create_model(model_config: ModelConfig) -> Model:
         from langchain_ollama import ChatOllama
 
         return ChatOllama(
-            model=model_config.id,
+            model=model_config.model,
             base_url=model_config.base_url,
             temperature=model_config.temperature,
             reasoning=False,

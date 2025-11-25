@@ -15,8 +15,9 @@ from fivcplayground.models.types.repositories import ModelConfig, ModelConfigRep
 def create_model(
     model_config_repository: ModelConfigRepository | None = None,
     model_config_id: str = "default",
+    raise_exception: bool = True,
     **kwargs,  # ignore additional kwargs
-) -> Model:
+) -> Model | None:
     """Factory function to create a LLM instance."""
 
     if not model_config_repository:
@@ -32,7 +33,9 @@ def create_model(
     )
 
     if not model_config:
-        raise ValueError("Default model not found")
+        if raise_exception:
+            raise ValueError("Default model not found")
+        return None
 
     return _create_model(model_config)
 
@@ -40,19 +43,19 @@ def create_model(
 def create_chat_model(
     model_config_repository: ModelConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
-) -> Model:
-    return create_model(model_config_repository, "chat")
+) -> Model | None:
+    return create_model(model_config_repository, "chat", **kwargs)
 
 
 def create_reasoning_model(
     model_config_repository: ModelConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
-) -> Model:
-    return create_model(model_config_repository, "reasoning")
+) -> Model | None:
+    return create_model(model_config_repository, "reasoning", **kwargs)
 
 
 def create_coding_model(
     model_config_repository: ModelConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
-) -> Model:
-    return create_model(model_config_repository, "coding")
+) -> Model | None:
+    return create_model(model_config_repository, "coding", **kwargs)

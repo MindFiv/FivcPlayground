@@ -195,6 +195,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
         try:
             agent_data = agents_data[agent_id]
+            agent_data["id"] = agent_id
             return AgentConfig.model_validate(agent_data)
         except ValueError as e:
             print(f"Error loading agent config {agent_id}: {e}")
@@ -214,6 +215,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
         for agent_id in sorted(agents_data.keys()):
             try:
                 agent_data = agents_data[agent_id]
+                agent_data["id"] = agent_id
                 config = AgentConfig.model_validate(agent_data)
                 configs.append(config)
             except ValueError as e:

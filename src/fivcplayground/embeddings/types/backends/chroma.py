@@ -17,7 +17,7 @@ def _create_embedding_function(
         return OpenAIEmbeddingFunction(
             api_key=embedding_config.api_key,
             api_base=embedding_config.base_url,
-            model_name=embedding_config.model_id,
+            model_name=embedding_config.model,
         )
 
     elif embedding_config.provider == "ollama":
@@ -25,7 +25,7 @@ def _create_embedding_function(
 
         return OllamaEmbeddingFunction(
             url=embedding_config.base_url,
-            model_name=embedding_config.model_id,
+            model_name=embedding_config.model,
         )
 
     else:

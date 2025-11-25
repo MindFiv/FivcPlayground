@@ -181,6 +181,7 @@ class FileModelConfigRepository(ModelConfigRepository):
 
         try:
             model_data = models_data[model_id]
+            model_data["id"] = model_id
             return ModelConfig.model_validate(model_data)
         except ValueError as e:
             print(f"Error loading model {model_id}: {e}")
@@ -201,6 +202,7 @@ class FileModelConfigRepository(ModelConfigRepository):
         for model_id in sorted(models_data.keys()):
             try:
                 model_data = models_data[model_id]
+                model_data["id"] = model_id
                 config = ModelConfig.model_validate(model_data)
                 models.append(config)
             except ValueError as e:

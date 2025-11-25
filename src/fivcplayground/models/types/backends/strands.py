@@ -20,7 +20,7 @@ def create_model(model_config: ModelConfig) -> Model:
                 "api_key": model_config.api_key,
                 "base_url": model_config.base_url,
             },
-            model_id=model_config.id,
+            model_id=model_config.model,
             params={
                 "max_tokens": model_config.max_tokens,
                 "temperature": model_config.temperature,
@@ -31,7 +31,7 @@ def create_model(model_config: ModelConfig) -> Model:
 
         return OllamaModel(
             model_config.base_url,
-            model_id=model_config.id,
+            model_id=model_config.model,
             temperature=model_config.temperature,
         )
     else:

@@ -172,3 +172,55 @@ class TestFileAgentConfigRepository:
             with open(agents_file, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             assert "my-agent" in data
+
+    def test_id_field_set_on_get(self):
+        """Test that id field is properly set when retrieving agent config"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentConfigRepository(output_dir=output_dir)
+
+            # Create and save agent config
+            agent_config = AgentConfig(
+                id="test-agent",
+                description="Test agent",
+                system_prompt="Test prompt",
+            )
+            repo.update_agent_config(agent_config)
+
+            # Retrieve and verify id field is set
+            retrieved = repo.get_agent_config("test-agent")
+            assert retrieved is not None
+            assert retrieved.id == "test-agent"
+            assert retrieved.description == "Test agent"
+            assert retrieved.system_prompt == "Test prompt"
+
+    def test_id_field_set_on_list(self):
+        """Test that id field is properly set when listing agent configs"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentConfigRepository(output_dir=output_dir)
+
+            # Create and save multiple agent configs
+            configs = [
+                AgentConfig(id="agent1", description="Agent 1"),
+                AgentConfig(id="agent2", description="Agent 2"),
+                AgentConfig(id="agent3", description="Agent 3"),
+            ]
+
+            for config in configs:
+                repo.update_agent_config(config)
+
+            # List and verify all id fields are set
+            listed_configs = repo.list_agent_configs()
+            assert len(listed_configs) == 3
+
+            for config in listed_configs:
+                assert config.id is not None
+                assert config.id in {"agent1", "agent2", "agent3"}
+                # Verify id matches the description pattern
+                if config.id == "agent1":
+                    assert config.description == "Agent 1"
+                elif config.id == "agent2":
+                    assert config.description == "Agent 2"
+                elif config.id == "agent3":
+                    assert config.description == "Agent 3"

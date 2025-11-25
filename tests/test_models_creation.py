@@ -150,3 +150,110 @@ class TestSpecializedModelCreation:
 
             assert result == mock_model
             mock_model_repo.get_model_config.assert_called_once_with("coding")
+
+
+class TestModelBackendCreation:
+    """Test backend-specific model creation to verify correct model identifier is used."""
+
+    def test_strands_backend_uses_model_field_not_id(self):
+        """Test that Strands backend uses model_config.model, not model_config.id."""
+        from fivcplayground.models.types.backends.strands import (
+            create_model as strands_create_model,
+        )
+
+        model_config = ModelConfig(
+            id="default",  # Config ID
+            provider="openai",
+            model="gpt-4o-mini",  # Actual model name
+            api_key="sk-test",
+        )
+
+        with patch("strands.models.openai.OpenAIModel") as mock_openai:
+            strands_create_model(model_config)
+
+            # Verify that model_config.model (not model_config.id) was passed
+            mock_openai.assert_called_once()
+            call_kwargs = mock_openai.call_args[1]
+            assert call_kwargs["model_id"] == "gpt-4o-mini"
+            assert call_kwargs["model_id"] != "default"
+
+    def test_strands_backend_ollama_uses_model_field(self):
+        """Test that Strands backend uses model_config.model for Ollama."""
+        from fivcplayground.models.types.backends.strands import (
+            create_model as strands_create_model,
+        )
+
+        model_config = ModelConfig(
+            id="ollama-config",
+            provider="ollama",
+            model="nomic-embed-text",
+            base_url="http://localhost:11434",
+        )
+
+        with patch("strands.models.ollama.OllamaModel") as mock_ollama:
+            strands_create_model(model_config)
+
+            # Verify that model_config.model (not model_config.id) was passed
+            mock_ollama.assert_called_once()
+            _ = mock_ollama.call_args[0]
+            call_kwargs = mock_ollama.call_args[1]
+            assert call_kwargs["model_id"] == "nomic-embed-text"
+            assert call_kwargs["model_id"] != "ollama-config"
+
+    def test_langchain_backend_uses_model_field_not_id(self):
+        """Test that LangChain backend uses model_config.model, not model_config.id."""
+        from fivcplayground.models.types.backends.langchain import (
+            create_model as langchain_create_model,
+        )
+
+        model_config = ModelConfig(
+            id="default",  # Config ID
+            provider="openai",
+            model="gpt-4o-mini",  # Actual model name
+            api_key="sk-test",
+        )
+
+        with patch("langchain_openai.ChatOpenAI") as mock_openai:
+            langchain_create_model(model_config)
+
+            # Verify that model_config.model (not model_config.id) was passed
+            mock_openai.assert_called_once()
+            call_kwargs = mock_openai.call_args[1]
+            assert call_kwargs["model"] == "gpt-4o-mini"
+            assert call_kwargs["model"] != "default"
+
+    def test_langchain_backend_ollama_uses_model_field(self):
+        """Test that LangChain backend uses model_config.model for Ollama."""
+        from fivcplayground.models.types.backends.langchain import (
+            create_model as langchain_create_model,
+        )
+
+        model_config = ModelConfig(
+            id="ollama-config",
+            provider="ollama",
+            model="llama2",
+            base_url="http://localhost:11434",
+        )
+
+        with patch("langchain_ollama.ChatOllama") as mock_ollama:
+            langchain_create_model(model_config)
+
+            # Verify that model_config.model (not model_config.id) was passed
+            mock_ollama.assert_called_once()
+            call_kwargs = mock_ollama.call_args[1]
+            assert call_kwargs["model"] == "llama2"
+            assert call_kwargs["model"] != "ollama-config"
+
+    def test_model_config_id_vs_model_distinction(self):
+        """Test that ModelConfig correctly distinguishes between id and model fields."""
+        model_config = ModelConfig(
+            id="my-gpt4-config",
+            provider="openai",
+            model="gpt-4",
+            api_key="sk-test",
+        )
+
+        # Verify the distinction
+        assert model_config.id == "my-gpt4-config"
+        assert model_config.model == "gpt-4"
+        assert model_config.id != model_config.model

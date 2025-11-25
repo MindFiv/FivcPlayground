@@ -38,7 +38,7 @@ console = Console()
 
 @app.command()
 def run(
-    agent_name: str = typer.Argument("Generic", help="Type of agent to run"),
+    agent_name: str = typer.Argument("default", help="Type of agent to run"),
     query: Optional[str] = typer.Option(
         None,
         "--query",
@@ -80,6 +80,7 @@ def run(
         model_config_repository=model_config_repository,
         agent_config_repository=agent_config_repository,
         agent_config_id=agent_name,
+        raise_exception=False,
     )
     if not agent_runnable:
         console.print(f"[red]❌ Unknown agent type: {agent_name}[/red]")

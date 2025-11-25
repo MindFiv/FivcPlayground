@@ -43,7 +43,7 @@ class TestFileEmbeddingConfigRepository:
             embedding_config = EmbeddingConfig(
                 id="openai-ada",
                 provider="openai",
-                model_id="text-embedding-ada-002",
+                model="text-embedding-ada-002",
                 api_key="sk-test-key",
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
@@ -59,7 +59,7 @@ class TestFileEmbeddingConfigRepository:
             # Retrieve embedding config
             retrieved_config = repo.get_embedding_config("openai-ada")
             assert retrieved_config is not None
-            assert retrieved_config.model_id == "text-embedding-ada-002"
+            assert retrieved_config.model == "text-embedding-ada-002"
             assert retrieved_config.provider == "openai"
             assert retrieved_config.api_key == "sk-test-key"
             assert retrieved_config.dimension == 1536
@@ -74,7 +74,7 @@ class TestFileEmbeddingConfigRepository:
             embedding_config = EmbeddingConfig(
                 id="test-embedding",
                 provider="openai",
-                model_id="text-embedding-3-small",
+                model="text-embedding-3-small",
                 dimension=1536,
             )
             repo.update_embedding_config(embedding_config)
@@ -83,14 +83,14 @@ class TestFileEmbeddingConfigRepository:
             updated_config = EmbeddingConfig(
                 id="test-embedding",
                 provider="openai",
-                model_id="text-embedding-3-large",
+                model="text-embedding-3-large",
                 dimension=3072,
             )
             repo.update_embedding_config(updated_config)
 
             # Verify updated config
             retrieved_config = repo.get_embedding_config("test-embedding")
-            assert retrieved_config.model_id == "text-embedding-3-large"
+            assert retrieved_config.model == "text-embedding-3-large"
             assert retrieved_config.dimension == 3072
 
     def test_list_embedding_configs(self):
@@ -104,15 +104,15 @@ class TestFileEmbeddingConfigRepository:
                 EmbeddingConfig(
                     id="openai-ada",
                     provider="openai",
-                    model_id="text-embedding-ada-002",
+                    model="text-embedding-ada-002",
                 ),
                 EmbeddingConfig(
-                    id="ollama-nomic", provider="ollama", model_id="nomic-embed-text"
+                    id="ollama-nomic", provider="ollama", model="nomic-embed-text"
                 ),
                 EmbeddingConfig(
                     id="sentence-transformer",
                     provider="huggingface",
-                    model_id="all-MiniLM-L6-v2",
+                    model="all-MiniLM-L6-v2",
                 ),
             ]
 
@@ -144,7 +144,7 @@ class TestFileEmbeddingConfigRepository:
             embedding_config = EmbeddingConfig(
                 id="test-embedding",
                 provider="openai",
-                model_id="text-embedding-ada-002",
+                model="text-embedding-ada-002",
             )
             repo.update_embedding_config(embedding_config)
 
@@ -191,7 +191,7 @@ class TestFileEmbeddingConfigRepository:
                 id="test-embedding",
                 description="Test embedding",
                 provider="openai",
-                model_id="text-embedding-ada-002",
+                model="text-embedding-ada-002",
                 api_key="sk-test",
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
@@ -209,9 +209,75 @@ class TestFileEmbeddingConfigRepository:
             assert embedding_data["id"] == "test-embedding"
             assert embedding_data["description"] == "Test embedding"
             assert embedding_data["provider"] == "openai"
-            assert embedding_data["model_id"] == "text-embedding-ada-002"
+            assert embedding_data["model"] == "text-embedding-ada-002"
             assert embedding_data["api_key"] == "sk-test"
             assert embedding_data["dimension"] == 1536
+
+    def test_id_field_set_on_get(self):
+        """Test that id field is properly set when retrieving embedding config"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create and save embedding config
+            embedding_config = EmbeddingConfig(
+                id="test-embedding",
+                provider="openai",
+                model="text-embedding-ada-002",
+                dimension=1536,
+            )
+            repo.update_embedding_config(embedding_config)
+
+            # Retrieve and verify id field is set
+            retrieved = repo.get_embedding_config("test-embedding")
+            assert retrieved is not None
+            assert retrieved.id == "test-embedding"
+            assert retrieved.provider == "openai"
+            assert retrieved.model == "text-embedding-ada-002"
+            assert retrieved.dimension == 1536
+
+    def test_id_field_set_on_list(self):
+        """Test that id field is properly set when listing embedding configs"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
+
+            # Create and save multiple embedding configs
+            embeddings = [
+                EmbeddingConfig(
+                    id="embedding1",
+                    provider="openai",
+                    model="text-embedding-ada-002",
+                ),
+                EmbeddingConfig(
+                    id="embedding2",
+                    provider="ollama",
+                    model="nomic-embed-text",
+                ),
+                EmbeddingConfig(
+                    id="embedding3",
+                    provider="huggingface",
+                    model="all-MiniLM-L6-v2",
+                ),
+            ]
+
+            for embedding in embeddings:
+                repo.update_embedding_config(embedding)
+
+            # List and verify all id fields are set
+            listed_embeddings = repo.list_embedding_configs()
+            assert len(listed_embeddings) == 3
+
+            for embedding in listed_embeddings:
+                assert embedding.id is not None
+                assert embedding.id in {"embedding1", "embedding2", "embedding3"}
+                # Verify id matches the provider pattern
+                if embedding.id == "embedding1":
+                    assert embedding.provider == "openai"
+                elif embedding.id == "embedding2":
+                    assert embedding.provider == "ollama"
+                elif embedding.id == "embedding3":
+                    assert embedding.provider == "huggingface"
 
 
 class TestEmbeddingDBIntegration:
@@ -227,7 +293,7 @@ class TestEmbeddingDBIntegration:
             embedding_config = EmbeddingConfig(
                 id="default",
                 provider="openai",
-                model_id="text-embedding-ada-002",
+                model="text-embedding-ada-002",
                 api_key="sk-test-key",
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
@@ -252,7 +318,7 @@ class TestEmbeddingDBIntegration:
             embedding_config = EmbeddingConfig(
                 id="default",
                 provider="openai",
-                model_id="text-embedding-ada-002",
+                model="text-embedding-ada-002",
                 api_key="sk-test-key",
                 base_url="https://api.openai.com/v1",
                 dimension=1536,

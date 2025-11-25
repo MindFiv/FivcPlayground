@@ -261,3 +261,57 @@ class TestFileModelConfigRepository:
             assert retrieved.base_url is None
             assert retrieved.temperature == 0.5  # default value
             assert retrieved.max_tokens == 4096  # default value
+
+    def test_id_field_set_on_get(self):
+        """Test that id field is properly set when retrieving model config"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileModelConfigRepository(output_dir=output_dir)
+
+            # Create and save model config
+            model_config = ModelConfig(
+                id="test-model",
+                model="test-model",
+                provider="test-provider",
+                temperature=0.7,
+            )
+            repo.update_model_config(model_config)
+
+            # Retrieve and verify id field is set
+            retrieved = repo.get_model_config("test-model")
+            assert retrieved is not None
+            assert retrieved.id == "test-model"
+            assert retrieved.model == "test-model"
+            assert retrieved.provider == "test-provider"
+            assert retrieved.temperature == 0.7
+
+    def test_id_field_set_on_list(self):
+        """Test that id field is properly set when listing model configs"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileModelConfigRepository(output_dir=output_dir)
+
+            # Create and save multiple model configs
+            models = [
+                ModelConfig(id="model1", model="model1", provider="provider1"),
+                ModelConfig(id="model2", model="model2", provider="provider2"),
+                ModelConfig(id="model3", model="model3", provider="provider3"),
+            ]
+
+            for model in models:
+                repo.update_model_config(model)
+
+            # List and verify all id fields are set
+            listed_models = repo.list_model_configs()
+            assert len(listed_models) == 3
+
+            for model in listed_models:
+                assert model.id is not None
+                assert model.id in {"model1", "model2", "model3"}
+                # Verify id matches the provider pattern
+                if model.id == "model1":
+                    assert model.provider == "provider1"
+                elif model.id == "model2":
+                    assert model.provider == "provider2"
+                elif model.id == "model3":
+                    assert model.provider == "provider3"

@@ -34,7 +34,7 @@ class TestToolRetriever:
         mock_repo.get_embedding_config.return_value = EmbeddingConfig(
             id="default",
             provider="openai",
-            model_id="text-embedding-ada-002",
+            model="text-embedding-ada-002",
             api_key="sk-test-key",
             base_url="https://api.openai.com/v1",
             dimension=1536,

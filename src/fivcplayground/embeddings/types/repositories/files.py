@@ -28,7 +28,7 @@ Example:
     >>> embedding_config = EmbeddingConfig(
     ...     id="openai-ada",
     ...     provider="openai",
-    ...     model_id="text-embedding-ada-002",
+    ...     model="text-embedding-ada-002",
     ...     api_key="sk-...",
     ...     dimension=1536
     ... )
@@ -179,6 +179,7 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
 
         try:
             embedding_data = embeddings_data[embedding_id]
+            embedding_data["id"] = embedding_id
             return EmbeddingConfig.model_validate(embedding_data)
         except ValueError as e:
             print(f"Error loading embedding {embedding_id}: {e}")
@@ -199,6 +200,7 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         for embedding_id in sorted(embeddings_data.keys()):
             try:
                 embedding_data = embeddings_data[embedding_id]
+                embedding_data["id"] = embedding_id
                 config = EmbeddingConfig.model_validate(embedding_data)
                 embeddings.append(config)
             except ValueError as e:

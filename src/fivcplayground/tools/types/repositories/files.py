@@ -176,6 +176,7 @@ class FileToolConfigRepository(ToolConfigRepository):
 
         try:
             tool_data = tools_data[tool_id]
+            tool_data["id"] = tool_id
             return ToolConfig.model_validate(tool_data)
         except ValueError as e:
             print(f"Error loading tool {tool_id}: {e}")
@@ -196,6 +197,7 @@ class FileToolConfigRepository(ToolConfigRepository):
         for tool_id in sorted(tools_data.keys()):
             try:
                 tool_data = tools_data[tool_id]
+                tool_data["id"] = tool_id
                 config = ToolConfig.model_validate(tool_data)
                 tools.append(config)
             except ValueError as e:

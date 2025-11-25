@@ -203,6 +203,78 @@ class TestFileToolConfigRepository:
             tools_data = repo._load_tools_data()
             assert tools_data == {}
 
+    def test_id_field_set_on_get(self):
+        """Test that id field is properly set when retrieving tool config"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileToolConfigRepository(output_dir=output_dir)
+
+            # Create and save tool config
+            tool_config = ToolConfig(
+                id="test-tool",
+                description="Test tool",
+                transport="stdio",
+                command="python",
+            )
+            repo.update_tool_config(tool_config)
+
+            # Retrieve and verify id field is set
+            retrieved = repo.get_tool_config("test-tool")
+            assert retrieved is not None
+            assert retrieved.id == "test-tool"
+            assert retrieved.description == "Test tool"
+            assert retrieved.transport == "stdio"
+            assert retrieved.command == "python"
+
+    def test_id_field_set_on_list(self):
+        """Test that id field is properly set when listing tool configs"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileToolConfigRepository(output_dir=output_dir)
+
+            # Create and save multiple tool configs
+            tools = [
+                ToolConfig(
+                    id="tool1",
+                    description="Tool 1",
+                    transport="stdio",
+                    command="cmd1",
+                ),
+                ToolConfig(
+                    id="tool2",
+                    description="Tool 2",
+                    transport="sse",
+                    url="http://localhost:8000",
+                ),
+                ToolConfig(
+                    id="tool3",
+                    description="Tool 3",
+                    transport="stdio",
+                    command="cmd3",
+                ),
+            ]
+
+            for tool in tools:
+                repo.update_tool_config(tool)
+
+            # List and verify all id fields are set
+            listed_tools = repo.list_tool_configs()
+            assert len(listed_tools) == 3
+
+            for tool in listed_tools:
+                assert tool.id is not None
+                assert tool.id in {"tool1", "tool2", "tool3"}
+                # Verify id matches the description pattern
+                if tool.id == "tool1":
+                    assert tool.description == "Tool 1"
+                    assert tool.transport == "stdio"
+                elif tool.id == "tool2":
+                    assert tool.description == "Tool 2"
+                    assert tool.transport == "sse"
+                elif tool.id == "tool3":
+                    assert tool.description == "Tool 3"
+                    assert tool.transport == "stdio"
+
 
 if __name__ == "__main__":
     import pytest
