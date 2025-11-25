@@ -8,6 +8,7 @@ Command-line interface for runtime FivcPlayground agents and tools.
 import subprocess
 import sys
 import os
+import shutil
 from typing import Optional
 from pathlib import Path
 
@@ -93,8 +94,8 @@ def run(
     )
     if not agent_runnable:
         console.print(f"[red]❌ Unknown agent type: {agent_name}[/red]")
-        console.print(f"Available agents: {[
-            i.id for i in agent_config_repository.list_agent_configs()]}")
+        agent_ids = [i.id for i in agent_config_repository.list_agent_configs()]
+        console.print(f"Available agents: {agent_ids}")
         raise typer.Exit(1)
 
     if dry_run:
@@ -220,10 +221,128 @@ def info():
     fivcplayground run Generic --query "What is machine learning?"     # Programmatic mode
     fivcplayground web                                                 # Launch web interface
     fivcplayground clean                                               # Clean temporary files
+    fivcplayground setup                                               # Initialize configuration
     fivcplayground info
     """
 
     console.print(Panel(info_text, title="FivcPlayground", border_style="blue"))
+
+
+@app.command()
+def setup(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing configuration files without prompting",
+    ),
+):
+    """
+    Initialize FivcPlayground configuration directory structure.
+
+    Creates .fivcplayground/configs/ directory in the current working directory
+    and copies example configuration files from the project.
+    """
+    console.print(
+        Panel.fit(
+            Text("FivcPlayground Setup", style="bold cyan"),
+            subtitle="Initializing Configuration",
+        )
+    )
+
+    try:
+        # Get current working directory
+        cwd = Path.cwd()
+        config_dir = cwd / ".fivcplayground" / "configs"
+
+        # Get the project's configs directory
+        project_root = Path(__file__).parent.parent.parent
+        project_configs_dir = project_root / "configs"
+
+        # Verify project configs directory exists
+        if not project_configs_dir.exists():
+            console.print(
+                f"[red]❌ Error: Project configs directory not found at {project_configs_dir}[/red]"
+            )
+            raise typer.Exit(1)
+
+        # Configuration files to copy
+        config_files = [
+            ("agents.yaml.example", "agents.yaml"),
+            ("models.yaml.example", "models.yaml"),
+            ("embeddings.yaml.example", "embeddings.yaml"),
+            ("tools.yaml.example", "tools.yaml"),
+        ]
+
+        # Create config directory if it doesn't exist
+        config_dir.mkdir(parents=True, exist_ok=True)
+        console.print(f"[blue]📁 Created directory: {config_dir}[/blue]")
+
+        # Track copied files
+        copied_files = []
+        skipped_files = []
+
+        # Copy each configuration file
+        for source_name, target_name in config_files:
+            source_file = project_configs_dir / source_name
+            target_file = config_dir / target_name
+
+            # Check if source file exists
+            if not source_file.exists():
+                console.print(
+                    f"[yellow]⚠️  Warning: Source file not found: {source_file}[/yellow]"
+                )
+                skipped_files.append(source_name)
+                continue
+
+            # Check if target file already exists
+            if target_file.exists() and not force:
+                overwrite = typer.confirm(
+                    f"File {target_name} already exists. Overwrite?",
+                    default=False,
+                )
+                if not overwrite:
+                    console.print(f"[yellow]⏭️  Skipped: {target_name}[/yellow]")
+                    skipped_files.append(target_name)
+                    continue
+
+            # Copy file with metadata preservation
+            try:
+                shutil.copy2(source_file, target_file)
+                copied_files.append(target_name)
+                console.print(f"[green]✅ Copied: {target_name}[/green]")
+            except Exception as e:
+                console.print(f"[red]❌ Error copying {target_name}: {e}[/red]")
+                raise typer.Exit(1)
+
+        # Display summary
+        console.print("\n" + "=" * 60)
+        console.print("[bold cyan]Setup Summary[/bold cyan]")
+        console.print("=" * 60)
+        console.print(f"[blue]Configuration directory:[/blue] {config_dir}")
+        console.print(f"[green]Files copied: {len(copied_files)}[/green]")
+        if copied_files:
+            for file in copied_files:
+                console.print(f"  • {file}")
+        if skipped_files:
+            console.print(f"[yellow]Files skipped: {len(skipped_files)}[/yellow]")
+            for file in skipped_files:
+                console.print(f"  • {file}")
+
+        # Display next steps
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        console.print(f"1. Edit configuration files in: [blue]{config_dir}[/blue]")
+        console.print("2. Configure your LLM provider (models.yaml)")
+        console.print("3. Configure agents (agents.yaml)")
+        console.print("4. Configure embeddings (embeddings.yaml)")
+        console.print("5. Configure tools (tools.yaml)")
+        console.print("\n[green]✅ Setup completed successfully![/green]")
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]❌ Setup failed: {e}[/red]")
+        raise typer.Exit(1)
 
 
 def main():
