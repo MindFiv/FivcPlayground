@@ -1,24 +1,8 @@
-"""
-MCP Setting Page
-
-Provides configuration interface for Model Context Protocol (MCP) servers.
-
-This module implements the MCP settings view for the FivcPlayground web interface,
-allowing users to configure and manage MCP server connections. The view handles:
-- Displaying configured MCP servers
-- Adding new command-based or URL-based servers
-- Editing MCP configuration in YAML format
-- Testing MCP server connectivity
-
-The MCP settings view uses the default_mcp_loader from app.utils for persistence
-and provides both UI-based and direct YAML editing interfaces for flexibility.
-"""
-
 import streamlit as st
 import yaml
 
 from fivcplayground.app.views.base import ViewBase, ViewNavigation
-from fivcplayground.app.utils import default_mcp_loader
+from fivcplayground.tools import ToolConfig, ToolConfigRepository
 
 
 class MCPSettingView(ViewBase):
@@ -189,7 +173,12 @@ class MCPSettingView(ViewBase):
     HELP_CONFIG_LOCATION = "**Location:** `mcp.yml`"
     HELP_CONFIG_STATUS = "**Status:** ✅ Managed by application"
 
-    def __init__(self):
+    def __init__(
+        self,
+        tool_config_repository: ToolConfigRepository,
+    ):
+        self._tool_config_repository = tool_config_repository
+        # self._tool_loader = tool_loader
         super().__init__(self.TITLE, self.ICON)
 
     @property
@@ -219,15 +208,15 @@ class MCPSettingView(ViewBase):
 
     def _render_manage_servers_tab(self):
         """Render the manage servers tab."""
-        servers = default_mcp_loader.config.list()
+        configs = self._tool_config_repository.list_tool_configs()
 
         # Display current servers section
-        if servers:
+        if configs:
             st.subheader(self.HEADER_CONFIGURED, divider=self.DIVIDER_BLUE)
 
             # Create expanders for each server
-            for name in servers:
-                self._render_server_expander(name)
+            for c in configs:
+                self._render_server_expander(c.id)
         else:
             st.info(self.MSG_NO_SERVERS)
 
@@ -267,14 +256,14 @@ class MCPSettingView(ViewBase):
         Args:
             name (str): Server name
         """
-        settings = default_mcp_loader.config.get(name)
-        if not settings:
+        config = self._tool_config_repository.get_tool_config(name)
+        if not config:
             return
 
         # Determine server type for display
-        if self.KEY_COMMAND in settings:
+        if config.command:
             server_type_label = "🖥️ Command"
-        elif self.KEY_URL in settings:
+        elif config.url:
             server_type_label = "🌐 URL"
         else:
             server_type_label = "❓ Unknown"
@@ -304,9 +293,7 @@ class MCPSettingView(ViewBase):
                             key=f"confirm_delete_{name}",
                             use_container_width=True,
                         ):
-                            default_mcp_loader.config.remove(name)
-                            default_mcp_loader.config.save()
-                            print(default_mcp_loader.config.get_errors())
+                            self._tool_config_repository.delete_tool_config(name)
                             st.success(self.ERR_DELETED.format(name=name))
                             st.rerun()
                     with col_confirm2:
@@ -320,20 +307,20 @@ class MCPSettingView(ViewBase):
             st.divider()
 
             # Server details
-            if self.KEY_COMMAND in settings:
+            if self.KEY_COMMAND in config:
                 st.markdown(self.TYPE_COMMAND_LABEL)
-                st.markdown(f"**Command:** `{settings[self.KEY_COMMAND]}`")
-                if self.KEY_ARGS in settings:
-                    args_str = " ".join(settings[self.KEY_ARGS])
+                st.markdown(f"**Command:** `{config[self.KEY_COMMAND]}`")
+                if self.KEY_ARGS in config:
+                    args_str = " ".join(config[self.KEY_ARGS])
                     st.markdown(f"**Arguments:** `{args_str}`")
-                if self.KEY_ENV in settings:
+                if self.KEY_ENV in config:
                     env_items = ", ".join(
-                        [f"{k}={v}" for k, v in settings[self.KEY_ENV].items()]
+                        [f"{k}={v}" for k, v in config[self.KEY_ENV].items()]
                     )
                     st.markdown(f"**Environment:** `{env_items}`")
-            elif self.KEY_URL in settings:
+            elif self.KEY_URL in config:
                 st.markdown(self.TYPE_URL_LABEL)
-                st.markdown(f"**URL:** `{settings[self.KEY_URL]}`")
+                st.markdown(f"**URL:** `{config[self.KEY_URL]}`")
 
     def _render_add_server_form(self, server_name: str, server_type: str):
         """Render form for adding a new server.
@@ -385,7 +372,7 @@ class MCPSettingView(ViewBase):
 
         # Convert current configs to YAML
         current_config = {}
-        tool_configs = default_mcp_loader.tool_config_repository.list_tool_configs()
+        tool_configs = self._tool_config_repository.list_tool_configs()
         for tool_config in tool_configs:
             # Convert ToolConfig to dict for YAML serialization
             config_dict = tool_config.model_dump(exclude={"id", "description"})
@@ -430,11 +417,9 @@ class MCPSettingView(ViewBase):
 
                     # Clear all existing configs and set new ones
                     # This handles both updates and deletions
-                    existing_configs = (
-                        default_mcp_loader.tool_config_repository.list_tool_configs()
-                    )
+                    existing_configs = self._tool_config_repository.list_tool_configs()
                     for existing_config in existing_configs:
-                        default_mcp_loader.tool_config_repository.delete_tool_config(
+                        self._tool_config_repository.delete_tool_config(
                             existing_config.id
                         )
 
@@ -444,9 +429,7 @@ class MCPSettingView(ViewBase):
                         if "description" not in cfg_with_id:
                             cfg_with_id["description"] = f"MCP server: {name}"
                         tool_config = ToolConfig.model_validate(cfg_with_id)
-                        default_mcp_loader.tool_config_repository.update_tool_config(
-                            tool_config
-                        )
+                        self._tool_config_repository.update_tool_config(tool_config)
 
                     st.success(self.SUCCESS_SAVED)
                     st.rerun()
@@ -543,66 +526,29 @@ class MCPSettingView(ViewBase):
         Validates all configured MCP servers and checks their connectivity.
         Displays results with detailed error information if any issues are found.
         """
-        servers = default_mcp_loader.config.list()
+        configs = self._tool_config_repository.list_tool_configs()
 
-        if not servers:
+        if not configs:
             st.warning("No MCP servers configured yet.")
             return
 
-        st.info(f"Testing {len(servers)} configured server(s)...")
-
-        # Get errors from config loading
-        config_errors = default_mcp_loader.config.get_errors()
-        if config_errors:
-            st.warning(self.WARN_CONFIG_ERRORS)
-            for error in config_errors:
-                st.error(f"  • {error}")
-            return
+        st.info(f"Testing {len(configs)} configured server(s)...")
 
         # Test each server
         valid_count = 0
-        for server_name in servers:
-            config_value = default_mcp_loader.config.get(server_name)
+        for config in configs:
+            config_value = self._tool_config_repository.get_tool_config(config.id)
             if not config_value:
-                st.error(f"❌ {server_name}: Failed to load configuration")
+                st.error(f"❌ {config}: Failed to load configuration")
                 continue
-
-            # Validate configuration
-            if not config_value.validate():
-                st.error(f"❌ {server_name}: Invalid configuration")
-                continue
-
-            # Check if connection can be created
-            try:
-                connection = config_value.value
-                if connection is None:
-                    st.error(f"❌ {server_name}: Failed to create connection")
-                    continue
-
-                # Display server info
-                if self.KEY_COMMAND in config_value:
-                    st.success(
-                        f"✅ {server_name}: Command-based server configured correctly"
-                    )
-                elif self.KEY_URL in config_value:
-                    st.success(
-                        f"✅ {server_name}: URL-based server configured correctly"
-                    )
-                else:
-                    st.warning(f"⚠️ {server_name}: Unknown server type")
-                    continue
-
-                valid_count += 1
-            except Exception as e:
-                st.error(f"❌ {server_name}: {str(e)}")
 
         # Summary
         st.divider()
-        if valid_count == len(servers):
+        if valid_count == len(configs):
             st.success(self.SUCCESS_VALID.format(count=valid_count))
         else:
             st.warning(
-                f"⚠️ {valid_count}/{len(servers)} servers are valid. "
+                f"⚠️ {valid_count}/{len(configs)} servers are valid. "
                 f"Please fix the errors above."
             )
 
@@ -619,7 +565,8 @@ class MCPSettingView(ViewBase):
             st.error(self.ERR_SERVER_NAME_REQUIRED)
             return
 
-        if server_name in default_mcp_loader.config.list():
+        server_names = {c.id for c in self._tool_config_repository.list_tool_configs()}
+        if server_name in server_names:
             st.error(self.ERR_SERVER_EXISTS.format(name=server_name))
             return
 
@@ -654,14 +601,12 @@ class MCPSettingView(ViewBase):
 
         # Validate and store the configuration
         try:
-            from fivcplayground.tools.types.base import ToolConfig
-
             cfg_with_id = config.copy()
             cfg_with_id["id"] = server_name
             if "description" not in cfg_with_id:
                 cfg_with_id["description"] = f"MCP server: {server_name}"
             tool_config = ToolConfig.model_validate(cfg_with_id)
-            default_mcp_loader.tool_config_repository.update_tool_config(tool_config)
+            self._tool_config_repository.update_tool_config(tool_config)
             st.success(self.ERR_ADDED.format(name=server_name))
             st.rerun()
         except ValueError as e:

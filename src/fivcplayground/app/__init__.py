@@ -12,12 +12,18 @@ __all__ = [
 import streamlit as st
 import nest_asyncio
 
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
+from fivcplayground.models.types.repositories import FileModelConfigRepository
+from fivcplayground.tools.types.repositories import FileToolConfigRepository
+from fivcplayground.tools import (
+    create_tool_retriever,
+    create_tool_loader,
+)
 from fivcplayground.agents.types.repositories import (
-    # FileAgentRunRepository,
+    FileAgentConfigRepository,
     SqliteAgentRunRepository,
 )
-from fivcplayground.app.utils import ChatManager, default_mcp_loader
+from fivcplayground.app.utils import ChatManager
 from fivcplayground.app.views import (
     ViewNavigation,
     ChatView,
@@ -32,7 +38,6 @@ nest_asyncio.apply()
 
 def main():
     """Main Streamlit application entry point with custom ViewNavigation"""
-    default_mcp_loader.load()
     # Page configuration (must be called first)
     st.set_page_config(
         page_title="FivcPlayground - Intelligent Agent Assistant",
@@ -42,9 +47,24 @@ def main():
     )
 
     agent_run_repository = SqliteAgentRunRepository()
+    agent_config_repository = FileAgentConfigRepository()
+    model_config_repository = FileModelConfigRepository()
+    embedding_config_repository = FileEmbeddingConfigRepository()
+    tool_config_repository = FileToolConfigRepository()
+    tool_retriever = create_tool_retriever(
+        embedding_config_repository=embedding_config_repository,
+    )
+    tool_loader = create_tool_loader(
+        tool_config_repository=tool_config_repository,
+        tool_retriever=tool_retriever,
+    )
+    tool_loader.load()
+
     chat_manager = ChatManager(
+        model_config_repository=model_config_repository,
+        agent_config_repository=agent_config_repository,
         agent_run_repository=agent_run_repository,
-        tool_retriever=create_tool_retriever(),
+        tool_retriever=tool_retriever,
     )
 
     # Create navigation instance
@@ -62,7 +82,7 @@ def main():
     )
     nav.add_section(
         "Settings",
-        [GeneralSettingView(), MCPSettingView()],
+        [GeneralSettingView(), MCPSettingView(tool_config_repository)],
     )
 
     # Run navigation

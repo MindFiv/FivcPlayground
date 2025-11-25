@@ -2,12 +2,13 @@ __all__ = [
     "TaskAssessment",
     "TaskRequirement",
     "TaskTeam",
-    "TaskMonitor",
     "TaskEvent",
     "TaskRuntimeStep",
     "TaskRuntime",
     "TaskRuntimeRepository",
     "TaskStatus",
+    "TaskSimpleRunnable",
+    "TaskMonitor",
     "TaskMonitorManager",
 ]
 
@@ -17,6 +18,7 @@ from .base import (
     TaskTeam,
     TaskStatus,
     TaskEvent,
+    TaskSimpleRunnable,
     TaskRuntimeStep,
     TaskRuntime,
 )

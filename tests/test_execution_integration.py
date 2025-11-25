@@ -80,7 +80,6 @@ class TestExecutionTaskIntegration:
         sig = inspect.signature(tasks.create_planning_task)
         params = list(sig.parameters.keys())
 
-        assert "query" in params
         assert "tool_retriever" in params
         assert "kwargs" in params
 

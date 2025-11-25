@@ -21,6 +21,7 @@ from enum import Enum
 from pydantic import BaseModel, Field, computed_field
 
 from fivcplayground.agents.types import AgentRunContent
+from fivcplayground.utils import ProxyRunnable, Runnable
 
 
 class TaskStatus(str, Enum):
@@ -288,3 +289,21 @@ class TaskRuntime(BaseModel):
         self.started_at = None
         self.completed_at = None
         self.steps.clear()
+
+
+class TaskSimpleRunnable(ProxyRunnable):
+    """
+    Simple task runnable for testing and development.
+
+    This class provides a basic implementation of the Runnable interface
+    for testing and development purposes. It does not perform any actual
+    task execution, but simply returns a predefined result.
+    """
+
+    def __init__(self, runnable: Runnable, query: str = "", **kwargs):
+        self._query = query
+        super().__init__(runnable, **kwargs)
+
+    async def run_async(self, query: str = "", **kwargs) -> BaseModel:
+        query = self._query.format(query=query)  # update prompts
+        return await super().run_async(query=query, **kwargs)

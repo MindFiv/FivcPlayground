@@ -5,16 +5,18 @@ from typing import Optional, Callable, List
 
 from pydantic import BaseModel
 
-# from fivcplayground.tasks import create_briefing_task
+from fivcplayground.tasks import create_briefing_task
 from fivcplayground.agents import (
-    AgentRunnable,
     AgentRun,
     AgentRunRepository,
     AgentConfigRepository,
     create_companion_agent,
+    AgentRunContent,
+    AgentRunSession,
 )
 from fivcplayground.models import ModelConfigRepository
 from fivcplayground.tools import ToolRetriever
+from fivcplayground.utils import Runnable
 
 
 class Chat(object):
@@ -24,9 +26,10 @@ class Chat(object):
 
     def __init__(
         self,
-        agent_runnable: AgentRunnable | None = None,
+        agent_runnable: Runnable | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
+        briefing_runnable: Runnable | None = None,
         tool_retriever: Optional[ToolRetriever] = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
@@ -36,6 +39,7 @@ class Chat(object):
         self._agent_run_session_id = agent_run_session_id
         self._agent_run_repository = agent_run_repository
         self._tool_retriever = tool_retriever
+        self._briefing_runnable = briefing_runnable
         self._runnable = agent_runnable
         self._running = False
 
@@ -91,30 +95,28 @@ class Chat(object):
             )
             # Execute agent with repository and tool retriever
             agent_result = await self._runnable.run_async(
-                query,
+                query=query,
                 agent_run_repository=self._agent_run_repository,
                 agent_run_session_id=agent_session_id,
                 tool_retriever=self._tool_retriever,
                 event_callback=lambda _, r: on_event(r),
             )
-
             # Save agent metadata on first query
-            # if not self._agent_run_session_id:
-            #     agent_query = f"{query}\n{str(agent_result)}"
-            #     agent_desc = create_briefing_task(
-            #         agent_query,
-            #         tool_retriever=self._tool_retriever,
-            #     )
-            #     agent_desc = await agent_desc.run_async()
-            #     self._agent_run_session_id = AgentRunSession(
-            #         id=session_id,
-            #         agent_id=agent.id,
-            #         description=agent_desc.text,
-            #         started_at=datetime.now(),
-            #     )
-            #     self._agent_run_repository.update_agent_run_session(
-            #         self._agent_run_session_id
-            #     )
+            if not self._agent_run_session_id:
+                agent_query = f"{query}\n{str(agent_result)}"
+                agent_desc = await self._briefing_runnable.run_async(
+                    query=agent_query,
+                    tool_retriever=self._tool_retriever,
+                )
+                assert isinstance(agent_desc, AgentRunContent)
+                self._agent_run_repository.update_agent_run_session(
+                    AgentRunSession(
+                        id=agent_session_id,
+                        agent_id=self._runnable.id,
+                        description=str(agent_desc),
+                        started_at=datetime.now(),
+                    )
+                )
 
             return agent_result
 
@@ -153,6 +155,10 @@ class ChatManager(object):
         ), "agent_config_repository is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
 
+        self._briefing_runnable = create_briefing_task(
+            model_config_repository=model_config_repository,
+            agent_config_repository=agent_config_repository,
+        )
         self._agent_runnable = create_companion_agent(
             model_config_repository=model_config_repository,
             agent_config_repository=agent_config_repository,
@@ -180,6 +186,7 @@ class ChatManager(object):
 
     def add_chat(self) -> Chat:
         return Chat(
+            agent_runnable=self._agent_runnable,
             agent_run_repository=self._agent_run_repository,
             tool_retriever=self._tool_retriever,
         )
