@@ -106,10 +106,11 @@ def run(
         return
 
     try:
-        agent_runnable.run(
+        agent_result = agent_runnable.run(
             query=query,
             tool_retriever=tool_retriever,
         )
+        print(agent_result.model_dump_json())
         console.print("[green]✅ Agent completed successfully![/green]")
     except Exception as e:
         console.print(f"[red]❌ Error runtime agent: {e}[/red]")
