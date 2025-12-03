@@ -41,9 +41,6 @@ class TestAgentConfigRepositoryInterface:
             def delete_agent_config(self, agent_id):
                 pass
 
-            def filter_repository(self, user_id=None, **kwargs):
-                pass
-
         with pytest.raises(TypeError):
             IncompleteRepo()
 
@@ -58,9 +55,6 @@ class TestAgentConfigRepositoryInterface:
                 pass
 
             def delete_agent_config(self, agent_id):
-                pass
-
-            def filter_repository(self, user_id=None, **kwargs):
                 pass
 
         with pytest.raises(TypeError):
@@ -79,9 +73,6 @@ class TestAgentConfigRepositoryInterface:
             def delete_agent_config(self, agent_id):
                 pass
 
-            def filter_repository(self, user_id=None, **kwargs):
-                pass
-
         with pytest.raises(TypeError):
             IncompleteRepo()
 
@@ -96,28 +87,6 @@ class TestAgentConfigRepositoryInterface:
                 pass
 
             def list_agent_configs(self):
-                pass
-
-            def filter_repository(self, user_id=None, **kwargs):
-                pass
-
-        with pytest.raises(TypeError):
-            IncompleteRepo()
-
-    def test_requires_filter_repository(self):
-        """Test that subclass must implement filter_repository."""
-
-        class IncompleteRepo(AgentConfigRepository):
-            def update_agent_config(self, agent_config):
-                pass
-
-            def get_agent_config(self, agent_id):
-                pass
-
-            def list_agent_configs(self):
-                pass
-
-            def delete_agent_config(self, agent_id):
                 pass
 
         with pytest.raises(TypeError):

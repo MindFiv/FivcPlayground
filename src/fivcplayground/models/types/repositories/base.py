@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Any
+from typing import List
 
 from fivcplayground.models.types.base import ModelConfig
 
@@ -27,9 +27,3 @@ class ModelConfigRepository(ABC):
     @abstractmethod
     def delete_model_config(self, model_id: str) -> None:
         """Delete a model configuration."""
-
-    @abstractmethod
-    def filter_repository(
-        self, user_id: str | None = None, **kwargs: Any
-    ) -> "ModelConfigRepository":
-        """Filter the repository."""

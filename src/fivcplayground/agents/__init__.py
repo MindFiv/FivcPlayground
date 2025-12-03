@@ -26,16 +26,16 @@ from fivcplayground.agents.types.base import (
     AgentRunToolCall,
     AgentRunSession,
 )
-from fivcplayground.agents.types.repositories import (
+from fivcplayground.agents.types.repositories.base import (
     AgentConfigRepository,
     AgentRunRepository,
+)
+from fivcplayground.agents.types.backends import (
+    AgentRunnable,
 )
 from fivcplayground.models import (
     ModelConfigRepository,
     create_model,
-)
-from fivcplayground.agents.types import (
-    AgentRunnable,
 )
 
 

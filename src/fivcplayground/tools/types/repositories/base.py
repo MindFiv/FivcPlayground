@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Any
+from typing import List
 
 from fivcplayground.tools.types.base import ToolConfig
 
@@ -27,7 +27,3 @@ class ToolConfigRepository(ABC):
     @abstractmethod
     def delete_tool_config(self, tool_id: str) -> None:
         """Delete a tool configuration."""
-
-    @abstractmethod
-    def filter_repository(self, **kwargs: Any) -> "ToolConfigRepository":
-        """Filter the repository."""

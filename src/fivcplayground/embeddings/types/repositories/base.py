@@ -30,12 +30,3 @@ class EmbeddingConfigRepository(ABC):
     def delete_embedding_config(self, embedding_id: str) -> None:
         """Delete an embedding configuration."""
         ...
-
-    @abstractmethod
-    def filter_repository(
-        self,
-        user_id: str | None = None,
-        **kwargs,
-    ) -> "EmbeddingConfigRepository":
-        """Filter the repository."""
-        ...

@@ -43,7 +43,7 @@ Example:
 
 import yaml
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.base import ToolConfigRepository
@@ -220,19 +220,3 @@ class FileToolConfigRepository(ToolConfigRepository):
         if tool_id in tools_data:
             del tools_data[tool_id]
             self._save_tools_data(tools_data)
-
-    def filter_repository(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> "FileToolConfigRepository":
-        """Filter the repository.
-
-        Args:
-            user_id: Optional user ID to filter by
-            kwargs: Additional keyword arguments for filtering
-
-        Returns:
-            Filtered repository
-        """
-        return self

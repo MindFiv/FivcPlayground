@@ -116,16 +116,6 @@ class TestFileAgentConfigRepository:
             # Delete non-existent config (should not raise error)
             repo.delete_agent_config("nonexistent-agent")
 
-    def test_filter_repository(self):
-        """Test filter_repository returns self"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_dir = OutputDir(tmpdir)
-            repo = FileAgentConfigRepository(output_dir=output_dir)
-
-            # Filter repository
-            filtered_repo = repo.filter_repository(some_filter="value")
-            assert filtered_repo is repo
-
     def test_yaml_file_format(self):
         """Test that agent configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:

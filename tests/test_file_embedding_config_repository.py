@@ -170,16 +170,6 @@ class TestFileEmbeddingConfigRepository:
             # Delete non-existent embedding (should not raise error)
             repo.delete_embedding_config("nonexistent-embedding")
 
-    def test_filter_repository(self):
-        """Test filter_repository returns self"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_dir = OutputDir(tmpdir)
-            repo = FileEmbeddingConfigRepository(output_dir=output_dir)
-
-            # Filter repository
-            filtered_repo = repo.filter_repository(some_filter="value")
-            assert filtered_repo is repo
-
     def test_yaml_file_format(self):
         """Test that embedding configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:

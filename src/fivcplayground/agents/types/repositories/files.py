@@ -31,7 +31,7 @@ import yaml
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from fivcplayground.agents.types import AgentRunSession
 from fivcplayground.utils import OutputDir
@@ -237,22 +237,6 @@ class FileAgentConfigRepository(AgentConfigRepository):
         if agent_id in agents_data:
             del agents_data[agent_id]
             self._save_agents_data(agents_data)
-
-    def filter_repository(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> "FileAgentConfigRepository":
-        """Filter the repository.
-
-        Args:
-            user_id: Optional user ID to filter by
-            kwargs: Additional keyword arguments for filtering
-
-        Returns:
-            Filtered repository
-        """
-        return self
 
 
 class FileAgentRunRepository(AgentRunRepository):

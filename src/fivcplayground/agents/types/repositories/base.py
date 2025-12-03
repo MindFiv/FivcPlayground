@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from datetime import datetime
-from typing import List, Any
+from typing import List
 
 from fivcplayground.agents.types.base import (
     AgentConfig,
@@ -35,13 +35,6 @@ class AgentConfigRepository(ABC):
     @abstractmethod
     def delete_agent_config(self, agent_id: str) -> None:
         """Delete an agent configuration."""
-        ...
-
-    @abstractmethod
-    def filter_repository(
-        self, user_id: str | None = None, **kwargs: Any
-    ) -> "AgentConfigRepository":
-        """Filter the repository to a subset of agents."""
         ...
 
 

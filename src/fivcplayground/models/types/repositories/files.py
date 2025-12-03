@@ -42,7 +42,7 @@ Example:
 """
 
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import Optional, List
 import yaml
 
 from fivcplayground.models.types.base import ModelConfig
@@ -225,19 +225,3 @@ class FileModelConfigRepository(ModelConfigRepository):
         if model_id in models_data:
             del models_data[model_id]
             self._save_models_data(models_data)
-
-    def filter_repository(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> "FileModelConfigRepository":
-        """Filter the repository.
-
-        Args:
-            user_id: Optional user ID to filter by
-            kwargs: Additional keyword arguments for filtering
-
-        Returns:
-            Filtered repository
-        """
-        return self

@@ -43,7 +43,7 @@ Example:
 
 import yaml
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.embeddings.types.repositories.base import EmbeddingConfigRepository
@@ -223,19 +223,3 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         if embedding_id in embeddings_data:
             del embeddings_data[embedding_id]
             self._save_embeddings_data(embeddings_data)
-
-    def filter_repository(
-        self,
-        user_id: str | None = None,
-        **kwargs: Any,
-    ) -> "FileEmbeddingConfigRepository":
-        """Filter the repository.
-
-        Args:
-            user_id: Optional user ID to filter by
-            kwargs: Additional keyword arguments for filtering
-
-        Returns:
-            Filtered repository
-        """
-        return self
