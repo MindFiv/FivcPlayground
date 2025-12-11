@@ -18,6 +18,10 @@ class ToolRetriever(object):
     searchable index of tool descriptions and supports both individual tools and ToolBundle
     objects.
 
+    Supports embedding space isolation via the space_id parameter, allowing
+    different logical contexts (users, projects, environments, etc.) to have
+    isolated tool collections.
+
     Key Features:
         - Semantic search using embeddings to find relevant tools
         - Support for both individual tools and ToolBundle objects
@@ -25,6 +29,7 @@ class ToolRetriever(object):
         - Configurable search parameters (max_num, min_score)
         - Proper error handling for duplicate tools and missing descriptions
         - Integration with embedding database for efficient search
+        - Multi-space isolation for different contexts
 
     The retriever stores tools in an embedding collection indexed by their descriptions,
     allowing for semantic similarity matching rather than keyword matching.
@@ -34,28 +39,50 @@ class ToolRetriever(object):
         min_score: Minimum similarity score for search results (default: 0.0)
         tools: Dictionary mapping tool names to BaseTool instances
         collection: EmbeddingCollection for semantic search
+        space_id: Embedding space identifier for data isolation
 
     Example:
+        >>> # Default/shared space (backward compatible)
         >>> retriever = ToolRetriever()
         >>> retriever.add_tool(my_tool)
         >>> tools = retriever.retrieve_tools("get weather information")
-        >>> tools_expanded = retriever.retrieve_tools("get weather", expand=True)
+        >>>
+        >>> # User-specific space
+        >>> retriever = ToolRetriever(space_id="user_alice")
+        >>>
+        >>> # Project-specific space
+        >>> retriever = ToolRetriever(space_id="project_website")
     """
 
     def __init__(
         self,
         embedding_config_repository: embeddings.EmbeddingConfigRepository | None = None,
         embedding_config_id: str = "default",
+        space_id: str | None = None,
         **kwargs,  # ignore additional kwargs
     ):
+        """
+        Initialize the ToolRetriever.
+
+        Args:
+            embedding_config_repository: Repository for embedding configurations
+            embedding_config_id: ID of the embedding configuration to use
+            space_id: Optional embedding space identifier for data isolation.
+                     If None, uses "default" (shared space).
+                     Examples: "user_alice", "project_website", "env_staging"
+            **kwargs: Additional arguments
+        """
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
         self.tools: dict[str, Tool] = {}
+        self.space_id = space_id
         db = embeddings.create_embedding_db(
             embedding_config_repository,
             embedding_config_id,
+            space_id=space_id,
         )
         # Use dynamic attribute access to get the tools collection (EmbeddingTable)
+        # Will get "tools_{space_id}" or "tools" collection
         self.collection = db.tools
         self.collection.cleanup()  # clean up any old data
 

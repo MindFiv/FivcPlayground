@@ -35,22 +35,55 @@ def _create_embedding_function(
 class EmbeddingDB(object):
     """
     EmbeddingDB is a wrapper around the ChromaDB embedding database.
+
+    Supports embedding space isolation via the space_id parameter, allowing
+    multiple isolated namespaces within a single ChromaDB instance.
     """
 
     def __init__(
         self,
         embedding_config: EmbeddingConfig,
         output_dir: OutputDir | None = None,
+        space_id: str | None = None,
         **kwargs,  # ignore additional kwargs
     ):
+        """
+        Initialize the EmbeddingDB.
+
+        Args:
+            embedding_config: Configuration for the embedding model
+            output_dir: Optional output directory for ChromaDB persistence
+            space_id: Optional embedding space identifier for data isolation.
+                     If None, defaults to "default" (shared/backward-compatible space).
+                     Examples: "user_alice", "project_website", "env_staging"
+            **kwargs: Additional arguments (ignored)
+        """
         output_dir = output_dir or OutputDir().subdir("db")
         self.db = chromadb.PersistentClient(path=str(output_dir))
         self.function = _create_embedding_function(embedding_config)
+        self.space_id = space_id or "default"
 
     def __getattr__(self, name: str) -> "EmbeddingTable":
+        """
+        Dynamically create EmbeddingTable instances for collections.
+
+        Collection names are automatically namespaced by space_id:
+        - space_id="default": collection name = "tools"
+        - space_id="user_alice": collection name = "tools_user_alice"
+
+        Args:
+            name: Base collection name (e.g., "tools")
+
+        Returns:
+            EmbeddingTable instance for the space-specific collection
+        """
+        # Incorporate space_id into collection name
+        collection_name = (
+            f"{name}_{self.space_id}" if self.space_id != "default" else name
+        )
         return EmbeddingTable(
             self.db.get_or_create_collection(
-                name,
+                collection_name,
                 embedding_function=self.function,
             )
         )

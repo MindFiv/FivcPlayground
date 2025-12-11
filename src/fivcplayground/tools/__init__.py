@@ -27,13 +27,48 @@ from fivcplayground.tools.types.repositories import ToolConfigRepository
 def create_tool_retriever(
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
+    space_id: str | None = None,
     load_builtin_tools: bool = True,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever:
-    """Create a new ToolRetriever instance."""
+    """
+    Create a new ToolRetriever instance.
+
+    Args:
+        embedding_config_repository: Repository for embedding configurations
+        embedding_config_id: ID of the embedding configuration to use
+        space_id: Optional embedding space identifier for data isolation.
+                 If None, uses "default" (shared space).
+                 Examples: "user_alice", "project_website", "env_staging"
+        load_builtin_tools: Whether to load built-in tools (clock, calculator)
+        **kwargs: Additional arguments
+
+    Returns:
+        ToolRetriever instance configured for the specified embedding space
+
+    Examples:
+        # Default/shared space (backward compatible)
+        retriever = create_tool_retriever()
+
+        # User-specific space
+        retriever = create_tool_retriever(space_id="user_alice")
+
+        # Project-specific space with custom config
+        retriever = create_tool_retriever(
+            embedding_config_id="openai-ada",
+            space_id="project_website"
+        )
+
+        # Environment-specific space without builtin tools
+        retriever = create_tool_retriever(
+            space_id="env_production",
+            load_builtin_tools=False
+        )
+    """
     retriever = ToolRetriever(
         embedding_config_repository=embedding_config_repository,
         embedding_config_id=embedding_config_id,
+        space_id=space_id,
     )
     retriever.add_tool(retriever.to_tool())  # Add self to retriever
 
