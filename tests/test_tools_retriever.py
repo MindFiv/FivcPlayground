@@ -85,33 +85,8 @@ class TestToolRetriever:
 
             assert str(retriever) == "ToolRetriever(num_tools=0)"
 
-    def test_cleanup(self, mock_embedding_config_repository):
-        """Test cleanup method."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            retriever = ToolRetriever(
-                tool_list=None,
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-            retriever.tools["tool1"] = Mock()
-            retriever.max_num = 5
-            retriever.min_score = 0.5
-
-            retriever.cleanup()
-
-            assert retriever.max_num == 10
-            assert retriever.min_score == 1.0
-            assert len(retriever.tools) == 0
-            assert retriever.tool_indices.cleanup.call_count >= 1
-
-    def test_add_tool(self, mock_embedding_config_repository, mock_tool):
-        """Test adding a tool (deprecated method - kept for backward compatibility)."""
+    def test_index_tools(self, mock_embedding_config_repository):
+        """Test indexing tools in the retriever."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -120,58 +95,26 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
+            tool1 = create_mock_tool("tool1", "Tool 1 description")
+            tool2 = create_mock_tool("tool2", "Tool 2 description")
+
+            # Mock the repository to return empty list of tool configs
+            mock_embedding_config_repository.list_tool_configs.return_value = []
+
+            # Pass tools during initialization
             retriever = ToolRetriever(
-                tool_list=None,
+                tool_list=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            # Test deprecated add_tool method still works
-            retriever.add_tool(mock_tool)
+            # Index the tools
+            retriever.index_tools()
 
-            assert "test_tool" in retriever.tools
-            assert retriever.tools["test_tool"] == mock_tool
-            retriever.tool_indices.add.assert_called_once()
-
-    def test_add_duplicate_tool(self, mock_embedding_config_repository, mock_tool):
-        """Test that adding duplicate tool raises ValueError (deprecated method)."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_embedding_table.add = Mock()
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            retriever = ToolRetriever(
-                tool_list=None,
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-            retriever.add_tool(mock_tool)
-
-            with pytest.raises(ValueError, match="Duplicate tool name"):
-                retriever.add_tool(mock_tool)
-
-    def test_add_tool_without_description(self, mock_embedding_config_repository):
-        """Test that adding tool without description raises ValueError (deprecated method)."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_embedding_table.add = Mock()
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            retriever = ToolRetriever(
-                tool_list=None,
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-            tool = create_mock_tool("bad_tool", "")
-
-            with pytest.raises(ValueError, match="Tool description is empty"):
-                retriever.add_tool(tool)
+            # Verify cleanup was called
+            mock_embedding_table.cleanup.assert_called_once()
+            # Verify add was called for each tool
+            assert mock_embedding_table.add.call_count == 2
 
     def test_get_tool(self, mock_embedding_config_repository, mock_tool):
         """Test getting a tool by name."""
@@ -476,112 +419,6 @@ class TestToolRetriever:
             # Result should be a string representation of tool metadata
             assert isinstance(result, str)
             assert "tool1" in result
-
-    def test_remove_tool(self, mock_embedding_config_repository):
-        """Test removing a tool (deprecated method - kept for backward compatibility)."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_embedding_table.add = Mock()
-            mock_embedding_table.count = Mock(return_value=0)
-            mock_chroma_collection = Mock()
-            mock_chroma_collection.get = Mock(
-                return_value={
-                    "ids": ["id1", "id2"],
-                    "metadatas": [
-                        {"__tool__": "test_tool"},
-                        {"__tool__": "test_tool"},
-                    ],
-                }
-            )
-            mock_chroma_collection.delete = Mock()
-            mock_embedding_table.collection = mock_chroma_collection
-
-            # Mock the delete method to call the chroma collection's delete
-            def mock_delete(metadata):
-                where_clauses = [
-                    {key: {"$eq": value}} for key, value in metadata.items()
-                ]
-                if len(where_clauses) == 1:
-                    where = where_clauses[0]
-                else:
-                    where = {"$and": where_clauses}
-                mock_chroma_collection.delete(where=where)
-
-            mock_embedding_table.delete = mock_delete
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            tool = create_mock_tool("test_tool", "A test tool")
-
-            # Pass tool during initialization
-            retriever = ToolRetriever(
-                tool_list=[tool],
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-
-            retriever.delete_tool("test_tool")
-
-            assert "test_tool" not in retriever.tools
-            # Verify delete was called on the collection with the correct where clause
-            mock_chroma_collection.delete.assert_called_once()
-            call_kwargs = mock_chroma_collection.delete.call_args[1]
-            assert "where" in call_kwargs
-            assert call_kwargs["where"] == {"__tool__": {"$eq": "test_tool"}}
-
-    def test_remove_nonexistent_tool(self, mock_embedding_config_repository):
-        """Test removing a nonexistent tool raises ValueError (deprecated method)."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            retriever = ToolRetriever(
-                tool_list=None,
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-
-            with pytest.raises(ValueError, match="Tool not found"):
-                retriever.delete_tool("nonexistent")
-
-    def test_remove_tool_with_no_embedding_docs(self, mock_embedding_config_repository):
-        """Test removing a tool that has no embedding documents (deprecated method)."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_embedding_table.add = Mock()
-            mock_chroma_collection = Mock()
-            mock_chroma_collection.get = Mock(
-                return_value={
-                    "ids": ["id1"],
-                    "metadatas": [{"__tool__": "other_tool"}],
-                }
-            )
-            mock_chroma_collection.delete = Mock()
-            mock_embedding_table.collection = mock_chroma_collection
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
-
-            tool = create_mock_tool("test_tool", "A test tool")
-
-            # Pass tool during initialization
-            retriever = ToolRetriever(
-                tool_list=[tool],
-                tool_config_repository=mock_embedding_config_repository,
-                embedding_db=mock_db,
-            )
-
-            retriever.delete_tool("test_tool")
-
-            assert "test_tool" not in retriever.tools
-            # delete should not be called if no matching docs
-            mock_chroma_collection.delete.assert_not_called()
 
 
 if __name__ == "__main__":

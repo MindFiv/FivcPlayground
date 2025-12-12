@@ -22,7 +22,7 @@ from fivcplayground.agents import create_agent
 from fivcplayground.agents.types.repositories import FileAgentConfigRepository
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
-from fivcplayground.tools import create_tool_retriever, create_tool_loader
+from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
 from fivcplayground.utils import OutputDir
 
@@ -66,12 +66,9 @@ def run(
     tool_retriever = create_tool_retriever(
         embedding_config_repository=embedding_config_repository,
         embedding_config_id="default",
-    )
-    tool_loader = create_tool_loader(
-        tool_retriever=tool_retriever,
         tool_config_repository=tool_config_repository,
+        load_mcp_tools=True,
     )
-    tool_loader.load()
 
     console.print(
         Panel.fit(

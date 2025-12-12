@@ -111,15 +111,15 @@ App Shutdown
 
 ### Key Components
 
-1. **ToolLoader** - Manages MCP connections
-   - `load()` - Synchronous loading
-   - `load_async()` - Asynchronous loading
-   - `cleanup()` - Resource cleanup
+1. **ToolRetriever** - Manages tool retrieval and MCP connections
+   - `create_tool_retriever(load_mcp_tools=True)` - Load MCP tools
+   - `retrieve_tools(query)` - Semantic search for tools
+   - `list_tools()` - List all available tools
 
 2. **Streamlit Integration** - Lifecycle management
-   - `_initialize_mcp_loader()` - Cached initialization
-   - `_cleanup_mcp_loader()` - Cleanup on shutdown
+   - `create_tool_retriever()` - Initialize tool retriever
    - `nest_asyncio.apply()` - Asyncio patching
+   - Automatic resource cleanup
 
 3. **MCP Client** - Connection management
    - Persistent connections
@@ -152,14 +152,14 @@ streamlit run src/fivcplayground/app/__init__.py --logger.level=debug
 ### Issue: Tools not loading
 
 **Check**:
-1. MCP servers are configured
+1. MCP servers are configured in configs/tools.yaml
 2. MCP servers are running
 3. Network connectivity
 
 **Solution**:
 ```bash
-# Test MCP connection
-python -c "from fivcplayground.app.utils import default_mcp_loader; default_mcp_loader.load()"
+# Test tool retriever
+python -c "from fivcplayground.tools import create_tool_retriever; retriever = create_tool_retriever(load_mcp_tools=True); print(f'Loaded {len(retriever.list_tools())} tools')"
 
 # Check logs for errors
 # Look for "Error loading tools from" messages
@@ -242,46 +242,41 @@ main()
 
 ## Common Tasks
 
-### Reload MCP Configuration
-
-```python
-from fivcplayground.app.utils import default_mcp_loader
-
-# Reload configuration
-loader = default_mcp_loader
-loader.cleanup()
-loader.load()
-```
-
-### Check Loaded Tools
+### Create Tool Retriever with MCP Tools
 
 ```python
 from fivcplayground.tools import create_tool_retriever
 
-# Create a tool retriever
-retriever = create_tool_retriever()
+# Create a tool retriever with MCP tools loaded
+retriever = create_tool_retriever(load_mcp_tools=True)
 
 # List all tools (including bundles)
 tools = retriever.list_tools()
 for tool in tools:
     print(f"- {tool.name}: {tool.description}")
 
-# Search for tools (returns bundles as-is)
+# Search for tools using semantic search
 relevant_tools = retriever.retrieve_tools("calculate math")
 
-# Search and expand bundles into individual tools
-expanded_tools = retriever.retrieve_tools("calculate math", expand=True)
+# Get a specific tool by name
+calculator = retriever.get_tool("calculator")
 ```
 
-### Monitor Connections
+### Search for Tools
 
 ```python
-from fivcplayground.app.utils import default_mcp_loader
+from fivcplayground.tools import create_tool_retriever
 
-loader = default_mcp_loader
-print(f"Client: {loader.client}")
-print(f"Sessions: {list(loader.sessions.keys())}")
-print(f"Tools: {loader.tools_bundles}")
+# Create a tool retriever
+retriever = create_tool_retriever(load_mcp_tools=True)
+
+# Semantic search for relevant tools
+query = "I need to perform a calculation"
+relevant_tools = retriever.retrieve_tools(query)
+
+print(f"Found {len(relevant_tools)} relevant tools:")
+for tool in relevant_tools:
+    print(f"  - {tool.name}")
 ```
 
 ---

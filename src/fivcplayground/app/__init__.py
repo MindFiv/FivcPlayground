@@ -15,10 +15,7 @@ import nest_asyncio
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
-from fivcplayground.tools import (
-    create_tool_retriever,
-    create_tool_loader,
-)
+from fivcplayground.tools import create_tool_retriever
 from fivcplayground.agents.types.repositories import (
     FileAgentConfigRepository,
     SqliteAgentRunRepository,
@@ -53,12 +50,9 @@ def main():
     tool_config_repository = FileToolConfigRepository()
     tool_retriever = create_tool_retriever(
         embedding_config_repository=embedding_config_repository,
-    )
-    tool_loader = create_tool_loader(
         tool_config_repository=tool_config_repository,
-        tool_retriever=tool_retriever,
+        load_mcp_tools=True,
     )
-    tool_loader.load()
 
     chat_manager = ChatManager(
         model_config_repository=model_config_repository,

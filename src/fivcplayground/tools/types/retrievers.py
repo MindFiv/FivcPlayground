@@ -1,6 +1,3 @@
-import warnings
-from functools import wraps
-
 from pydantic import BaseModel, Field
 from fivcplayground import embeddings
 from fivcplayground.tools.types.backends import (
@@ -13,20 +10,6 @@ from fivcplayground.tools.types.backends import (
 from fivcplayground.tools.types.repositories.base import (
     ToolConfigRepository,
 )
-
-
-def deprecated(message: str):
-    """Decorator to mark functions as deprecated."""
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 class ToolRetriever(object):
@@ -68,31 +51,6 @@ class ToolRetriever(object):
     def __str__(self):
         return f"ToolRetriever(num_tools={len(self.tools)})"
 
-    @deprecated("no more need to cleanup")
-    def cleanup(self):
-        self.max_num = 10  # top k
-        self.min_score = 1.0  # min score
-        self.tools.clear()
-        self.tool_indices.cleanup()
-
-    @deprecated("no more need to add tools, they are added automatically on load")
-    def add_tool(self, tool: Tool, **kwargs):
-        tool_name = get_tool_name(tool)
-        if tool_name in self.tools:
-            raise ValueError(f"Duplicate tool name: {tool_name}")
-
-        tool_desc = get_tool_description(tool)
-        if not tool_desc:
-            raise ValueError(f"Tool description is empty: {tool_name}")
-
-        self.tool_indices.add(
-            tool_desc,
-            metadata={"__tool__": tool_name},
-        )
-        self.tools[tool_name] = tool
-
-        print(f"Total Docs {self.tool_indices.count()} in ToolRetriever")
-
     def get_tool(self, name: str) -> Tool | None:
         tool = self.tools.get(name)
         if tool:
@@ -109,21 +67,6 @@ class ToolRetriever(object):
         tool_configs = self.tool_config_repository.list_tool_configs()
         tools.extend([ToolBundle(c) for c in tool_configs])
         return tools
-
-    @deprecated("no more need to remove tools")
-    def delete_tool(self, name: str):
-        """Remove a tool from the retriever."""
-        if name not in self.tools:
-            raise ValueError(f"Tool not found: {name}")
-
-        # Remove from tools dictionary
-        del self.tools[name]
-
-        self.tool_indices.delete(metadata={"__tool__": name})
-        print(
-            f"Removed tool '{name}'. "
-            f"Total Docs {self.tool_indices.count()} in ToolRetriever"
-        )
 
     @property
     def retrieve_min_score(self):

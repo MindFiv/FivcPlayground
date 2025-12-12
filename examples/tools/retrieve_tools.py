@@ -11,10 +11,7 @@ import asyncio
 import dotenv
 
 from fivcplayground.utils import OutputDir
-from fivcplayground.tools import (
-    create_tool_retriever,
-    create_tool_loader,
-)
+from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
 
@@ -31,14 +28,12 @@ async def main():
 
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
-        # Create a retriever instance with builtin tools
-        # Tools are now passed during initialization instead of being added after creation
-        retriever = create_tool_retriever(load_builtin_tools=True)
-
-        # Load MCP tools using ToolLoader
-        print("Loading MCP tools...")
-        loader = create_tool_loader(tool_retriever=retriever)
-        await loader.load_async()
+        # Create a retriever instance with builtin and MCP tools
+        # Tools are passed during initialization
+        retriever = create_tool_retriever(
+            load_builtin_tools=True,
+            load_mcp_tools=True,
+        )
 
         print("Tools loaded successfully!")
         print("\n" + "=" * 50)

@@ -1,6 +1,13 @@
-from typing import List, Dict, Literal
+from enum import Enum
+from typing import List, Dict
 
 from pydantic import BaseModel, Field
+
+
+class ToolConfigTransport(str, Enum):
+    STDIO = "stdio"
+    SSE = "sse"
+    STREAMABLE_HTTP = "streamable_http"
 
 
 class ToolConfig(BaseModel):
@@ -9,7 +16,7 @@ class ToolConfig(BaseModel):
     id: str = Field(..., description="Unique identifier for the tool")
     # name: str = Field(..., description="Name of the tool")
     description: str = Field(..., description="Description of the tool")
-    transport: Literal["stdio", "sse", "streamable_http"] = Field(
+    transport: ToolConfigTransport = Field(
         ...,
         description="Transport protocol for the tool",
     )

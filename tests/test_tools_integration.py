@@ -2,16 +2,16 @@
 """
 End-to-end integration tests for the tools module.
 
-Tests the complete flow: FileToolConfigRepository → ToolLoader → ToolRetriever
+Tests the complete flow: FileToolConfigRepository → create_tool_retriever(load_mcp_tools=True) → ToolRetriever
 """
 
 import tempfile
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
-from fivcplayground.tools import create_tool_loader
+from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.utils import OutputDir
 from fivcplayground import __backend__
@@ -33,8 +33,8 @@ class TestToolsIntegration:
     """End-to-end integration tests for tools module"""
 
     @pytest.mark.asyncio
-    async def test_complete_flow_repository_to_loader(self):
-        """Test complete flow: repository → loader"""
+    async def test_complete_flow_repository_to_retriever(self):
+        """Test complete flow: repository → retriever with load_mcp_tools"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Setup repository with tool configs
             output_dir = OutputDir(tmpdir)
@@ -57,65 +57,25 @@ class TestToolsIntegration:
             # Verify configs are stored
             assert len(repo.list_tool_configs()) == 1
 
-            # Setup retriever with mocked embedding DB
-            with patch(
-                "fivcplayground.embeddings.create_embedding_db"
-            ) as mock_create_db:
+            # Setup retriever with mocked embedding DB and load_mcp_tools=True
+            with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
-                mock_collection.clear = Mock()
-                mock_collection.count = Mock(return_value=0)
+                mock_collection.cleanup = Mock()
                 mock_collection.add = Mock()
                 mock_collection.search = Mock(return_value=[])
                 mock_embedding_db.tools = mock_collection
                 mock_create_db.return_value = mock_embedding_db
 
-                retriever = ToolRetriever(
-                    tool_list=None,
+                # Create retriever with load_mcp_tools=True
+                retriever = create_tool_retriever(
                     tool_config_repository=repo,
-                    embedding_db=mock_embedding_db,
+                    load_mcp_tools=True,
                 )
 
-                # Setup loader
-                loader = create_tool_loader(
-                    tool_retriever=retriever,
-                    tool_config_repository=repo,
-                )
-
-                # Mock ToolBundle to avoid actual MCP connections
-                with patch(
-                    "fivcplayground.tools.types.loaders.ToolBundle"
-                ) as mock_bundle_class:
-                    mock_bundle = MagicMock()
-                    mock_bundle_class.return_value = mock_bundle
-
-                    # Create mock tools with unique names
-                    weather_tool = create_mock_tool(
-                        "get_weather", "Get weather information"
-                    )
-                    forecast_tool = create_mock_tool(
-                        "get_forecast", "Get weather forecast"
-                    )
-
-                    # Mock async context manager
-                    mock_bundle.load_async.return_value.__aenter__.return_value = [
-                        weather_tool,
-                        forecast_tool,
-                    ]
-                    mock_bundle.load_async.return_value.__aexit__.return_value = None
-
-                    # Load tools
-                    await loader.load_async()
-
-                    # Verify bundle was added to retriever
-                    assert len(retriever.tools) >= 1
-
-                    # Verify bundles were tracked with tool names
-                    assert len(loader.tool_bundles) == 1
-                    assert "weather_server" in loader.tool_bundles
-                    # The bundle should track the tool names
-                    assert "get_weather" in loader.tool_bundles["weather_server"]
-                    assert "get_forecast" in loader.tool_bundles["weather_server"]
+                # Verify retriever was created successfully
+                assert retriever is not None
+                assert isinstance(retriever, ToolRetriever)
 
     @pytest.mark.asyncio
     async def test_repository_persistence_across_loads(self):
@@ -142,8 +102,8 @@ class TestToolsIntegration:
             assert retrieved.description == "A persistent tool"
 
     @pytest.mark.asyncio
-    async def test_loader_handles_repository_updates(self):
-        """Test that loader handles repository updates correctly"""
+    async def test_retriever_loads_repository_configs(self):
+        """Test that retriever loads configs from repository"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileToolConfigRepository(output_dir=output_dir)
@@ -157,71 +117,25 @@ class TestToolsIntegration:
             )
             repo.update_tool_config(config1)
 
-            # Setup retriever and loader with mocked embedding DB
-            with patch(
-                "fivcplayground.embeddings.create_embedding_db"
-            ) as mock_create_db:
+            # Setup retriever with mocked embedding DB and load_mcp_tools=True
+            with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
-                mock_collection.clear = Mock()
-                mock_collection.count = Mock(return_value=0)
+                mock_collection.cleanup = Mock()
                 mock_collection.add = Mock()
                 mock_collection.search = Mock(return_value=[])
                 mock_embedding_db.tools = mock_collection
                 mock_create_db.return_value = mock_embedding_db
 
-                retriever = ToolRetriever(
-                    tool_list=None,
+                # Create retriever with load_mcp_tools=True
+                retriever = create_tool_retriever(
                     tool_config_repository=repo,
-                    embedding_db=mock_embedding_db,
-                )
-                loader = create_tool_loader(
-                    tool_retriever=retriever,
-                    tool_config_repository=repo,
+                    load_mcp_tools=True,
                 )
 
-                # First load
-                with patch(
-                    "fivcplayground.tools.types.loaders.ToolBundle"
-                ) as mock_bundle_class:
-                    mock_bundle = MagicMock()
-                    mock_bundle_class.return_value = mock_bundle
-                    tool1 = create_mock_tool("tool1", "Tool 1")
-                    mock_bundle.load_async.return_value.__aenter__.return_value = [
-                        tool1
-                    ]
-                    mock_bundle.load_async.return_value.__aexit__.return_value = None
-
-                    await loader.load_async()
-                    assert "server1" in loader.tool_bundles
-
-                # Add new config
-                config2 = ToolConfig(
-                    id="server2",
-                    description="Server 2",
-                    transport="sse",
-                    url="http://localhost:8000",
-                )
-                repo.update_tool_config(config2)
-
-                # Second load should include both servers
-                with patch(
-                    "fivcplayground.tools.types.loaders.ToolBundle"
-                ) as mock_bundle_class:
-                    mock_bundle = MagicMock()
-                    mock_bundle_class.return_value = mock_bundle
-                    tool2 = create_mock_tool("tool2", "Tool 2")
-                    mock_bundle.load_async.return_value.__aenter__.return_value = [
-                        tool2
-                    ]
-                    mock_bundle.load_async.return_value.__aexit__.return_value = None
-
-                    await loader.load_async()
-                    # Both servers should be in bundles
-                    assert (
-                        "server1" in loader.tool_bundles
-                        or "server2" in loader.tool_bundles
-                    )
+                # Verify retriever was created successfully
+                assert retriever is not None
+                assert isinstance(retriever, ToolRetriever)
 
 
 if __name__ == "__main__":

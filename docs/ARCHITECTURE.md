@@ -1,4 +1,4 @@
-# Architecture Diagram: Persistent MCP Connections
+# Architecture Diagram: Tool Retrieval with MCP Support
 
 ## System Architecture
 
@@ -9,67 +9,57 @@
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ main()                                                       │  │
 │  │                                                              │  │
-│  │  1. _initialize_mcp_loader()  ← @st.cache_resource         │  │
-│  │     ├─ loader = default_mcp_loader                          │  │
-│  │     └─ loader.load()                                        │  │
+│  │  1. Create repositories                                      │  │
+│  │     ├─ FileEmbeddingConfigRepository                         │  │
+│  │     ├─ FileToolConfigRepository                              │  │
+│  │     └─ FileModelConfigRepository                             │  │
 │  │                                                              │  │
-│  │  2. atexit.register(_cleanup_mcp_loader)                    │  │
+│  │  2. Create tool retriever with MCP tools                     │  │
+│  │     └─ create_tool_retriever(load_mcp_tools=True)            │  │
 │  │                                                              │  │
-│  │  3. Build UI and run navigation                             │  │
+│  │  3. Build UI and run navigation                              │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      ToolLoader Instance                           │
+│                      ToolRetriever Instance                         │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ Attributes:                                                  │  │
+│  │ • tools: Dict[str, Tool]  ← Built-in tools                  │  │
 │  │ • tool_config_repository: ToolConfigRepository               │  │
-│  │ • tool_retriever: ToolRetriever                             │  │
-│  │ • tool_bundles: Dict[str, Set[str]]                          │  │
-│  │ • client: MultiServerMCPClient ← PERSISTENT                 │  │
-│  │ • sessions: Dict[str, Session] ← PERSISTENT                 │  │
+│  │ • tool_indices: EmbeddingDB  ← Semantic search               │  │
+│  │ • max_num: int  ← Top-K results                              │  │
+│  │ • min_score: float  ← Relevance threshold                    │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ load_async():                                                │  │
-│  │ 1. Load config from file                                     │  │
-│  │ 2. Create MultiServerMCPClient                               │  │
-│  │ 3. For each server:                                          │  │
-│  │    ├─ session = await client.session().__aenter__()          │  │
-│  │    ├─ self.sessions[name] = session  ← KEEP ALIVE           │  │
-│  │    ├─ tools = await load_mcp_tools(session)                  │  │
-│  │    └─ retriever.add_batch(tools)                             │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ cleanup_async():                                             │  │
-│  │ 1. For each session in self.sessions:                        │  │
-│  │    └─ await session.__aexit__(None, None, None)              │  │
-│  │ 2. Clear self.sessions                                       │  │
-│  │ 3. Clear self.client                                         │  │
-│  │ 4. Remove all tools from retriever                           │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MCP Client & Sessions                            │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ MultiServerMCPClient                                         │  │
+│  │ Methods:                                                     │  │
+│  │ • list_tools() → List[Tool]                                  │  │
+│  │   Returns all tools (built-in + MCP bundles)                 │  │
 │  │                                                              │  │
-│  │ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐  │  │
-│  │ │ Session 1       │  │ Session 2       │  │ Session N   │  │  │
-│  │ │ (server1)       │  │ (server2)       │  │ (serverN)   │  │  │
-│  │ │                 │  │                 │  │             │  │  │
-│  │ │ ✅ OPEN         │  │ ✅ OPEN         │  │ ✅ OPEN     │  │  │
-│  │ │ (persistent)    │  │ (persistent)    │  │ (persistent)│  │  │
-│  │ └─────────────────┘  └─────────────────┘  └─────────────┘  │  │
-│  │         ↓                    ↓                    ↓          │  │
-│  │    [Tools]              [Tools]              [Tools]        │  │
+│  │ • get_tool(name) → Tool | None                               │  │
+│  │   Get specific tool by name                                  │  │
 │  │                                                              │  │
+│  │ • retrieve_tools(query) → List[Tool]                         │  │
+│  │   Semantic search for relevant tools                         │  │
+│  │                                                              │  │
+│  │ • index_tools()                                              │  │
+│  │   Index all tools for semantic search                        │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │ Tool Loading (via create_tool_retriever):                    │  │
+│  │ 1. Load built-in tools (clock, calculator)                   │  │
+│  │ 2. If load_mcp_tools=True:                                   │  │
+│  │    ├─ Load tool configs from repository                      │  │
+│  │    ├─ Create ToolBundle for each config                      │  │
+│  │    └─ Add bundles to tool list                               │  │
+│  │ 3. Create ToolRetriever with all tools                       │  │
+│  │ 4. Index tools for semantic search                           │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -80,53 +70,51 @@
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ Agent invokes tool                                           │  │
 │  │ ↓                                                            │  │
-│  │ Tool uses session from self.sessions[bundle_name]           │  │
+│  │ Tool is retrieved from ToolRetriever                         │  │
 │  │ ↓                                                            │  │
-│  │ Session is OPEN ✅                                          │  │
+│  │ If tool is ToolBundle:                                       │  │
+│  │   ├─ Load MCP tools asynchronously                           │  │
+│  │   └─ Execute tool with loaded session                        │  │
 │  │ ↓                                                            │  │
 │  │ Tool executes successfully ✅                               │  │
 │  │ ↓                                                            │  │
 │  │ Result returned to agent                                    │  │
 │  │                                                              │  │
-│  │ ❌ NO ClosedResourceError                                   │  │
+│  │ ✅ Clean resource management                                │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Session Lifecycle Timeline
+## Tool Retriever Initialization Timeline
 
 ```
 Time ──────────────────────────────────────────────────────────────→
 
 App Start
   │
-  ├─ _initialize_mcp_loader()
-  │  ├─ loader.load()
-  │  │  ├─ Create MultiServerMCPClient
-  │  │  ├─ Open Session 1 ──────────────────────────────────────┐
-  │  │  ├─ Open Session 2 ──────────────────────────────────────┤
-  │  │  └─ Open Session N ──────────────────────────────────────┤
-  │  │                                                           │
-  │  └─ atexit.register(_cleanup_mcp_loader)                    │
-  │                                                              │
-  ├─ Build UI                                                    │
-  │                                                              │
-  ├─ Agent invokes tools                                         │
-  │  ├─ Tool 1 uses Session 1 ✅                                │
-  │  ├─ Tool 2 uses Session 2 ✅                                │
-  │  └─ Tool N uses Session N ✅                                │
-  │                                                              │
-  ├─ ... Application running ...                                │
-  │                                                              │
-  └─ App Shutdown                                                │
-     │                                                           │
-     ├─ atexit handler triggered                                │
-     │  └─ _cleanup_mcp_loader()                                │
-     │     └─ loader.cleanup()                                  │
-     │        ├─ Close Session 1 ◄──────────────────────────────┤
-     │        ├─ Close Session 2 ◄──────────────────────────────┤
-     │        └─ Close Session N ◄──────────────────────────────┘
+  ├─ Create repositories
+  │  ├─ FileEmbeddingConfigRepository
+  │  ├─ FileToolConfigRepository
+  │  └─ FileModelConfigRepository
+  │
+  ├─ create_tool_retriever(load_mcp_tools=True)
+  │  ├─ Load built-in tools (clock, calculator)
+  │  ├─ Load MCP tool configs from repository
+  │  ├─ Create ToolBundle for each config
+  │  ├─ Create ToolRetriever with all tools
+  │  └─ Index tools for semantic search
+  │
+  ├─ Build UI
+  │
+  ├─ Agent invokes tools
+  │  ├─ retrieve_tools(query) - semantic search
+  │  ├─ get_tool(name) - get specific tool
+  │  └─ Tool executes (ToolBundle loads MCP tools on demand)
+  │
+  ├─ ... Application running ...
+  │
+  └─ App Shutdown
      │
      └─ All resources released ✅
 ```
@@ -136,7 +124,7 @@ App Start
 ```
 ┌──────────────┐
 │ Agent        │
-│ (LangGraph)  │
+│ (Strands)    │
 └──────┬───────┘
        │ invoke_tool(tool_name, args)
        ↓
@@ -147,23 +135,23 @@ App Start
        │ get_tool(tool_name)
        ↓
 ┌──────────────────────────────┐
-│ Tool                         │
-│ (LangChain Tool)             │
+│ Tool or ToolBundle           │
+│ (Built-in or MCP)            │
 └──────┬───────────────────────┘
-       │ call(args)
+       │ call(args) or load_async()
+       ↓
+┌──────────────────────────────┐
+│ If ToolBundle:               │
+│ Load MCP tools asynchronously│
+│ (on-demand loading)          │
+└──────┬───────────────────────┘
+       │ execute_tool(args)
        ↓
 ┌──────────────────────────────┐
 │ MCP Tool Wrapper             │
 │ (langchain-mcp-adapters)     │
 └──────┬───────────────────────┘
        │ call_tool(tool_name, args)
-       ↓
-┌──────────────────────────────┐
-│ Session                      │
-│ (from self.sessions)         │
-│ ✅ OPEN & PERSISTENT         │
-└──────┬───────────────────────┘
-       │ send_request()
        ↓
 ┌──────────────────────────────┐
 │ MCP Server                   │
@@ -184,20 +172,21 @@ App Start
 
 ## Key Improvements
 
-### Before (Broken)
+### Architecture Simplification
 ```
-Session created → Tools loaded → Session closed ❌
-                                      ↓
-                              Tool invocation fails
-                              ClosedResourceError ❌
+Before (with ToolLoader):
+  create_tool_retriever() → create_tool_loader() → loader.load()
+  (3 steps, deprecated methods)
+
+After (without ToolLoader):
+  create_tool_retriever(load_mcp_tools=True)
+  (1 step, cleaner API)
 ```
 
-### After (Fixed)
-```
-Session created → Tools loaded → Session KEPT OPEN ✅
-                                      ↓
-                              Tool invocation succeeds ✅
-                                      ↓
-                              Session closed on shutdown ✅
-```
+### Benefits
+- **Simpler API**: Single factory call instead of multiple steps
+- **Immutable Design**: Tools loaded at initialization, not added later
+- **On-Demand Loading**: ToolBundle loads MCP tools when needed
+- **Better Resource Management**: Automatic cleanup with async context managers
+- **Cleaner Code**: No deprecated methods, less maintenance burden
 

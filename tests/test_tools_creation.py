@@ -3,7 +3,6 @@ Tests for tool creation functions in fivcplayground.tools module.
 
 Tests verify:
 - create_tool_retriever with various configurations
-- create_tool_loader with tool retriever
 - setup_tools async context manager
 - Error handling for missing dependencies
 """
@@ -13,7 +12,6 @@ import pytest
 
 from fivcplayground.tools import (
     create_tool_retriever,
-    create_tool_loader,
     setup_tools,
 )
 
@@ -136,71 +134,6 @@ class TestCreateToolRetriever:
                 call_kwargs = mock_retriever_class.call_args[1]
                 assert "tool_list" in call_kwargs
                 assert len(call_kwargs["tool_list"]) >= 2  # clock and calculator
-
-
-class TestCreateToolLoader:
-    """Test create_tool_loader function."""
-
-    def test_create_tool_loader_with_retriever(self):
-        """Test creating tool loader with retriever."""
-        mock_retriever = Mock()
-        mock_retriever.tools = []
-        mock_config_repo = Mock()
-
-        with patch("fivcplayground.tools.ToolLoader") as mock_loader_class:
-            mock_loader = Mock()
-            mock_loader_class.return_value = mock_loader
-
-            loader = create_tool_loader(
-                tool_retriever=mock_retriever,
-                tool_config_repository=mock_config_repo,
-            )
-
-            assert loader == mock_loader
-            mock_loader_class.assert_called_once()
-
-    def test_create_tool_loader_missing_retriever(self):
-        """Test create_tool_loader raises error without retriever."""
-        with pytest.raises(ValueError, match="tool_retriever must be provided"):
-            create_tool_loader(tool_retriever=None)
-
-    def test_create_tool_loader_with_config_repository(self):
-        """Test creating tool loader with config repository."""
-        mock_retriever = Mock()
-        mock_retriever.tools = []
-        mock_config_repo = Mock()
-
-        with patch("fivcplayground.tools.ToolLoader") as mock_loader_class:
-            mock_loader = Mock()
-            mock_loader_class.return_value = mock_loader
-
-            loader = create_tool_loader(
-                tool_retriever=mock_retriever,
-                tool_config_repository=mock_config_repo,
-            )
-
-            assert loader == mock_loader
-            # Verify config repo was passed
-            call_kwargs = mock_loader_class.call_args[1]
-            assert call_kwargs["tool_config_repository"] == mock_config_repo
-
-    def test_create_tool_loader_passes_kwargs(self):
-        """Test create_tool_loader passes additional kwargs."""
-        mock_retriever = Mock()
-        mock_retriever.tools = []
-        mock_config_repo = Mock()
-
-        with patch("fivcplayground.tools.ToolLoader") as mock_loader_class:
-            mock_loader = Mock()
-            mock_loader_class.return_value = mock_loader
-
-            loader = create_tool_loader(
-                tool_retriever=mock_retriever,
-                tool_config_repository=mock_config_repo,
-                custom_param="custom_value",
-            )
-
-            assert loader == mock_loader
 
 
 class TestSetupTools:

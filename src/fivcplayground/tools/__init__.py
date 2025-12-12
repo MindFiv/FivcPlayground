@@ -1,11 +1,9 @@
 __all__ = [
     "create_tool_retriever",
-    "create_tool_loader",
     "setup_tools",
     "Tool",
     "ToolBundle",
     "ToolRetriever",
-    "ToolLoader",
     "ToolConfig",
     "ToolConfigRepository",
 ]
@@ -19,7 +17,6 @@ from fivcplayground.embeddings import (
 )
 from fivcplayground.tools.types import (
     ToolRetriever,
-    ToolLoader,
     Tool,
     ToolConfig,
     ToolBundle,
@@ -35,9 +32,23 @@ def create_tool_retriever(
     embedding_config_id: str = "default",
     space_id: str | None = None,
     load_builtin_tools: bool = True,
+    load_mcp_tools: bool = False,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever:
-    """Create a new ToolRetriever instance."""
+    """Create a new ToolRetriever instance.
+
+    Args:
+        tool_config_repository: Repository for tool configurations
+        embedding_config_repository: Repository for embedding configurations
+        embedding_config_id: ID of the embedding configuration to use
+        space_id: ID of the embedding space
+        load_builtin_tools: Whether to load built-in tools (clock, calculator)
+        load_mcp_tools: Whether to load MCP tools from tool_config_repository
+        **kwargs: Additional arguments (ignored)
+
+    Returns:
+        ToolRetriever instance with tools loaded
+    """
     if not embedding_config_repository:
         from fivcplayground.embeddings.types.repositories.files import (
             FileEmbeddingConfigRepository,
@@ -59,26 +70,23 @@ def create_tool_retriever(
         tool_list.append(clock)
         tool_list.append(calculator)
 
+    # Load MCP tools from configuration if requested
+    if load_mcp_tools:
+        if not tool_config_repository:
+            from fivcplayground.tools.types.repositories.files import (
+                FileToolConfigRepository,
+            )
+
+            tool_config_repository = FileToolConfigRepository()
+
+        # Load tool bundles from repository
+        for tool_config in tool_config_repository.list_tool_configs():
+            tool_list.append(ToolBundle(tool_config))
+
     return ToolRetriever(
         tool_list=tool_list,
         tool_config_repository=tool_config_repository,
         embedding_db=embedding_db,
-    )
-
-
-def create_tool_loader(
-    tool_retriever: ToolRetriever | None = None,
-    tool_config_repository: ToolConfigRepository | None = None,
-    **kwargs,  # ignore additional kwargs
-) -> ToolLoader:
-    """Create a new ToolLoader instance."""
-    if not tool_retriever:
-        raise ValueError("tool_retriever must be provided")
-
-    return ToolLoader(
-        tool_retriever=tool_retriever,
-        tool_config_repository=tool_config_repository,
-        **kwargs,
     )
 
 
