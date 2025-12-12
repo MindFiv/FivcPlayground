@@ -106,6 +106,9 @@ class ToolLoader(object):
             - Sessions are managed within async contexts for proper lifecycle
             - The MCP client is stored persistently for the application lifetime
             - Empty bundles (servers with no tools) are skipped
+            - ToolRetriever is now immutable after initialization, so tools must be
+              passed during creation. This method uses the deprecated add_tool method
+              for backward compatibility with dynamic tool loading.
         """
         # Create persistent client (kept alive during app runtime)
         tool_configs = {
@@ -119,6 +122,7 @@ class ToolLoader(object):
         bundle_names_to_add = bundle_names_target - bundle_names_now
 
         # Remove tools from bundles that are no longer configured
+        # Note: Using deprecated delete_tool for backward compatibility with dynamic loading
         for bundle_name in bundle_names_to_remove:
             self.tool_bundles.pop(bundle_name, None)
             self.tool_retriever.delete_tool(bundle_name)
@@ -133,6 +137,7 @@ class ToolLoader(object):
                     tool_descriptions = [get_tool_description(t) for t in tools]
                     set_tool_description(bundle, "\n\n".join(tool_descriptions))
 
+                # Note: Using deprecated add_tool for backward compatibility with dynamic loading
                 self.tool_retriever.add_tool(bundle)
                 self.tool_bundles.setdefault(bundle_name, tool_names)
 
@@ -164,8 +169,10 @@ class ToolLoader(object):
             - Removes bundles by their bundle name (server name)
             - Clears all internal state tracking
             - Does not explicitly close the MCP client (handled by garbage collection)
+            - Uses deprecated delete_tool for backward compatibility with dynamic loading
         """
         # Remove all tracked tools from the retriever
+        # Note: Using deprecated delete_tool for backward compatibility with dynamic loading
         for bundle_name in self.tool_bundles.keys():
             self.tool_retriever.delete_tool(bundle_name)
 

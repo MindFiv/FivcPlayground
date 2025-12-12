@@ -71,8 +71,9 @@ class TestToolsIntegration:
                 mock_create_db.return_value = mock_embedding_db
 
                 retriever = ToolRetriever(
-                    embedding_config_repository=None,
-                    embedding_config_id="default",
+                    tool_list=None,
+                    tool_config_repository=repo,
+                    embedding_db=mock_embedding_db,
                 )
 
                 # Setup loader
@@ -170,8 +171,9 @@ class TestToolsIntegration:
                 mock_create_db.return_value = mock_embedding_db
 
                 retriever = ToolRetriever(
-                    embedding_config_repository=None,
-                    embedding_config_id="default",
+                    tool_list=None,
+                    tool_config_repository=repo,
+                    embedding_db=mock_embedding_db,
                 )
                 loader = create_tool_loader(
                     tool_retriever=retriever,

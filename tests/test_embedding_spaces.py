@@ -134,75 +134,89 @@ class TestToolRetrieverSpaceIsolation:
         """Test ToolRetriever with default space."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
+            mock_db.space_id = None
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-                space_id=None,
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
-            assert retriever.space_id is None
-            # Verify create_embedding_db was called with space_id=None
-            mock_create_db.assert_called_once()
-            call_kwargs = mock_create_db.call_args[1]
-            assert call_kwargs.get("space_id") is None
+            # Verify retriever was created successfully
+            assert retriever is not None
+            assert len(retriever.tools) == 0
 
     def test_tool_retriever_custom_space(self, mock_embedding_config_repository):
         """Test ToolRetriever with custom space."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
+            mock_db.space_id = "user_alice"
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-                space_id="user_alice",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
-            assert retriever.space_id == "user_alice"
-            # Verify create_embedding_db was called with space_id="user_alice"
-            mock_create_db.assert_called_once()
-            call_kwargs = mock_create_db.call_args[1]
-            assert call_kwargs.get("space_id") == "user_alice"
+            # Verify retriever was created successfully
+            assert retriever is not None
+            assert len(retriever.tools) == 0
 
     def test_create_tool_retriever_default_space(self):
         """Test create_tool_retriever with default space."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.to_tool.return_value = Mock()
-            mock_retriever.add_tool = Mock()
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            retriever = create_tool_retriever(space_id=None)
-            assert retriever
+                mock_retriever = Mock()
+                mock_retriever.to_tool.return_value = Mock()
+                mock_retriever.add_tool = Mock()
+                mock_retriever_class.return_value = mock_retriever
 
-            # Verify ToolRetriever was instantiated with space_id=None
-            mock_retriever_class.assert_called_once()
-            call_kwargs = mock_retriever_class.call_args[1]
-            assert call_kwargs.get("space_id") is None
+                retriever = create_tool_retriever(space_id=None)
+                assert retriever
+
+                # Verify create_embedding_db was called with space_id=None
+                mock_create_db.assert_called_once()
+                call_kwargs = mock_create_db.call_args[1]
+                assert call_kwargs.get("space_id") is None
+
+                # Verify ToolRetriever was instantiated
+                mock_retriever_class.assert_called_once()
 
     def test_create_tool_retriever_custom_space(self):
         """Test create_tool_retriever with custom space."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.to_tool.return_value = Mock()
-            mock_retriever.add_tool = Mock()
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            retriever = create_tool_retriever(space_id="project_website")
-            assert retriever
+                mock_retriever = Mock()
+                mock_retriever.to_tool.return_value = Mock()
+                mock_retriever.add_tool = Mock()
+                mock_retriever_class.return_value = mock_retriever
 
-            # Verify ToolRetriever was instantiated with space_id="project_website"
-            mock_retriever_class.assert_called_once()
-            call_kwargs = mock_retriever_class.call_args[1]
-            assert call_kwargs.get("space_id") == "project_website"
+                retriever = create_tool_retriever(space_id="project_website")
+                assert retriever
+
+                # Verify create_embedding_db was called with space_id="project_website"
+                mock_create_db.assert_called_once()
+                call_kwargs = mock_create_db.call_args[1]
+                assert call_kwargs.get("space_id") == "project_website"
+
+                # Verify ToolRetriever was instantiated
+                mock_retriever_class.assert_called_once()
 
 
 class TestSpaceIsolationIntegration:
@@ -210,44 +224,31 @@ class TestSpaceIsolationIntegration:
 
     def test_space_id_propagation(self):
         """Test that space_id is properly propagated through the component hierarchy."""
-        from fivcplayground.embeddings.types.base import EmbeddingConfig
-
-        # Create embedding config
-        config = EmbeddingConfig(
-            id="test",
-            provider="openai",
-            model="text-embedding-3-small",
-            api_key="sk-test-key",
-        )
-
-        # Mock the embedding config repository
-        mock_repo = Mock()
-        mock_repo.get_embedding_config.return_value = config
-
         # Test with custom space_id
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
-            mock_db = Mock()
-            mock_embedding_table = Mock()
-            mock_embedding_table.cleanup = Mock()
-            mock_db.tools = mock_embedding_table
-            mock_create_db.return_value = mock_db
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.space_id = "user_alice"
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            from fivcplayground.tools import create_tool_retriever
+                mock_retriever = Mock()
+                mock_retriever_class.return_value = mock_retriever
 
-            retriever = create_tool_retriever(
-                embedding_config_repository=mock_repo,
-                embedding_config_id="test",
-                space_id="user_alice",
-                load_builtin_tools=False,
-            )
+                from fivcplayground.tools import create_tool_retriever
 
-            # Verify space_id was passed to create_embedding_db
-            mock_create_db.assert_called_once()
-            call_kwargs = mock_create_db.call_args[1]
-            assert call_kwargs.get("space_id") == "user_alice"
+                retriever = create_tool_retriever(
+                    space_id="user_alice",
+                    load_builtin_tools=False,
+                )
 
-            # Verify retriever has the correct space_id
-            assert retriever.space_id == "user_alice"
+                # Verify space_id was passed to create_embedding_db
+                mock_create_db.assert_called_once()
+                call_kwargs = mock_create_db.call_args[1]
+                assert call_kwargs.get("space_id") == "user_alice"
+
+                # Verify retriever was created
+                assert retriever == mock_retriever
 
 
 if __name__ == "__main__":

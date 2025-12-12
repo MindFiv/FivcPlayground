@@ -1,100 +1,81 @@
-from typing import List, Optional, Dict
+import warnings
+from functools import wraps
 
 from pydantic import BaseModel, Field
 from fivcplayground import embeddings
 from fivcplayground.tools.types.backends import (
     Tool,
+    ToolBundle,
     make_tool,
     get_tool_name,
     get_tool_description,
 )
+from fivcplayground.tools.types.repositories.base import (
+    ToolConfigRepository,
+)
+
+
+def deprecated(message: str):
+    """Decorator to mark functions as deprecated."""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 class ToolRetriever(object):
-    """A semantic search-based retriever for tools.
-
-    ToolRetriever manages a collection of tools and provides semantic search capabilities
-    to find the most relevant tools for a given query. It uses embeddings to create a
-    searchable index of tool descriptions and supports both individual tools and ToolBundle
-    objects.
-
-    Supports embedding space isolation via the space_id parameter, allowing
-    different logical contexts (users, projects, environments, etc.) to have
-    isolated tool collections.
-
-    Key Features:
-        - Semantic search using embeddings to find relevant tools
-        - Support for both individual tools and ToolBundle objects
-        - Optional bundle expansion to get individual tools from bundles
-        - Configurable search parameters (max_num, min_score)
-        - Proper error handling for duplicate tools and missing descriptions
-        - Integration with embedding database for efficient search
-        - Multi-space isolation for different contexts
-
-    The retriever stores tools in an embedding collection indexed by their descriptions,
-    allowing for semantic similarity matching rather than keyword matching.
-
-    Attributes:
-        max_num: Maximum number of tools to return in search results (default: 10)
-        min_score: Minimum similarity score for search results (default: 0.0)
-        tools: Dictionary mapping tool names to BaseTool instances
-        collection: EmbeddingCollection for semantic search
-        space_id: Embedding space identifier for data isolation
-
-    Example:
-        >>> # Default/shared space (backward compatible)
-        >>> retriever = ToolRetriever()
-        >>> retriever.add_tool(my_tool)
-        >>> tools = retriever.retrieve_tools("get weather information")
-        >>>
-        >>> # User-specific space
-        >>> retriever = ToolRetriever(space_id="user_alice")
-        >>>
-        >>> # Project-specific space
-        >>> retriever = ToolRetriever(space_id="project_website")
-    """
+    """A semantic search-based retriever for tools."""
 
     def __init__(
         self,
-        embedding_config_repository: embeddings.EmbeddingConfigRepository | None = None,
-        embedding_config_id: str = "default",
-        space_id: str | None = None,
+        tool_list: list[Tool] | None = None,  # for builtin tools
+        tool_config_repository: ToolConfigRepository | None = None,
+        embedding_db: embeddings.EmbeddingDB | None = None,
         **kwargs,  # ignore additional kwargs
     ):
         """
         Initialize the ToolRetriever.
 
         Args:
-            embedding_config_repository: Repository for embedding configurations
-            embedding_config_id: ID of the embedding configuration to use
-            space_id: Optional embedding space identifier for data isolation.
-                     If None, uses "default" (shared space).
-                     Examples: "user_alice", "project_website", "env_staging"
-            **kwargs: Additional arguments
+            tools: Optional dictionary of tools to initialize with
+            tool_config_repository: Repository for tool configurations
+            embedding_db: Embedding database for tool descriptions
+            **kwargs: Additional arguments (ignored)
         """
+        assert embedding_db
+
+        if tool_config_repository is None:
+            from fivcplayground.tools.types.repositories.files import (
+                FileToolConfigRepository,
+            )
+
+            tool_config_repository = FileToolConfigRepository()
+
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
-        self.tools: dict[str, Tool] = {}
-        self.space_id = space_id
-        db = embeddings.create_embedding_db(
-            embedding_config_repository,
-            embedding_config_id,
-            space_id=space_id,
+        self.tools: dict[str, Tool] = (
+            {get_tool_name(t): t for t in tool_list} if tool_list else {}
         )
-        # Use dynamic attribute access to get the tools collection (EmbeddingTable)
-        # Will get "tools_{space_id}" or "tools" collection
-        self.collection = db.tools
-        self.collection.cleanup()  # clean up any old data
+        self.tool_config_repository = tool_config_repository
+        self.tool_indices = embedding_db.tools
 
     def __str__(self):
         return f"ToolRetriever(num_tools={len(self.tools)})"
 
+    @deprecated("no more need to cleanup")
     def cleanup(self):
         self.max_num = 10  # top k
         self.min_score = 1.0  # min score
         self.tools.clear()
-        self.collection.cleanup()
+        self.tool_indices.cleanup()
 
+    @deprecated("no more need to add tools, they are added automatically on load")
     def add_tool(self, tool: Tool, **kwargs):
         tool_name = get_tool_name(tool)
         if tool_name in self.tools:
@@ -104,44 +85,44 @@ class ToolRetriever(object):
         if not tool_desc:
             raise ValueError(f"Tool description is empty: {tool_name}")
 
-        self.collection.add(
+        self.tool_indices.add(
             tool_desc,
             metadata={"__tool__": tool_name},
         )
         self.tools[tool_name] = tool
 
-        print(f"Total Docs {self.collection.count()} in ToolRetriever")
+        print(f"Total Docs {self.tool_indices.count()} in ToolRetriever")
 
-    def get_tool(self, name: str) -> Optional[Tool]:
-        return self.tools.get(name)
+    def get_tool(self, name: str) -> Tool | None:
+        tool = self.tools.get(name)
+        if tool:
+            return tool
 
-    def list_tools(self) -> List[Tool]:
-        return list(self.tools.values())
+        tool_config = self.tool_config_repository.get_tool_config(name)
+        if tool_config:
+            return ToolBundle(tool_config)
 
+        return None
+
+    def list_tools(self) -> list[Tool]:
+        tools = list(self.tools.values())
+        tool_configs = self.tool_config_repository.list_tool_configs()
+        tools.extend([ToolBundle(c) for c in tool_configs])
+        return tools
+
+    @deprecated("no more need to remove tools")
     def delete_tool(self, name: str):
-        """
-        Delete a tool from the retriever.
-
-        Removes the tool from:
-        - self.tools dictionary
-        - embedding collection (by metadata)
-
-        Args:
-            name: The name of the tool to delete
-
-        Raises:
-            ValueError: If the tool doesn't exist
-        """
+        """Remove a tool from the retriever."""
         if name not in self.tools:
             raise ValueError(f"Tool not found: {name}")
 
         # Remove from tools dictionary
         del self.tools[name]
 
-        self.collection.delete(metadata={"__tool__": name})
+        self.tool_indices.delete(metadata={"__tool__": name})
         print(
             f"Removed tool '{name}'. "
-            f"Total Docs {self.collection.count()} in ToolRetriever"
+            f"Total Docs {self.tool_indices.count()} in ToolRetriever"
         )
 
     @property
@@ -160,44 +141,24 @@ class ToolRetriever(object):
     def retrieve_max_num(self, value: int):
         self.max_num = value
 
-    def retrieve_tools(
-        self,
-        query: str,
-        **kwargs,
-    ) -> List[Tool]:
-        """Retrieve tools for a query using semantic search.
+    def index_tools(self):
+        """Index all tools in the retriever."""
 
-        Performs semantic search on tool descriptions using embeddings to find the most
-        relevant tools for the given query. Supports optional bundle expansion to get
-        individual tools from ToolBundle objects.
+        # cleanup the indices
+        self.tool_indices.cleanup()
 
-        Search Process:
-            1. Searches the embedding collection for similar tool descriptions
-            2. Filters results by minimum score threshold (retrieve_min_score)
-            3. Limits results to maximum number (retrieve_max_num)
-            4. Optionally expands ToolBundle objects into individual tools
+        # rebuild indices
+        for tool in self.list_tools():
+            tool_name = get_tool_name(tool)
+            tool_desc = get_tool_description(tool)
+            self.tool_indices.add(
+                tool_desc,
+                metadata={"__tool__": tool_name},
+            )
 
-        Args:
-            query: The query string describing the desired tool functionality
-            expand: Whether to expand ToolBundle objects into individual tools
-                   - False (default): Returns bundles as-is
-                   - True: Expands bundles to return all contained tools
-            **kwargs: Additional keyword arguments (ignored)
-
-        Returns:
-            List of BaseTool instances matching the query, sorted by relevance
-
-        Example:
-            >>> retriever.retrieve_tools("get weather")  # Returns bundles
-            >>> retriever.retrieve_tools("get weather", expand=True)  # Returns individual tools
-
-        Note:
-            - Results are filtered by retrieve_min_score
-            - Limited to retrieve_max_num results
-            - Bundle expansion is useful when you need individual tools
-            - Without expansion, bundles can be used to group related tools
-        """
-        sources = self.collection.search(
+    def retrieve_tools(self, query: str, **kwargs) -> list[Tool]:
+        """Retrieve tools based on a query."""
+        sources = self.tool_indices.search(
             query,
             num_documents=self.retrieve_max_num,
         )
@@ -210,7 +171,7 @@ class ToolRetriever(object):
 
         return [self.get_tool(name) for name in tool_names]
 
-    def __call__(self, *args, **kwargs) -> List[Dict]:
+    def __call__(self, *args, **kwargs) -> list[dict]:
         tools = self.retrieve_tools(*args, **kwargs)
         return [
             {"name": get_tool_name(t), "description": get_tool_description(t)}
@@ -221,26 +182,7 @@ class ToolRetriever(object):
         query: str = Field(description="The task to find the best tool for")
 
     def to_tool(self):
-        """Convert the retriever to a LangChain tool.
-
-        Creates a LangChain tool that wraps the retrieve_tools() method, allowing the retriever
-        to be used as a tool within agent systems. The tool returns a string representation
-        of the retrieved tools.
-
-        Returns:
-            A LangChain tool that can be used in agent systems
-
-        Example:
-            >>> retriever = ToolRetriever()
-            >>> tool = retriever.to_tool()
-            >>> # Use tool in an agent
-            >>> agent.tools.append(tool)
-
-        Note:
-            - The returned tool uses retrieve_tools() without expand parameter
-            - Results are converted to string for compatibility
-            - Useful for creating a "tool discovery" tool in agent systems
-        """
+        """Convert the retriever to a tool."""
 
         @make_tool
         def tool_retriever(query: str) -> str:

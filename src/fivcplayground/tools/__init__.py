@@ -13,7 +13,10 @@ __all__ = [
 from contextlib import asynccontextmanager, AsyncExitStack
 from typing import AsyncGenerator, List
 
-from fivcplayground.embeddings import EmbeddingConfigRepository
+from fivcplayground.embeddings import (
+    EmbeddingConfigRepository,
+    create_embedding_db,
+)
 from fivcplayground.tools.types import (
     ToolRetriever,
     ToolLoader,
@@ -21,65 +24,46 @@ from fivcplayground.tools.types import (
     ToolConfig,
     ToolBundle,
 )
-from fivcplayground.tools.types.repositories import ToolConfigRepository
+from fivcplayground.tools.types.repositories.base import (
+    ToolConfigRepository,
+)
 
 
 def create_tool_retriever(
+    tool_config_repository: ToolConfigRepository | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
     space_id: str | None = None,
     load_builtin_tools: bool = True,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever:
-    """
-    Create a new ToolRetriever instance.
-
-    Args:
-        embedding_config_repository: Repository for embedding configurations
-        embedding_config_id: ID of the embedding configuration to use
-        space_id: Optional embedding space identifier for data isolation.
-                 If None, uses "default" (shared space).
-                 Examples: "user_alice", "project_website", "env_staging"
-        load_builtin_tools: Whether to load built-in tools (clock, calculator)
-        **kwargs: Additional arguments
-
-    Returns:
-        ToolRetriever instance configured for the specified embedding space
-
-    Examples:
-        # Default/shared space (backward compatible)
-        retriever = create_tool_retriever()
-
-        # User-specific space
-        retriever = create_tool_retriever(space_id="user_alice")
-
-        # Project-specific space with custom config
-        retriever = create_tool_retriever(
-            embedding_config_id="openai-ada",
-            space_id="project_website"
+    """Create a new ToolRetriever instance."""
+    if not embedding_config_repository:
+        from fivcplayground.embeddings.types.repositories.files import (
+            FileEmbeddingConfigRepository,
         )
 
-        # Environment-specific space without builtin tools
-        retriever = create_tool_retriever(
-            space_id="env_production",
-            load_builtin_tools=False
-        )
-    """
-    retriever = ToolRetriever(
+        embedding_config_repository = FileEmbeddingConfigRepository()
+
+    embedding_db = create_embedding_db(
         embedding_config_repository=embedding_config_repository,
         embedding_config_id=embedding_config_id,
         space_id=space_id,
     )
-    retriever.add_tool(retriever.to_tool())  # Add self to retriever
 
+    tool_list = []
     if load_builtin_tools:
         from fivcplayground.tools.clock import clock
         from fivcplayground.tools.calculator import calculator
 
-        retriever.add_tool(clock)
-        retriever.add_tool(calculator)
+        tool_list.append(clock)
+        tool_list.append(calculator)
 
-    return retriever
+    return ToolRetriever(
+        tool_list=tool_list,
+        tool_config_repository=tool_config_repository,
+        embedding_db=embedding_db,
+    )
 
 
 def create_tool_loader(

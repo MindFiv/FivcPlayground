@@ -43,7 +43,7 @@ class TestToolsInitRegression:
         - LangChain: 'name' and 'description'
         - Strands: 'tool_name' and 'tool_spec'
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -51,20 +51,15 @@ class TestToolsInitRegression:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            # Create mock embedding config repository
-            mock_repo = Mock()
-
             # This should not raise AttributeError
             result = create_tool_retriever(
-                embedding_config_repository=mock_repo,
-                embedding_config_id="default",
                 load_builtin_tools=True,
             )
 
             # Verify the retriever was returned
             assert isinstance(result, ToolRetriever)
 
-            # Verify get_all returns tools
+            # Verify list_tools returns tools
             all_tools = result.list_tools()
             assert len(all_tools) >= 0  # May have builtin tools
 
@@ -78,7 +73,7 @@ class TestToolsInitRegression:
         from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
 
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
             # Create mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -86,18 +81,14 @@ class TestToolsInitRegression:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=None,
-                embedding_config_id="default",
-            )
-
             # Create tools with correct attributes for current backend
             tool1 = create_mock_tool("tool1", "Tool 1 description")
             tool2 = create_mock_tool("tool2", "Tool 2 description")
 
-            # Add tools to retriever
-            retriever.add_tool(tool1)
-            retriever.add_tool(tool2)
+            retriever = ToolRetriever(
+                tool_list=[tool1, tool2],
+                embedding_db=mock_db,
+            )
 
             # Get all tools
             all_tools = retriever.list_tools()
@@ -115,7 +106,7 @@ class TestToolsInitRegression:
         This test verifies that when load_builtin_tools=True, the retriever
         includes the builtin tools (clock and calculator).
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -125,8 +116,6 @@ class TestToolsInitRegression:
 
             # Create retriever with builtin tools
             retriever = create_tool_retriever(
-                embedding_config_repository=None,
-                embedding_config_id="default",
                 load_builtin_tools=True,
             )
 

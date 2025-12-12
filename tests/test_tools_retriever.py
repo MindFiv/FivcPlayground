@@ -57,15 +57,16 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             assert retriever.max_num == 10
             assert retriever.min_score == 0.0
             assert isinstance(retriever.tools, dict)
             assert len(retriever.tools) == 0
-            assert retriever.collection == mock_db.tools
+            assert retriever.tool_indices == mock_db.tools
 
     def test_str(self, mock_embedding_config_repository):
         """Test string representation."""
@@ -77,8 +78,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             assert str(retriever) == "ToolRetriever(num_tools=0)"
@@ -93,8 +95,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
             retriever.tools["tool1"] = Mock()
             retriever.max_num = 5
@@ -105,10 +108,10 @@ class TestToolRetriever:
             assert retriever.max_num == 10
             assert retriever.min_score == 1.0
             assert len(retriever.tools) == 0
-            assert retriever.collection.cleanup.call_count >= 1
+            assert retriever.tool_indices.cleanup.call_count >= 1
 
     def test_add_tool(self, mock_embedding_config_repository, mock_tool):
-        """Test adding a tool."""
+        """Test adding a tool (deprecated method - kept for backward compatibility)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -118,18 +121,20 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
+            # Test deprecated add_tool method still works
             retriever.add_tool(mock_tool)
 
             assert "test_tool" in retriever.tools
             assert retriever.tools["test_tool"] == mock_tool
-            retriever.collection.add.assert_called_once()
+            retriever.tool_indices.add.assert_called_once()
 
     def test_add_duplicate_tool(self, mock_embedding_config_repository, mock_tool):
-        """Test that adding duplicate tool raises ValueError."""
+        """Test that adding duplicate tool raises ValueError (deprecated method)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -139,8 +144,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
             retriever.add_tool(mock_tool)
 
@@ -148,7 +154,7 @@ class TestToolRetriever:
                 retriever.add_tool(mock_tool)
 
     def test_add_tool_without_description(self, mock_embedding_config_repository):
-        """Test that adding tool without description raises ValueError."""
+        """Test that adding tool without description raises ValueError (deprecated method)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -158,8 +164,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
             tool = create_mock_tool("bad_tool", "")
 
@@ -176,11 +183,12 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
+            # Pass tool during initialization
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=[mock_tool],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
-            retriever.add_tool(mock_tool)
 
             result = retriever.get_tool("test_tool")
 
@@ -195,9 +203,13 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
+            # Mock the repository to return None for nonexistent tools
+            mock_embedding_config_repository.get_tool_config.return_value = None
+
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             result = retriever.get_tool("nonexistent")
@@ -214,16 +226,18 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             tool1 = create_mock_tool("tool1", "Tool 1")
             tool2 = create_mock_tool("tool2", "Tool 2")
 
-            retriever.add_tool(tool1)
-            retriever.add_tool(tool2)
+            # Mock the repository to return empty list of tool configs
+            mock_embedding_config_repository.list_tool_configs.return_value = []
+
+            # Pass tools during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool1, tool2],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             results = retriever.list_tools()
 
@@ -241,8 +255,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             assert retriever.retrieve_min_score == 0.0
@@ -262,8 +277,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             assert retriever.retrieve_max_num == 10
@@ -297,16 +313,15 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             tool1 = create_mock_tool("calculator", "Calculate math")
             tool2 = create_mock_tool("search", "Search the web")
 
-            retriever.add_tool(tool1)
-            retriever.add_tool(tool2)
+            # Pass tools during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool1, tool2],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             results = retriever.retrieve_tools("math calculation")
 
@@ -338,17 +353,16 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-            retriever.retrieve_min_score = 0.8
-
             tool1 = create_mock_tool("calculator", "Calculate math")
             tool2 = create_mock_tool("search", "Search the web")
 
-            retriever.add_tool(tool1)
-            retriever.add_tool(tool2)
+            # Pass tools during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool1, tool2],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
+            retriever.retrieve_min_score = 0.8
 
             results = retriever.retrieve_tools("math calculation")
 
@@ -376,14 +390,14 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             tool1 = create_mock_tool("calculator", "Calculate math")
 
-            retriever.add_tool(tool1)
+            # Pass tool during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool1],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             results = retriever("math calculation")
 
@@ -401,8 +415,9 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             tool = retriever.to_tool()
@@ -437,18 +452,16 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             # Create mock tools
             tool1 = create_mock_tool("tool1", "Tool 1")
             tool2 = create_mock_tool("tool2", "Tool 2")
 
-            # Add tools to retriever
-            retriever.add_tool(tool1)
-            retriever.add_tool(tool2)
+            # Pass tools during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool1, tool2],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             # Convert to tool
             tool = retriever.to_tool()
@@ -465,7 +478,7 @@ class TestToolRetriever:
             assert "tool1" in result
 
     def test_remove_tool(self, mock_embedding_config_repository):
-        """Test removing a tool."""
+        """Test removing a tool (deprecated method - kept for backward compatibility)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -500,13 +513,14 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             tool = create_mock_tool("test_tool", "A test tool")
-            retriever.add_tool(tool)
+
+            # Pass tool during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             retriever.delete_tool("test_tool")
 
@@ -518,7 +532,7 @@ class TestToolRetriever:
             assert call_kwargs["where"] == {"__tool__": {"$eq": "test_tool"}}
 
     def test_remove_nonexistent_tool(self, mock_embedding_config_repository):
-        """Test removing a nonexistent tool raises ValueError."""
+        """Test removing a nonexistent tool raises ValueError (deprecated method)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -527,15 +541,16 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
             )
 
             with pytest.raises(ValueError, match="Tool not found"):
                 retriever.delete_tool("nonexistent")
 
     def test_remove_tool_with_no_embedding_docs(self, mock_embedding_config_repository):
-        """Test removing a tool that has no embedding documents."""
+        """Test removing a tool that has no embedding documents (deprecated method)."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -553,14 +568,14 @@ class TestToolRetriever:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
-            retriever = ToolRetriever(
-                embedding_config_repository=mock_embedding_config_repository,
-                embedding_config_id="default",
-            )
-
             tool = create_mock_tool("test_tool", "A test tool")
 
-            retriever.add_tool(tool)
+            # Pass tool during initialization
+            retriever = ToolRetriever(
+                tool_list=[tool],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
 
             retriever.delete_tool("test_tool")
 

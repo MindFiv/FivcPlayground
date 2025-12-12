@@ -29,14 +29,11 @@ async def main():
     print("FivcPlayground - Tool Retriever Example")
     print("\n" + "=" * 50)
 
-    # Create a retriever instance
-    retriever = create_tool_retriever()
-
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
-        # Add default tools to retriever
-        retriever.add_tool(clock)
-        retriever.add_tool(calculator)
+        # Create a retriever instance with builtin tools
+        # Tools are now passed during initialization instead of being added after creation
+        retriever = create_tool_retriever(load_builtin_tools=True)
 
         # Load MCP tools using ToolLoader
         print("Loading MCP tools...")

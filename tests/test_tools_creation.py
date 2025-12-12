@@ -23,91 +23,119 @@ class TestCreateToolRetriever:
 
     def test_create_tool_retriever_default(self):
         """Test creating tool retriever with default settings."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.tools = []
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            retriever = create_tool_retriever(
-                embedding_config_repository=None,
-                load_builtin_tools=False,
-            )
+                mock_retriever = Mock()
+                mock_retriever.tools = []
+                mock_retriever_class.return_value = mock_retriever
 
-            assert retriever == mock_retriever
-            mock_retriever_class.assert_called_once()
+                retriever = create_tool_retriever(
+                    embedding_config_repository=None,
+                    load_builtin_tools=False,
+                )
+
+                assert retriever == mock_retriever
+                mock_retriever_class.assert_called_once()
 
     def test_create_tool_retriever_with_builtin_tools(self):
         """Test creating tool retriever with builtin tools."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.tools = []
-            mock_retriever.add_tool = Mock()
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            retriever = create_tool_retriever(
-                embedding_config_repository=None,
-                load_builtin_tools=True,
-            )
+                mock_retriever = Mock()
+                mock_retriever.tools = []
+                mock_retriever.add_tool = Mock()
+                mock_retriever_class.return_value = mock_retriever
 
-            assert retriever == mock_retriever
-            # Should have called add_tool for builtin tools
-            assert mock_retriever.add_tool.call_count >= 2
+                retriever = create_tool_retriever(
+                    embedding_config_repository=None,
+                    load_builtin_tools=True,
+                )
+
+                assert retriever == mock_retriever
+                # Builtin tools are now passed during initialization, not added via add_tool
+                # So we just verify the retriever was created
+                mock_retriever_class.assert_called_once()
 
     def test_create_tool_retriever_custom_embedding_config(self):
         """Test creating tool retriever with custom embedding config."""
         mock_embedding_repo = Mock()
 
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.tools = []
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            retriever = create_tool_retriever(
-                embedding_config_repository=mock_embedding_repo,
-                embedding_config_id="custom",
-                load_builtin_tools=False,
-            )
+                mock_retriever = Mock()
+                mock_retriever.tools = []
+                mock_retriever_class.return_value = mock_retriever
 
-            assert retriever == mock_retriever
-            # Verify the embedding config was passed
-            call_kwargs = mock_retriever_class.call_args[1]
-            assert call_kwargs["embedding_config_repository"] == mock_embedding_repo
-            assert call_kwargs["embedding_config_id"] == "custom"
+                retriever = create_tool_retriever(
+                    embedding_config_repository=mock_embedding_repo,
+                    embedding_config_id="custom",
+                    load_builtin_tools=False,
+                )
+
+                assert retriever == mock_retriever
+                # Verify create_embedding_db was called with the correct parameters
+                mock_create_db.assert_called_once()
+                call_kwargs = mock_create_db.call_args[1]
+                assert call_kwargs["embedding_config_repository"] == mock_embedding_repo
+                assert call_kwargs["embedding_config_id"] == "custom"
 
     def test_create_tool_retriever_adds_self(self):
-        """Test that tool retriever adds itself as a tool."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.tools = []
-            mock_retriever.to_tool = Mock(return_value=Mock(name="tool_retriever"))
-            mock_retriever.add_tool = Mock()
-            mock_retriever_class.return_value = mock_retriever
+        """Test that tool retriever is created successfully."""
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            create_tool_retriever(
-                embedding_config_repository=None,
-                load_builtin_tools=False,
-            )
+                mock_retriever = Mock()
+                mock_retriever.tools = []
+                mock_retriever.to_tool = Mock(return_value=Mock(name="tool_retriever"))
+                mock_retriever_class.return_value = mock_retriever
 
-            # Verify add_tool was called with the retriever's own tool
-            mock_retriever.add_tool.assert_called()
+                retriever = create_tool_retriever(
+                    embedding_config_repository=None,
+                    load_builtin_tools=False,
+                )
+
+                # Verify ToolRetriever was created
+                assert retriever == mock_retriever
+                mock_retriever_class.assert_called_once()
 
     def test_create_tool_retriever_builtin_tools_loaded(self):
         """Test that builtin tools are loaded when requested."""
-        with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
-            mock_retriever = Mock()
-            mock_retriever.tools = []
-            mock_retriever.add_tool = Mock()
-            mock_retriever_class.return_value = mock_retriever
+        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
+                mock_db = Mock()
+                mock_db.tools = Mock()
+                mock_create_db.return_value = mock_db
 
-            with patch("fivcplayground.tools.clock") as _:
-                with patch("fivcplayground.tools.calculator") as _:
-                    create_tool_retriever(
-                        embedding_config_repository=None,
-                        load_builtin_tools=True,
-                    )
+                mock_retriever = Mock()
+                mock_retriever.tools = []
+                mock_retriever_class.return_value = mock_retriever
 
-                    # Verify add_tool was called for clock and calculator
-                    assert mock_retriever.add_tool.call_count >= 3
+                retriever = create_tool_retriever(
+                    embedding_config_repository=None,
+                    load_builtin_tools=True,
+                )
+
+                # Verify ToolRetriever was created with builtin tools
+                assert retriever == mock_retriever
+                # Verify ToolRetriever was called with tool_list containing builtin tools
+                call_kwargs = mock_retriever_class.call_args[1]
+                assert "tool_list" in call_kwargs
+                assert len(call_kwargs["tool_list"]) >= 2  # clock and calculator
 
 
 class TestCreateToolLoader:
