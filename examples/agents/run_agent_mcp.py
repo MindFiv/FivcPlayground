@@ -3,8 +3,8 @@ Agent Example - MCP Tools Integration
 
 This example demonstrates how to use FivcPlayground agents with MCP (Model Context Protocol) tools.
 It shows:
-1. Loading MCP tools from configured servers using create_tool_retriever(load_mcp_tools=True)
-2. Creating an agent with MCP tools
+1. Loading tools from configured servers using create_tool_retriever()
+2. Creating an agent with tools
 3. Invoking the agent with a query that requires tool usage
 4. Handling agent responses with tool calls
 
@@ -19,13 +19,13 @@ Usage:
     python examples/agents/run_agent_mcp.py
 
 Expected Output:
-    - Loads tools from configured MCP servers
+    - Loads tools from configured servers
     - Creates a companion agent with these tools
     - Invokes the agent with a query that requires tool usage
-    - Agent attempts to use MCP tools to complete the task
+    - Agent attempts to use tools to complete the task
 
 Note:
-    This example uses create_tool_retriever(load_mcp_tools=True) for framework-agnostic
+    This example uses create_tool_retriever() for framework-agnostic
     tool loading, ensuring compatibility with both Strands and LangChain frameworks.
 """
 
@@ -55,9 +55,9 @@ async def main():
     print("-" * 70)
 
     try:
-        # Create a ToolRetriever with MCP tools loaded
+        # Create a ToolRetriever
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tool_retriever = create_tool_retriever(load_mcp_tools=True)
+        tool_retriever = create_tool_retriever()
 
         # Get all loaded tools from the retriever
         # These tools are now available for use by the agent
@@ -135,7 +135,7 @@ async def main():
         print("\n" + "=" * 70)
         print("Example completed!")
         print("\nKey Takeaways:")
-        print("1. MCP tools were successfully loaded using create_tool_retriever(load_mcp_tools=True)")
+        print("1. Tools were successfully loaded using create_tool_retriever()")
         print("2. Tool retriever provides framework-agnostic tool loading (Strands & LangChain)")
         print("3. Agent was created with access to these tools")
         print("4. Agent attempted to use the tools to fulfill the user's request")

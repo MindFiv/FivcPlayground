@@ -14,8 +14,8 @@
 │  │     ├─ FileToolConfigRepository                              │  │
 │  │     └─ FileModelConfigRepository                             │  │
 │  │                                                              │  │
-│  │  2. Create tool retriever with MCP tools                     │  │
-│  │     └─ create_tool_retriever(load_mcp_tools=True)            │  │
+│  │  2. Create tool retriever                                    │  │
+│  │     └─ create_tool_retriever()                               │  │
 │  │                                                              │  │
 │  │  3. Build UI and run navigation                              │  │
 │  └──────────────────────────────────────────────────────────────┘  │
@@ -52,8 +52,7 @@
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ Tool Loading (via create_tool_retriever):                    │  │
 │  │ 1. Load built-in tools (clock, calculator)                   │  │
-│  │ 2. If load_mcp_tools=True:                                   │  │
-│  │    ├─ Load tool configs from repository                      │  │
+│  │ 2. Load tool configs from repository                         │  │
 │  │    ├─ Create ToolBundle for each config                      │  │
 │  │    └─ Add bundles to tool list                               │  │
 │  │ 3. Create ToolRetriever with all tools                       │  │
@@ -98,9 +97,9 @@ App Start
   │  ├─ FileToolConfigRepository
   │  └─ FileModelConfigRepository
   │
-  ├─ create_tool_retriever(load_mcp_tools=True)
+  ├─ create_tool_retriever()
   │  ├─ Load built-in tools (clock, calculator)
-  │  ├─ Load MCP tool configs from repository
+  │  ├─ Load tool configs from repository
   │  ├─ Create ToolBundle for each config
   │  ├─ Create ToolRetriever with all tools
   │  └─ Index tools for semantic search
@@ -179,7 +178,7 @@ Before (with ToolLoader):
   (3 steps, deprecated methods)
 
 After (without ToolLoader):
-  create_tool_retriever(load_mcp_tools=True)
+  create_tool_retriever()
   (1 step, cleaner API)
 ```
 

@@ -51,7 +51,6 @@ def main():
     tool_retriever = create_tool_retriever(
         embedding_config_repository=embedding_config_repository,
         tool_config_repository=tool_config_repository,
-        load_mcp_tools=True,
     )
 
     chat_manager = ChatManager(

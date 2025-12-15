@@ -28,11 +28,10 @@ async def main():
 
     # Use OutputDir context manager for proper directory handling
     with OutputDir():
-        # Create a retriever instance with builtin and MCP tools
+        # Create a retriever instance with builtin tools
         # Tools are passed during initialization
         retriever = create_tool_retriever(
             load_builtin_tools=True,
-            load_mcp_tools=True,
         )
 
         print("Tools loaded successfully!")

@@ -32,7 +32,6 @@ def create_tool_retriever(
     embedding_config_id: str = "default",
     space_id: str | None = None,
     load_builtin_tools: bool = True,
-    load_mcp_tools: bool = False,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever:
     """Create a new ToolRetriever instance.
@@ -43,7 +42,6 @@ def create_tool_retriever(
         embedding_config_id: ID of the embedding configuration to use
         space_id: ID of the embedding space
         load_builtin_tools: Whether to load built-in tools (clock, calculator)
-        load_mcp_tools: Whether to load MCP tools from tool_config_repository
         **kwargs: Additional arguments (ignored)
 
     Returns:
@@ -69,19 +67,6 @@ def create_tool_retriever(
 
         tool_list.append(clock)
         tool_list.append(calculator)
-
-    # Load MCP tools from configuration if requested
-    if load_mcp_tools:
-        if not tool_config_repository:
-            from fivcplayground.tools.types.repositories.files import (
-                FileToolConfigRepository,
-            )
-
-            tool_config_repository = FileToolConfigRepository()
-
-        # Load tool bundles from repository
-        for tool_config in tool_config_repository.list_tool_configs():
-            tool_list.append(ToolBundle(tool_config))
 
     return ToolRetriever(
         tool_list=tool_list,

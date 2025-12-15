@@ -2,7 +2,7 @@
 """
 End-to-end integration tests for the tools module.
 
-Tests the complete flow: FileToolConfigRepository → create_tool_retriever(load_mcp_tools=True) → ToolRetriever
+Tests the complete flow: FileToolConfigRepository → create_tool_retriever() → ToolRetriever
 """
 
 import tempfile
@@ -57,7 +57,7 @@ class TestToolsIntegration:
             # Verify configs are stored
             assert len(repo.list_tool_configs()) == 1
 
-            # Setup retriever with mocked embedding DB and load_mcp_tools=True
+            # Setup retriever with mocked embedding DB
             with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
@@ -67,10 +67,9 @@ class TestToolsIntegration:
                 mock_embedding_db.tools = mock_collection
                 mock_create_db.return_value = mock_embedding_db
 
-                # Create retriever with load_mcp_tools=True
+                # Create retriever
                 retriever = create_tool_retriever(
                     tool_config_repository=repo,
-                    load_mcp_tools=True,
                 )
 
                 # Verify retriever was created successfully
@@ -117,7 +116,7 @@ class TestToolsIntegration:
             )
             repo.update_tool_config(config1)
 
-            # Setup retriever with mocked embedding DB and load_mcp_tools=True
+            # Setup retriever with mocked embedding DB
             with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
@@ -127,10 +126,9 @@ class TestToolsIntegration:
                 mock_embedding_db.tools = mock_collection
                 mock_create_db.return_value = mock_embedding_db
 
-                # Create retriever with load_mcp_tools=True
+                # Create retriever
                 retriever = create_tool_retriever(
                     tool_config_repository=repo,
-                    load_mcp_tools=True,
                 )
 
                 # Verify retriever was created successfully

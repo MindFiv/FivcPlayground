@@ -112,7 +112,7 @@ App Shutdown
 ### Key Components
 
 1. **ToolRetriever** - Manages tool retrieval and MCP connections
-   - `create_tool_retriever(load_mcp_tools=True)` - Load MCP tools
+   - `create_tool_retriever()` - Create tool retriever
    - `retrieve_tools(query)` - Semantic search for tools
    - `list_tools()` - List all available tools
 
@@ -159,7 +159,7 @@ streamlit run src/fivcplayground/app/__init__.py --logger.level=debug
 **Solution**:
 ```bash
 # Test tool retriever
-python -c "from fivcplayground.tools import create_tool_retriever; retriever = create_tool_retriever(load_mcp_tools=True); print(f'Loaded {len(retriever.list_tools())} tools')"
+python -c "from fivcplayground.tools import create_tool_retriever; retriever = create_tool_retriever(); print(f'Loaded {len(retriever.list_tools())} tools')"
 
 # Check logs for errors
 # Look for "Error loading tools from" messages
@@ -242,13 +242,13 @@ main()
 
 ## Common Tasks
 
-### Create Tool Retriever with MCP Tools
+### Create Tool Retriever
 
 ```python
 from fivcplayground.tools import create_tool_retriever
 
-# Create a tool retriever with MCP tools loaded
-retriever = create_tool_retriever(load_mcp_tools=True)
+# Create a tool retriever
+retriever = create_tool_retriever()
 
 # List all tools (including bundles)
 tools = retriever.list_tools()
@@ -268,7 +268,7 @@ calculator = retriever.get_tool("calculator")
 from fivcplayground.tools import create_tool_retriever
 
 # Create a tool retriever
-retriever = create_tool_retriever(load_mcp_tools=True)
+retriever = create_tool_retriever()
 
 # Semantic search for relevant tools
 query = "I need to perform a calculation"

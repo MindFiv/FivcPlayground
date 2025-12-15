@@ -67,7 +67,6 @@ def run(
         embedding_config_repository=embedding_config_repository,
         embedding_config_id="default",
         tool_config_repository=tool_config_repository,
-        load_mcp_tools=True,
     )
 
     console.print(
