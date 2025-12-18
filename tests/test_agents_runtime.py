@@ -261,6 +261,8 @@ class TestAgentsRuntime:
         assert "tool_call_count" in data
         assert "successful_tool_calls" in data
         assert "failed_tool_calls" in data
+        # streaming_text should be excluded from serialization
+        assert "streaming_text" not in data
 
     def test_tool_call_serialization(self):
         """Test tool call can be serialized to dict."""

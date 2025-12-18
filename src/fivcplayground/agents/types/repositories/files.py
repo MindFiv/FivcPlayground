@@ -556,6 +556,7 @@ class FileAgentRunRepository(AgentRunRepository):
         run_file = self._get_run_file(session_id, str(agent_run.id))
 
         # Serialize agent to JSON (include tool_calls as they're now embedded)
+        # Note: streaming_text is excluded from serialization by Pydantic configuration
         agent_data = agent_run.model_dump(mode="json")
 
         with open(run_file, "w", encoding="utf-8") as f:
@@ -585,6 +586,8 @@ class FileAgentRunRepository(AgentRunRepository):
         Note:
             Tool calls are embedded within the AgentRun object.
             Corrupted JSON files are logged to stdout and return None.
+            streaming_text is excluded from serialization and will be empty string
+            when loaded from the file. It is only used for in-memory streaming.
         """
         run_file = self._get_run_file(session_id, run_id)
 
@@ -596,6 +599,7 @@ class FileAgentRunRepository(AgentRunRepository):
                 agent_data = json.load(f)
 
             # Reconstruct AgentRun from JSON (includes embedded tool_calls)
+            # streaming_text will be set to default value (empty string) since it's excluded
             return AgentRun.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted

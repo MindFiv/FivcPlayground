@@ -284,7 +284,7 @@ class AgentRun(BaseModel):
         query: User query that initiated this agent run
         tool_calls: Dictionary mapping tool id to AgentRunToolCall instances
         reply: Final agent reply message
-        streaming_text: Accumulated streaming text output from the agent
+        streaming_text: Accumulated streaming text output from the agent (excluded from serialization)
         error: Error message if execution failed
         duration: Computed field - execution time in seconds
         is_running: Computed field - whether agent is currently executing
@@ -324,6 +324,8 @@ class AgentRun(BaseModel):
         - tool_calls are stored separately in repositories (not in run.json)
         - Use AgentRunStatus enum for status values
         - Computed fields are automatically included in serialization
+        - streaming_text is excluded from serialization (model_dump, JSON output)
+          and is only used for in-memory streaming during agent execution
     """
 
     model_config = {"arbitrary_types_allowed": True}
@@ -356,7 +358,9 @@ class AgentRun(BaseModel):
         default=None, description="Final agent reply message"
     )
     streaming_text: str = Field(
-        default="", description="Accumulated streaming text output from the agent"
+        default="",
+        exclude=True,
+        description="Accumulated streaming text output from the agent",
     )
     error: Optional[str] = Field(
         default=None, description="Error message if execution failed"

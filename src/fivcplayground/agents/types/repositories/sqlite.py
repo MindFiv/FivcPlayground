@@ -318,7 +318,12 @@ class SqliteAgentRunRepository(AgentRunRepository):
         self.connection.commit()
 
     def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
-        """Create or update an agent runtime with embedded tool calls."""
+        """Create or update an agent runtime with embedded tool calls.
+
+        Note:
+            streaming_text is excluded from serialization and will not be stored
+            in the database. It is only used for in-memory streaming during execution.
+        """
         cursor = self.connection.cursor()
         runtime_data = agent_run.model_dump(mode="json", exclude={"tool_calls"})
 
@@ -391,7 +396,12 @@ class SqliteAgentRunRepository(AgentRunRepository):
         self.connection.commit()
 
     def get_agent_run(self, session_id: str, run_id: str) -> Optional[AgentRun]:
-        """Retrieve an agent runtime by session ID and run ID with embedded tool calls."""
+        """Retrieve an agent runtime by session ID and run ID with embedded tool calls.
+
+        Note:
+            streaming_text is excluded from serialization and will be empty string
+            when loaded from the database. It is only used for in-memory streaming.
+        """
         cursor = self.connection.cursor()
         cursor.execute(
             "SELECT * FROM agent_runtimes WHERE session_id = ? AND agent_run_id = ?",

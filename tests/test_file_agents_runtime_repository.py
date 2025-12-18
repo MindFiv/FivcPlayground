@@ -335,7 +335,7 @@ class TestFileAgentsRuntimeRepository:
             assert run_file.name == f"run_{agent.id}.json"
 
     def test_agent_with_streaming_text(self):
-        """Test agent runtime with streaming text"""
+        """Test agent runtime with streaming text - verify it's excluded from persistence"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentRunRepository(output_dir=output_dir)
@@ -352,8 +352,9 @@ class TestFileAgentsRuntimeRepository:
             repo.update_agent_run(session.id, agent)
 
             # Retrieve and verify
+            # streaming_text is excluded from serialization, so it should be empty string (default)
             retrieved_agent = repo.get_agent_run(session.id, agent.id)
-            assert retrieved_agent.streaming_text == "This is streaming text..."
+            assert retrieved_agent.streaming_text == ""
 
     def test_agent_with_error(self):
         """Test agent runtime with error"""
