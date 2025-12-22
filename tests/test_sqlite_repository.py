@@ -43,7 +43,7 @@ class TestAgentOperations:
         )
 
         temp_db.update_agent_run_session(agent)
-        retrieved = temp_db.get_agent_run_session("test-agent")
+        retrieved = temp_db.get_agent_run_session(agent.id)
 
         assert retrieved is not None
         assert retrieved.agent_id == "test-agent"
@@ -51,7 +51,7 @@ class TestAgentOperations:
 
     def test_get_nonexistent_agent(self, temp_db):
         """Test retrieving a non-existent agent returns None."""
-        result = temp_db.get_agent_run_session("nonexistent")
+        result = temp_db.get_agent_run_session("nonexistent-session-id")
         assert result is None
 
     def test_list_agents(self, temp_db):
@@ -76,19 +76,25 @@ class TestAgentOperations:
         assert agents[2].agent_id == "agent-3"
 
     def test_delete_agent(self, temp_db):
-        """Test deleting an agent."""
+        """Test deleting an agent session."""
         agent = AgentRunSession(agent_id="test-agent")
         temp_db.update_agent_run_session(agent)
 
-        assert temp_db.get_agent_run_session("test-agent") is not None
+        # Create a runtime for this session
+        from fivcplayground.agents.types import AgentRun
 
-        temp_db.delete_agent_run_session("test-agent")
-        assert temp_db.get_agent_run_session("test-agent") is None
+        runtime = AgentRun(agent_id="test-agent")
+        temp_db.update_agent_run(agent.id, runtime)
+
+        assert temp_db.get_agent_run_session(agent.id) is not None
+
+        temp_db.delete_agent_run_session(agent.id)
+        assert temp_db.get_agent_run_session(agent.id) is None
 
     def test_delete_nonexistent_agent(self, temp_db):
         """Test deleting a non-existent agent doesn't raise error."""
         # Should not raise any exception
-        temp_db.delete_agent_run_session("nonexistent")
+        temp_db.delete_agent_run_session("nonexistent-session-id")
 
 
 class TestAgentRuntimeOperations:
@@ -242,7 +248,7 @@ class TestCascadingDeletes:
     """Test cascading delete behavior."""
 
     def test_delete_agent_cascades_to_runtimes(self, temp_db):
-        """Test that deleting an agent deletes all its runtimes."""
+        """Test that deleting an agent session deletes all its runtimes."""
         agent = AgentRunSession(agent_id="test-agent")
         temp_db.update_agent_run_session(agent)
 
@@ -251,7 +257,7 @@ class TestCascadingDeletes:
 
         assert len(temp_db.list_agent_runs(agent.id)) == 1
 
-        temp_db.delete_agent_run_session("test-agent")
+        temp_db.delete_agent_run_session(agent.id)
 
         assert len(temp_db.list_agent_runs(agent.id)) == 0
 
@@ -299,11 +305,17 @@ class TestDataPersistence:
                 description="Test Agent",
             )
             repo1.update_agent_run_session(agent)
+
+            # Create a runtime for this session
+            from fivcplayground.agents.types import AgentRun
+
+            runtime = AgentRun(agent_id="test-agent")
+            repo1.update_agent_run(agent.id, runtime)
             repo1.close()
 
             # Reopen and verify data
             repo2 = SqliteAgentRunRepository(output_dir=output_dir)
-            retrieved = repo2.get_agent_run_session("test-agent")
+            retrieved = repo2.get_agent_run_session(agent.id)
 
             assert retrieved is not None
             assert retrieved.description == "Test Agent"
@@ -340,7 +352,7 @@ class TestForeignKeyConstraints:
         assert retrieved_runtime.agent_id == "auto-created-agent"
 
         # Verify agent was created
-        retrieved_agent = temp_db.get_agent_run_session("auto-created-agent")
+        retrieved_agent = temp_db.get_agent_run_session(agent.id)
         assert retrieved_agent is not None
         assert retrieved_agent.agent_id == "auto-created-agent"
 

@@ -35,6 +35,7 @@ class Chat(object):
         assert tool_retriever is not None, "tool_retriever is required"
         assert agent_runnable is not None, "agent_runnable is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
+        assert briefing_runnable is not None, "briefing_runnable is required"
 
         self._agent_run_session_id = agent_run_session_id
         self._agent_run_repository = agent_run_repository
@@ -117,6 +118,8 @@ class Chat(object):
                         started_at=datetime.now(),
                     )
                 )
+                # Update the session ID so that self.id returns the new session ID
+                self._agent_run_session_id = agent_session_id
 
             return agent_result
 
@@ -172,6 +175,7 @@ class ChatManager(object):
                 agent_runnable=self._agent_runnable,
                 agent_run_repository=self._agent_run_repository,
                 agent_run_session_id=agent_run_session.id,
+                briefing_runnable=self._briefing_runnable,
                 tool_retriever=self._tool_retriever,
             )
             for agent_run_session in self._agent_run_repository.list_agent_run_sessions()
@@ -188,5 +192,6 @@ class ChatManager(object):
         return Chat(
             agent_runnable=self._agent_runnable,
             agent_run_repository=self._agent_run_repository,
+            briefing_runnable=self._briefing_runnable,
             tool_retriever=self._tool_retriever,
         )

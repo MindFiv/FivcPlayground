@@ -508,8 +508,8 @@ class TestFileAgentsRuntimeRepository:
             session_file = repo._get_session_file(agent_meta.id)
             assert session_file.exists()
 
-            # Retrieve agent metadata
-            retrieved_agent = repo.get_agent_run_session("test-agent-meta-123")
+            # Retrieve agent metadata using session ID
+            retrieved_agent = repo.get_agent_run_session(agent_meta.id)
             assert retrieved_agent is not None
             assert retrieved_agent.agent_id == "test-agent-meta-123"
             assert retrieved_agent.description == "A test agent for testing purposes"
@@ -520,8 +520,8 @@ class TestFileAgentsRuntimeRepository:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentRunRepository(output_dir=output_dir)
 
-            # Try to get non-existent agent
-            agent = repo.get_agent_run_session("nonexistent-agent-meta")
+            # Try to get non-existent agent using a fake session ID
+            agent = repo.get_agent_run_session("nonexistent-session-id-12345")
             assert agent is None
 
     def test_update_existing_agent_session(self):
@@ -541,8 +541,8 @@ class TestFileAgentsRuntimeRepository:
             agent_meta.description = "Updated description"
             repo.update_agent_run_session(agent_meta)
 
-            # Retrieve and verify
-            retrieved_agent = repo.get_agent_run_session("test-agent-update-meta")
+            # Retrieve and verify using session ID
+            retrieved_agent = repo.get_agent_run_session(agent_meta.id)
             assert retrieved_agent.description == "Updated description"
 
     def test_list_agents_empty(self):
@@ -623,17 +623,17 @@ class TestFileAgentsRuntimeRepository:
             repo.update_agent_run(agent_meta.id, runtime2)
 
             # Verify agent and runtimes exist
-            agent = repo.get_agent_run_session(agent_id)
+            agent = repo.get_agent_run_session(agent_meta.id)
             assert agent is not None
             session_dir = repo._get_session_dir(agent.id)
             assert session_dir.exists()
             assert len(repo.list_agent_runs(agent.id)) == 2
 
-            # Delete agent
-            repo.delete_agent_run_session(agent_id)
+            # Delete agent using session ID
+            repo.delete_agent_run_session(agent_meta.id)
 
             # Verify agent and all runtimes are deleted
-            assert repo.get_agent_run_session(agent_id) is None
+            assert repo.get_agent_run_session(agent_meta.id) is None
             assert len(repo.list_agent_runs(agent.id)) == 0
             assert not session_dir.exists()
 
@@ -644,10 +644,10 @@ class TestFileAgentsRuntimeRepository:
             repo = FileAgentRunRepository(output_dir=output_dir)
 
             # Delete non-existent agent (should not raise error)
-            repo.delete_agent_run_session("nonexistent-agent-meta")
+            repo.delete_agent_run_session("nonexistent-session-id-12345")
 
             # Verify nothing broke
-            assert repo.get_agent_run_session("nonexistent-agent-meta") is None
+            assert repo.get_agent_run_session("nonexistent-session-id-12345") is None
 
     def test_agent_session_with_minimal_fields(self):
         """Test agent session with only required fields"""
@@ -659,8 +659,8 @@ class TestFileAgentsRuntimeRepository:
             agent_meta = AgentRunSession(agent_id="minimal-agent")
             repo.update_agent_run_session(agent_meta)
 
-            # Retrieve and verify
-            retrieved_agent = repo.get_agent_run_session("minimal-agent")
+            # Retrieve and verify using session ID
+            retrieved_agent = repo.get_agent_run_session(agent_meta.id)
             assert retrieved_agent is not None
             assert retrieved_agent.agent_id == "minimal-agent"
             assert retrieved_agent.description is None
@@ -721,16 +721,16 @@ class TestFileAgentsRuntimeRepository:
             repo.update_agent_run(agent_meta.id, runtime)
 
             # Verify everything exists
-            assert repo.get_agent_run_session(agent_id) is not None
+            assert repo.get_agent_run_session(agent_meta.id) is not None
             retrieved_runtime = repo.get_agent_run(agent_meta.id, runtime.id)
             assert retrieved_runtime is not None
             assert len(retrieved_runtime.tool_calls) == 2
 
             # Delete agent (should delete everything)
-            repo.delete_agent_run_session(agent_id)
+            repo.delete_agent_run_session(agent_meta.id)
 
             # Verify everything is deleted
-            assert repo.get_agent_run_session(agent_id) is None
+            assert repo.get_agent_run_session(agent_meta.id) is None
             assert repo.get_agent_run(agent_meta.id, runtime.id) is None
 
     def test_list_agents_after_deletion(self):
@@ -751,8 +751,8 @@ class TestFileAgentsRuntimeRepository:
             # Verify all 3 exist
             assert len(repo.list_agent_run_sessions()) == 3
 
-            # Delete one agent
-            repo.delete_agent_run_session("agent-delete")
+            # Delete one agent using session ID
+            repo.delete_agent_run_session(agent2.id)
 
             # Verify only 2 remain
             agents = repo.list_agent_run_sessions()

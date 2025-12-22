@@ -385,54 +385,46 @@ class FileAgentRunRepository(AgentRunRepository):
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent_run_session(self, agent_id: str) -> Optional[AgentRunSession]:
+    def get_agent_run_session(self, session_id: str) -> Optional[AgentRunSession]:
         """
-        Retrieve an agent's metadata by agent ID.
+        Retrieve an agent session's metadata by session ID.
 
-        Scans all session directories to find the agent with the specified agent_id.
-        Reads and deserializes the session.json file for the specified agent.
+        Reads and deserializes the session.json file for the specified session.
 
         Args:
-            agent_id: Unique identifier for the agent
+            session_id: Unique identifier for the session
 
         Returns:
-            AgentRunSession instance if found, None if agent doesn't exist
+            AgentRunSession instance if found, None if session doesn't exist
             or if the session.json file is corrupted
 
         Example:
-            >>> agent = repo.get_agent_run_session("my-agent")
-            >>> if agent:
-            ...     print(f"Agent: {agent.agent_id}")
+            >>> session = repo.get_agent_run_session("1234567890.123")
+            >>> if session:
+            ...     print(f"Agent: {session.agent_id}")
 
         Note:
             Corrupted JSON files are logged to stdout and return None.
-            Returns the first matching agent if multiple sessions exist for the same agent_id.
         """
         if not self.base_path.exists():
             return None
 
-        # Iterate through all session directories to find the agent
-        for session_dir in self.base_path.glob("session_*"):
-            if not session_dir.is_dir():
-                continue
+        session_dir = self._get_session_dir(session_id)
+        session_file = session_dir / "session.json"
 
-            session_file = session_dir / "session.json"
-            if not session_file.exists():
-                continue
+        if not session_file.exists():
+            return None
 
-            try:
-                with open(session_file, "r", encoding="utf-8") as f:
-                    agent_data = json.load(f)
+        try:
+            with open(session_file, "r", encoding="utf-8") as f:
+                session_data = json.load(f)
 
-                # Reconstruct AgentRunSession from JSON
-                agent = AgentRunSession.model_validate(agent_data)
-                if agent.agent_id == agent_id:
-                    return agent
-            except (json.JSONDecodeError, ValueError) as e:
-                # Log error and continue to next session
-                print(f"Error loading session from {session_file}: {e}")
-
-        return None
+            # Reconstruct AgentRunSession from JSON
+            return AgentRunSession.model_validate(session_data)
+        except (json.JSONDecodeError, ValueError) as e:
+            # Log error and return None if file is corrupted
+            print(f"Error loading session from {session_file}: {e}")
+            return None
 
     def list_agent_run_sessions(self) -> List[AgentRunSession]:
         """
@@ -481,48 +473,31 @@ class FileAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    def delete_agent_run_session(self, agent_id: str) -> None:
+    def delete_agent_run_session(self, session_id: str) -> None:
         """
-        Delete an agent and all its associated runtimes.
+        Delete an agent session and all its associated runtimes.
 
         This is a cascading delete operation that removes:
             - Agent metadata (session.json)
-            - All agent runtimes for this agent
+            - All agent runtimes for this session
 
         Args:
-            agent_id: Unique identifier for the agent to delete
+            session_id: Unique identifier for the session to delete
 
         Example:
-            >>> repo.delete_agent("my-agent")
-            >>> # All data for "my-agent" is now deleted
+            >>> repo.delete_agent_run_session("1234567890.123")
+            >>> # All data for this session is now deleted
 
         Note:
-            This operation is safe to call on non-existent agents - it will
-            not raise an error if the agent doesn't exist.
-            Deletes the first matching session found for the agent_id.
+            This operation is safe to call on non-existent sessions - it will
+            not raise an error if the session doesn't exist.
         """
-        # Find and delete the session directory for this agent
         if not self.base_path.exists():
             return
 
-        for session_dir in self.base_path.glob("session_*"):
-            if not session_dir.is_dir():
-                continue
-
-            session_file = session_dir / "session.json"
-            if not session_file.exists():
-                continue
-
-            try:
-                with open(session_file, "r", encoding="utf-8") as f:
-                    agent_data = json.load(f)
-
-                agent = AgentRunSession.model_validate(agent_data)
-                if agent.agent_id == agent_id:
-                    shutil.rmtree(session_dir)
-                    return
-            except (json.JSONDecodeError, ValueError):
-                continue
+        session_dir = self._get_session_dir(session_id)
+        if session_dir.exists():
+            shutil.rmtree(session_dir)
 
     def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
         """

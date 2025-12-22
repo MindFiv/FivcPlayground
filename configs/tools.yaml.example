@@ -1,15 +1,21 @@
 playwright:
+  transport: "stdio"
+  description: "Playwright browser automation tool"
   command: "npx"
   args:
     - "@playwright/mcp@latest"
 
 chrome-devtools:
+  transport: "stdio"
+  description: "Chrome DevTools browser automation tool"
   command: "npx"
   args:
     - "-y"
     - "chrome-devtools-mcp@latest"
 
 sequential-thinking:
+  transport: "stdio"
+  description: "Sequential thinking tool"
   command: "npx"
   args:
     - "-y"

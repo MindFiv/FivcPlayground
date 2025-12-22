@@ -1,4 +1,4 @@
-.PHONY: help install install-min dev lint format test clean build publish serve serve-dev sample info
+.PHONY: help install install-min dev lint format test clean build publish serve sample info
 
 # Default target
 help:
@@ -21,8 +21,7 @@ help:
 	@echo "  publish      - Publish package to PyPI"
 	@echo ""
 	@echo "Running:"
-	@echo "  serve        - Start Streamlit web interface (production)"
-	@echo "  serve-dev    - Start Streamlit web interface (development)"
+	@echo "  serve        - Start Streamlit web interface"
 	@echo "  sample       - Run sample configuration (dry-run)"
 	@echo "  info         - Show system information"
 	@echo ""
@@ -87,13 +86,8 @@ serve:
 	@echo "Starting FivcPlayground web interface..."
 	@echo "Access at: http://localhost:8501"
 	@echo "Press Ctrl+C to stop"
+	uv run fivcplayground setup
 	uv run fivcplayground web
-
-serve-dev:
-	@echo "Starting FivcAdvisor web interface (development mode)..."
-	@echo "Access at: http://localhost:8501"
-	@echo "Press Ctrl+C to stop"
-	uv run streamlit run src/fivcadvisor/app/__init__.py --server.port 8501
 
 # Utility targets
 sample:

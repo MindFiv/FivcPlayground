@@ -78,6 +78,8 @@ class AgentConfig(BaseModel):
 
 class AgentRunContent(BaseModel):
     text: str | None = Field(default=None, description="Text content")
+    images: list[str] | None = Field(default=None, description="Image contents")
+    files: list[str] | None = Field(default=None, description="File contents")
 
     # TODO: add other content types as needed
 

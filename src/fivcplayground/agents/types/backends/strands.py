@@ -115,7 +115,8 @@ class AgentRunnable(Runnable):
             agent = Agent(
                 name=self._id,
                 model=self._model,
-                tools=tools_expanded,
+                tools=tools_expanded
+                or [tool_retriever.to_tool()],  # always pass at least a tool
                 system_prompt=self._system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
             )
@@ -194,16 +195,35 @@ class AgentRunnable(Runnable):
             finally:
                 agent_run.completed_at = datetime.now()
 
-            if not isinstance(output, AgentResult):
-                raise ValueError(f"Expected AgentResult, got {type(output)}")
+                # Ensure reply is set and FINISH event is called even if an exception occurred
+                if isinstance(output, AgentResult):
+                    agent_run.reply = AgentRunContent(text=str(output))
+                else:
+                    agent_run.error = f"Expected AgentResult, got {type(output)}"
+                    agent_run.status = AgentRunStatus.FAILED
 
-            agent_run.reply = AgentRunContent(text=str(output))
-            event_callback(AgentRunEvent.FINISH, agent_run)
+                event_callback(AgentRunEvent.FINISH, agent_run)
 
-            if output.structured_output:
+                # Save the final agent run state to the repository
+                agent_run_session_span(agent_run)
+
+            # Return structured output if available, otherwise return reply
+            if isinstance(output, AgentResult) and output.structured_output:
                 return output.structured_output
 
-            return agent_run.reply
+            return agent_run.reply if agent_run.reply else AgentRunContent(text="")
+
+
+def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
+    """Convert AgentRunContent to list of ContentBlock."""
+    blocks = []
+    if content.text:
+        blocks.append(ContentBlock(text=content.text))
+
+    # for img in content.images:
+    #     blocks.append(ContentBlock(image={"source": img, "format": ""}))
+
+    return blocks
 
 
 def _list_messages(
@@ -219,19 +239,19 @@ def _list_messages(
             if not m.is_completed:
                 continue
 
-            if m.query and m.query.text:
+            if m.query:
                 agent_messages.append(
                     Message(
                         role="user",
-                        content=[ContentBlock(text=m.query.text)],
+                        content=_to_content_blocks(m.query),
                     )
                 )
 
-            if m.reply and m.reply.text:
+            if m.reply:
                 agent_messages.append(
                     Message(
                         role="assistant",
-                        content=[ContentBlock(text=m.reply.text)],
+                        content=_to_content_blocks(m.reply),
                     )
                 )
 
@@ -239,7 +259,7 @@ def _list_messages(
         agent_messages.append(
             Message(
                 role="user",
-                content=[ContentBlock(text=str(agent_query))],
+                content=_to_content_blocks(agent_query),
             )
         )
     return agent_messages
@@ -257,7 +277,7 @@ def _list_tools(
         tools = [tool_retriever.get_tool(name) for name in tool_ids]
         return [t for t in tools if t is not None]
 
-    if not tool_query:
-        return tool_retriever.list_tools()
+    if tool_query and tool_query.text:
+        return tool_retriever.retrieve_tools(tool_query.text)
 
-    return tool_retriever.retrieve_tools(str(tool_query))
+    return tool_retriever.list_tools()

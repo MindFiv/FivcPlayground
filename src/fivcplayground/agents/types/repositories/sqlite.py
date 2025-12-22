@@ -132,7 +132,8 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS agents (
                 id INTEGER PRIMARY KEY,
-                agent_id TEXT UNIQUE NOT NULL,
+                session_id TEXT UNIQUE,
+                agent_id TEXT NOT NULL,
                 system_prompt TEXT,
                 description TEXT,
                 started_at TIMESTAMP,
@@ -155,7 +156,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 streaming_text TEXT,
                 error TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (agent_id) REFERENCES agents(agent_id) ON DELETE CASCADE
+                FOREIGN KEY (session_id) REFERENCES agents(session_id) ON DELETE CASCADE
             )
         """)
 
@@ -237,16 +238,18 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         # Use INSERT OR IGNORE + UPDATE instead of INSERT OR REPLACE
         # to avoid cascading deletes of related runtimes
+        session_id = agent_data.get("id")
         agent_id = agent_data.get("agent_id")
 
         # First, try to insert (will be ignored if already exists)
         cursor.execute(
             """
             INSERT OR IGNORE INTO agents
-            (agent_id, description, started_at)
-            VALUES (?, ?, ?)
+            (session_id, agent_id, description, started_at)
+            VALUES (?, ?, ?, ?)
         """,
             (
+                session_id,
                 agent_id,
                 agent_data.get("description"),
                 agent_data.get("started_at"),
@@ -258,20 +261,20 @@ class SqliteAgentRunRepository(AgentRunRepository):
             """
             UPDATE agents
             SET description = ?, started_at = ?
-            WHERE agent_id = ?
+            WHERE session_id = ?
         """,
             (
                 agent_data.get("description"),
                 agent_data.get("started_at"),
-                agent_id,
+                session_id,
             ),
         )
         self.connection.commit()
 
-    def get_agent_run_session(self, agent_id: str) -> Optional[AgentRunSession]:
-        """Retrieve an agent's metadata by ID."""
+    def get_agent_run_session(self, session_id: str) -> Optional[AgentRunSession]:
+        """Retrieve an agent session's metadata by session ID."""
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM agents WHERE agent_id = ?", (agent_id,))
+        cursor.execute("SELECT * FROM agents WHERE session_id = ?", (session_id,))
         row = cursor.fetchone()
 
         if not row:
@@ -280,13 +283,14 @@ class SqliteAgentRunRepository(AgentRunRepository):
         try:
             return AgentRunSession.model_validate(
                 {
+                    "id": row["session_id"],
                     "agent_id": row["agent_id"],
                     "description": row["description"],
                     "started_at": row["started_at"],
                 }
             )
         except ValueError as e:
-            print(f"Error loading agent {agent_id}: {e}")
+            print(f"Error loading session {session_id}: {e}")
             return None
 
     def list_agent_run_sessions(self) -> List[AgentRunSession]:
@@ -311,10 +315,13 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    def delete_agent_run_session(self, agent_id: str) -> None:
-        """Delete an agent and all its associated runtimes."""
+    def delete_agent_run_session(self, session_id: str) -> None:
+        """Delete an agent session and all its associated runtimes."""
         cursor = self.connection.cursor()
-        cursor.execute("DELETE FROM agents WHERE agent_id = ?", (agent_id,))
+        # Delete all runtimes for this session (which will cascade delete tool calls)
+        cursor.execute("DELETE FROM agent_runtimes WHERE session_id = ?", (session_id,))
+        # Delete the agent metadata
+        cursor.execute("DELETE FROM agents WHERE session_id = ?", (session_id,))
         self.connection.commit()
 
     def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
@@ -332,13 +339,13 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         # Ensure the agent exists (create a placeholder if needed)
         # This is necessary because of the foreign key constraint
-        if agent_id:
+        if agent_id and session_id:
             cursor.execute(
                 """
-                INSERT OR IGNORE INTO agents (agent_id)
-                VALUES (?)
+                INSERT OR IGNORE INTO agents (session_id, agent_id)
+                VALUES (?, ?)
             """,
-                (agent_id,),
+                (session_id, agent_id),
             )
 
         # Use the passed session_id parameter for grouping runtimes

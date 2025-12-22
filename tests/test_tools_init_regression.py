@@ -85,19 +85,29 @@ class TestToolsInitRegression:
             tool1 = create_mock_tool("tool1", "Tool 1 description")
             tool2 = create_mock_tool("tool2", "Tool 2 description")
 
-            retriever = ToolRetriever(
-                tool_list=[tool1, tool2],
-                embedding_db=mock_db,
-            )
+            # Mock the tool config repository to return no tool configs
+            # This ensures list_tools() only returns the tools we explicitly added
+            with patch(
+                "fivcplayground.tools.types.repositories.files.FileToolConfigRepository"
+            ) as mock_repo_class:
+                mock_repo = Mock()
+                mock_repo.list_tool_configs.return_value = []
+                mock_repo_class.return_value = mock_repo
 
-            # Get all tools
-            all_tools = retriever.list_tools()
+                retriever = ToolRetriever(
+                    tool_list=[tool1, tool2],
+                    embedding_db=mock_db,
+                    tool_config_repository=mock_repo,
+                )
 
-            # Verify all tools can be accessed with get_tool_name
-            assert len(all_tools) == 2
-            tool_names = [get_tool_name(tool) for tool in all_tools]
-            assert "tool1" in tool_names
-            assert "tool2" in tool_names
+                # Get all tools
+                all_tools = retriever.list_tools()
+
+                # Verify all tools can be accessed with get_tool_name
+                assert len(all_tools) == 2
+                tool_names = [get_tool_name(tool) for tool in all_tools]
+                assert "tool1" in tool_names
+                assert "tool2" in tool_names
 
     def test_create_tool_retriever_with_builtin_tools(self):
         """

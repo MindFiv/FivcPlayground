@@ -152,6 +152,7 @@ class AgentRunnable(Runnable):
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
@@ -166,7 +167,7 @@ class AgentRunnable(Runnable):
         )
 
         async with (
-            setup_tools(_list_tools(tool_retriever, query)) as tools_expanded,
+            setup_tools(_list_tools(tool_retriever, tool_ids, query)) as tools_expanded,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
@@ -249,24 +250,36 @@ class AgentRunnable(Runnable):
             finally:
                 agent_run.completed_at = datetime.now()
 
-            if "messages" not in outputs:
-                raise ValueError(f"Expected messages in outputs, got {outputs}")
+                # Ensure reply is set and FINISH event is called even if an exception occurred
+                try:
+                    if "messages" in outputs:
+                        output = outputs["messages"][-1]
+                        if isinstance(output, BaseMessage):
+                            agent_run.reply = AgentRunContent(text=output.content)
+                        else:
+                            agent_run.error = (
+                                f"Expected BaseMessage, got {type(output)}"
+                            )
+                            agent_run.status = AgentRunStatus.FAILED
+                    else:
+                        agent_run.error = f"Expected messages in outputs, got {outputs}"
+                        agent_run.status = AgentRunStatus.FAILED
+                except Exception as e:
+                    agent_run.error = f"Error processing outputs: {str(e)}"
+                    agent_run.status = AgentRunStatus.FAILED
 
-            output = outputs["messages"][-1]
-            if not isinstance(output, BaseMessage):
-                raise ValueError(
-                    f"Expected output to be BaseMessage, got {type(output)}"
-                )
+                event_callback(AgentRunEvent.FINISH, agent_run)
 
-            agent_run.reply = AgentRunContent(text=output.content)
-            event_callback(AgentRunEvent.FINISH, agent_run)
+                # Save the final agent run state to the repository
+                agent_run_session_span(agent_run)
 
+            # Return structured output if available, otherwise return reply
             if "structured_response" in outputs:
                 output = outputs["structured_response"]
                 if isinstance(output, BaseModel):
                     return output
 
-            return agent_run.reply
+            return agent_run.reply if agent_run.reply else AgentRunContent(text="")
 
 
 def _list_messages(
@@ -294,12 +307,17 @@ def _list_messages(
 
 def _list_tools(
     tool_retriever: ToolRetriever | None = None,
+    tool_ids: List[str] | None = None,
     tool_query: AgentRunContent | None = None,
 ) -> List[Tool]:
     if not tool_retriever:
         return []
 
-    if not tool_query:
-        return tool_retriever.list_tools()
+    if tool_ids:
+        tools = [tool_retriever.get_tool(name) for name in tool_ids]
+        return [t for t in tools if t is not None]
 
-    return tool_retriever.retrieve_tools(str(tool_query))
+    if tool_query and tool_query.text:
+        return tool_retriever.retrieve_tools(tool_query.text)
+
+    return tool_retriever.list_tools()

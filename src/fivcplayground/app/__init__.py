@@ -18,19 +18,28 @@ from fivcplayground.tools.types.repositories import FileToolConfigRepository
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.agents.types.repositories import (
     FileAgentConfigRepository,
-    SqliteAgentRunRepository,
+    FileAgentRunRepository,
 )
 from fivcplayground.app.utils import ChatManager
 from fivcplayground.app.views import (
     ViewNavigation,
     ChatView,
     TaskView,
-    MCPSettingView,
-    GeneralSettingView,
 )
 
 # Apply nest_asyncio to allow nested event loops in Streamlit context
 nest_asyncio.apply()
+
+agent_run_repository = FileAgentRunRepository()
+agent_config_repository = FileAgentConfigRepository()
+model_config_repository = FileModelConfigRepository()
+embedding_config_repository = FileEmbeddingConfigRepository()
+tool_config_repository = FileToolConfigRepository()
+tool_retriever = create_tool_retriever(
+    embedding_config_repository=embedding_config_repository,
+    tool_config_repository=tool_config_repository,
+)
+tool_retriever.index_tools()
 
 
 def main():
@@ -43,16 +52,6 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    agent_run_repository = SqliteAgentRunRepository()
-    agent_config_repository = FileAgentConfigRepository()
-    model_config_repository = FileModelConfigRepository()
-    embedding_config_repository = FileEmbeddingConfigRepository()
-    tool_config_repository = FileToolConfigRepository()
-    tool_retriever = create_tool_retriever(
-        embedding_config_repository=embedding_config_repository,
-        tool_config_repository=tool_config_repository,
-    )
-
     chat_manager = ChatManager(
         model_config_repository=model_config_repository,
         agent_config_repository=agent_config_repository,
@@ -63,7 +62,9 @@ def main():
     # Create navigation instance
     nav = ViewNavigation()
 
-    # Build chat views
+    # Build chat views dynamically on each run to include newly created chats
+    # This ensures that when a new chat is created and saved, it appears in the list
+    # after the app reruns
     chat_pages = [ChatView(chat_manager.add_chat())]
     chat_pages.extend([ChatView(chat) for chat in chat_manager.list_chats()])
 
@@ -72,10 +73,6 @@ def main():
     nav.add_section(
         "Tasks",
         [TaskView()],
-    )
-    nav.add_section(
-        "Settings",
-        [GeneralSettingView(), MCPSettingView(tool_config_repository)],
     )
 
     # Run navigation
