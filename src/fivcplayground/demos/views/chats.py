@@ -19,11 +19,11 @@ import os
 
 import streamlit as st
 
-from fivcplayground.app.utils import (
+from fivcplayground.demos.utils import (
     Chat,
     # default_running_config,
 )
-from fivcplayground.app.components import ChatMessage
+from fivcplayground.demos.components import ChatMessage
 from fivcplayground.agents.types import AgentRun, AgentRunContent
 
 # from fivcplayground.tasks import create_assessing_task

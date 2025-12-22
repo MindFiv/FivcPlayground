@@ -10,7 +10,7 @@ import tempfile
 import asyncio
 from unittest.mock import Mock, AsyncMock
 
-from fivcplayground.app.utils import Chat
+from fivcplayground.demos.utils import Chat
 from fivcplayground.agents.types import (
     AgentRunContent,
     AgentRunSession,

@@ -48,7 +48,7 @@ uv run fivcplayground web
 make serve
 
 # Or directly with streamlit
-streamlit run src/fivcplayground/app/__init__.py
+streamlit run src/fivcplayground/demos/__init__.py
 ```
 
 ### Expected Behavior
@@ -146,7 +146,7 @@ cat mcp.yml
 ps aux | grep mcp
 
 # Check logs
-streamlit run src/fivcplayground/app/__init__.py --logger.level=debug
+streamlit run src/fivcplayground/demos/__init__.py --logger.level=debug
 ```
 
 ### Issue: Tools not loading
@@ -224,7 +224,7 @@ export PYTHONPATH=/path/to/project
 python -c "
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from fivcplayground.app import main
+from fivcplayground.demos import main
 main()
 "
 ```

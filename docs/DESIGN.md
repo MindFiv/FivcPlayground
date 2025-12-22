@@ -85,7 +85,7 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 | **Tools** | Tool management and retrieval system | `src/fivcplayground/tools/` |
 | **Models** | LLM model factories and providers | `src/fivcplayground/models/` |
 | **Tasks** | Task execution and orchestration | `src/fivcplayground/tasks/` |
-| **App** | Streamlit web interface | `src/fivcplayground/app/` |
+| **Demos** | Streamlit web interface | `src/fivcplayground/demos/` |
 | **Embeddings** | Vector database for semantic search | `src/fivcplayground/embeddings/` |
 | **Settings** | Configuration management | `src/fivcplayground/settings/` |
 | **Utils** | Utility functions and helpers | `src/fivcplayground/utils/` |

@@ -68,7 +68,7 @@ uv run fivcplayground --help
 src/fivcplayground/
 ├── agents/          # Agent creation and management
 │   └── types/       # Agent retriever and creator types
-├── app/             # Streamlit web interface
+├── demos/           # Streamlit web interface
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
 ├── models/          # LLM model factories and providers
