@@ -19,13 +19,21 @@ from rich.panel import Panel
 from rich.text import Text
 
 from fivcplayground.agents import create_agent
-from fivcplayground.agents.types.repositories import FileAgentConfigRepository
+from fivcplayground.tools import create_tool_retriever
+from fivcplayground.utils import OutputDir
+
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
-from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
-from fivcplayground.backends.strands.tools import StrandsToolBackend
-from fivcplayground.utils import OutputDir
+from fivcplayground.agents.types.repositories import FileAgentConfigRepository
+from fivcplayground.backends.strands import (
+    StrandsModelBackend,
+    StrandsToolBackend,
+    StrandsAgentBackend,
+)
+from fivcplayground.backends.chroma import (
+    ChromaEmbeddingBackend,
+)
 
 load_dotenv()
 
@@ -60,15 +68,24 @@ def run(
     """
     Run a FivcPlayground agent
     """
+    model_backend = StrandsModelBackend()
     model_config_repository = FileModelConfigRepository()
-    agent_config_repository = FileAgentConfigRepository()
-    embedding_config_repository = FileEmbeddingConfigRepository()
+
+    tool_backend = StrandsToolBackend()
     tool_config_repository = FileToolConfigRepository()
+
+    embedding_backend = ChromaEmbeddingBackend()
+    embedding_config_repository = FileEmbeddingConfigRepository()
+
+    agent_backend = StrandsAgentBackend()
+    agent_config_repository = FileAgentConfigRepository()
+
     tool_retriever = create_tool_retriever(
-        tool_backend=StrandsToolBackend(),
+        tool_backend=tool_backend,
+        tool_config_repository=tool_config_repository,
+        embedding_backend=embedding_backend,
         embedding_config_repository=embedding_config_repository,
         embedding_config_id="default",
-        tool_config_repository=tool_config_repository,
     )
 
     console.print(
@@ -85,7 +102,9 @@ def run(
             raise typer.Exit(1)
 
     agent_runnable = create_agent(
+        model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id=agent_name,
         raise_exception=False,
@@ -249,6 +268,21 @@ def setup(
     )
 
     try:
+        embedding_backend = ChromaEmbeddingBackend()
+        embedding_config_repository = FileEmbeddingConfigRepository()
+
+        tool_backend = StrandsToolBackend()
+        tool_config_repository = FileToolConfigRepository()
+
+        tool_retriever = create_tool_retriever(
+            tool_backend=tool_backend,
+            tool_config_repository=tool_config_repository,
+            embedding_backend=embedding_backend,
+            embedding_config_repository=embedding_config_repository,
+            embedding_config_id="default",
+        )
+        tool_retriever.index_tools()
+
         # Get current working directory
         cwd = Path.cwd()
         config_dir = cwd / ".fivcplayground" / "configs"

@@ -181,7 +181,9 @@ class StrandsAgentRunnable(AgentRunnable):
                 name=self.id,
                 model=self._agent_model,
                 tools=[t.get_underlying() for t in tools_expanded]
-                or [tool_retriever.to_tool()],  # always pass at least a tool
+                or [
+                    tool_retriever.to_tool().get_underlying()
+                ],  # always pass at least a tool
                 system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
             )

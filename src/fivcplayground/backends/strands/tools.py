@@ -105,7 +105,7 @@ class StrandsToolBundle(ToolBundle):
 
         with MCPClient(lambda: c) as client:
             tools = client.list_tools_sync()
-            yield list(StrandsTool(tool(t)) for t in tools)
+            yield list(StrandsTool(t) for t in tools)
 
 
 class StrandsToolBackend(ToolBackend):

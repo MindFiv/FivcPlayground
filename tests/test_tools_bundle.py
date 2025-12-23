@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.backends.langchain.tools import LangchainToolBundle
-from fivcplayground.backends.strands.tools import StrandsToolBundle
+from fivcplayground.backends.strands.tools import StrandsToolBundle, StrandsTool
 
 # Use both implementations - tests will run with whichever backend is active
 # For now, we'll test both implementations
@@ -99,18 +99,11 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            # Also mock the tool() decorator to return a wrapped tool
-            with patch(
-                "fivcplayground.backends.strands.tools.tool"
-            ) as mock_tool_decorator:
-                mock_wrapped_tool = Mock()
-                mock_wrapped_tool.tool_name = "test_tool"
-                mock_tool_decorator.return_value = mock_wrapped_tool
-
-                async with bundle.load_async() as tools:
-                    assert len(tools) == 1
-                    # Verify that tool() was called with the mock_tool
-                    mock_tool_decorator.assert_called_with(mock_tool)
+            async with bundle.load_async() as tools:
+                assert len(tools) == 1
+                # Verify that the tool is wrapped in StrandsTool
+                assert isinstance(tools[0], StrandsTool)
+                assert tools[0].name == "test_tool"
 
     @pytest.mark.asyncio
     async def test_load_async_with_url_config(self):
@@ -137,18 +130,11 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            # Also mock the tool() decorator to return a wrapped tool
-            with patch(
-                "fivcplayground.backends.strands.tools.tool"
-            ) as mock_tool_decorator:
-                mock_wrapped_tool = Mock()
-                mock_wrapped_tool.tool_name = "test_tool"
-                mock_tool_decorator.return_value = mock_wrapped_tool
-
-                async with bundle.load_async() as tools:
-                    assert len(tools) == 1
-                    # Verify that tool() was called with the mock_tool
-                    mock_tool_decorator.assert_called_with(mock_tool)
+            async with bundle.load_async() as tools:
+                assert len(tools) == 1
+                # Verify that the tool is wrapped in StrandsTool
+                assert isinstance(tools[0], StrandsTool)
+                assert tools[0].name == "test_tool"
 
 
 if __name__ == "__main__":
