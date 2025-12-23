@@ -20,16 +20,16 @@ dependencies = [
     "streamlit>=1.49.1",
     "chromadb>=1.1.0",
     # LangChain 1.0 migration dependencies
-    "langchain>=1.0.0",
-    "langchain-core>=1.0.0",
-    "langchain-community>=0.4.0",
+    "langchain>=1.2.0",
+    "langchain-core>=1.2.0",
+    "langchain-community>=0.4.1",
     "langchain-openai>=1.0.0",
-    "langgraph>=1.0.0",
-    "langchain-mcp-adapters>=0.1.11",
+    "langgraph>=1.0.5",
+    "langchain-mcp-adapters>=0.2.1",
     "langchain-ollama>=1.0.0",
     "nest-asyncio>=1.6.0",
     # Strands framework dependencies (optional)
-    "strands-agents>=1.14.0",
+    "strands-agents>=1.20.0",
     # Text splitters for document loading
     "langchain-text-splitters>=0.3.11",
     # Transitive dependencies (required by other packages)
