@@ -1,29 +1,30 @@
 import asyncio
 from datetime import datetime
 from typing import List, Type, Callable, cast
-from uuid import uuid4
 from warnings import warn
 
 from pydantic import BaseModel
 from strands.agent import (
-    Agent,
-    AgentResult,
+    Agent as StrandsAgentUnderlying,
+    AgentResult as StrandsAgentResult,
     SlidingWindowConversationManager,
 )
-from strands.models import Model
+from strands.models import Model as StrandsModelUnderlying
 from strands.types.content import Message, ContentBlock
 from strands.types.tools import ToolUse, ToolResult
 
-from fivcplayground.agents.types import (
+from fivcplayground.models import Model
+from fivcplayground.agents import (
+    AgentConfig,
     AgentRunEvent,
     AgentRunStatus,
     AgentRunContent,
     AgentRun,
+    AgentRunnable,
     AgentRunToolCall,
-)
-from fivcplayground.agents.types.repositories import (
     AgentRunRepository,
     AgentRunSessionSpan,
+    AgentBackend,
 )
 
 from fivcplayground.tools import (
@@ -31,34 +32,98 @@ from fivcplayground.tools import (
     Tool,
     ToolRetriever,
 )
-from fivcplayground.utils import Runnable
 
 
-class AgentRunnable(Runnable):
+def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
+    """Convert AgentRunContent to list of ContentBlock."""
+    blocks = []
+    if content.text:
+        blocks.append(ContentBlock(text=content.text))
+
+    # for img in content.images:
+    #     blocks.append(ContentBlock(image={"source": img, "format": ""}))
+
+    return blocks
+
+
+def _list_messages(
+    agent_run_repository: AgentRunRepository | None = None,
+    agent_run_session_id: str | None = None,
+    agent_query: AgentRunContent | None = None,
+) -> List[Message]:
+    """List all messages for a specific session."""
+    agent_messages = []
+    if agent_run_repository and agent_run_session_id:
+        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        for m in agent_runs:
+            if not m.is_completed:
+                continue
+
+            if m.query:
+                agent_messages.append(
+                    Message(
+                        role="user",
+                        content=_to_content_blocks(m.query),
+                    )
+                )
+
+            if m.reply:
+                agent_messages.append(
+                    Message(
+                        role="assistant",
+                        content=_to_content_blocks(m.reply),
+                    )
+                )
+
+    if agent_query:
+        agent_messages.append(
+            Message(
+                role="user",
+                content=_to_content_blocks(agent_query),
+            )
+        )
+    return agent_messages
+
+
+def _list_tools(
+    tool_retriever: ToolRetriever | None = None,
+    tool_ids: List[str] | None = None,
+    tool_query: AgentRunContent | None = None,
+) -> List[Tool]:
+    if not tool_retriever:
+        return []
+
+    if tool_ids:
+        tools = [tool_retriever.get_tool(name) for name in tool_ids]
+        return [t for t in tools if t is not None]
+
+    if tool_query and tool_query.text:
+        return tool_retriever.retrieve_tools(tool_query.text)
+
+    return tool_retriever.list_tools()
+
+
+class StrandsAgentRunnable(AgentRunnable):
     def __init__(
         self,
-        id: str | None = None,
-        description: str | None = None,
-        model: Model | None = None,
-        system_prompt: str | None = None,
+        agent_config: AgentConfig,
+        agent_model: StrandsModelUnderlying,
         **kwargs,  # ignore additional kwargs
     ):
-        self._id = id or str(uuid4())
-        self._description = description or ""
-        self._model = model
-        self._system_prompt = system_prompt
+        self._agent_config = agent_config
+        self._agent_model = agent_model
 
     @property
     def id(self) -> str:
-        return self._id
+        return self._agent_config.id
 
     @property
     def name(self) -> str:
-        return self._id
+        return self._agent_config.name
 
     @property
     def description(self) -> str:
-        return self._description
+        return self._agent_config.description
 
     def run(
         self,
@@ -109,19 +174,19 @@ class AgentRunnable(Runnable):
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
-                self._id,
+                self.id,
             ) as agent_run_session_span,
         ):
-            agent = Agent(
-                name=self._id,
-                model=self._model,
+            agent = StrandsAgentUnderlying(
+                name=self.id,
+                model=self._agent_model,
                 tools=[t.get_underlying() for t in tools_expanded]
                 or [tool_retriever.to_tool()],  # always pass at least a tool
-                system_prompt=self._system_prompt,
+                system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
             )
             agent_run = AgentRun(
-                agent_id=self._id,
+                agent_id=self.id,
                 status=AgentRunStatus.EXECUTING,
                 query=query or None,
                 started_at=datetime.now(),
@@ -196,7 +261,7 @@ class AgentRunnable(Runnable):
                 agent_run.completed_at = datetime.now()
 
                 # Ensure reply is set and FINISH event is called even if an exception occurred
-                if isinstance(output, AgentResult):
+                if isinstance(output, StrandsAgentResult):
                     agent_run.reply = AgentRunContent(text=str(output))
                 else:
                     agent_run.error = f"Expected AgentResult, got {type(output)}"
@@ -208,76 +273,24 @@ class AgentRunnable(Runnable):
                 agent_run_session_span(agent_run)
 
             # Return structured output if available, otherwise return reply
-            if isinstance(output, AgentResult) and output.structured_output:
+            if isinstance(output, StrandsAgentResult) and output.structured_output:
                 return output.structured_output
 
             return agent_run.reply if agent_run.reply else AgentRunContent(text="")
 
 
-def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
-    """Convert AgentRunContent to list of ContentBlock."""
-    blocks = []
-    if content.text:
-        blocks.append(ContentBlock(text=content.text))
+class StrandsAgentBackend(AgentBackend):
+    """Agent backend for strands"""
 
-    # for img in content.images:
-    #     blocks.append(ContentBlock(image={"source": img, "format": ""}))
-
-    return blocks
-
-
-def _list_messages(
-    agent_run_repository: AgentRunRepository | None = None,
-    agent_run_session_id: str | None = None,
-    agent_query: AgentRunContent | None = None,
-) -> List[Message]:
-    """List all messages for a specific session."""
-    agent_messages = []
-    if agent_run_repository and agent_run_session_id:
-        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
-        for m in agent_runs:
-            if not m.is_completed:
-                continue
-
-            if m.query:
-                agent_messages.append(
-                    Message(
-                        role="user",
-                        content=_to_content_blocks(m.query),
-                    )
-                )
-
-            if m.reply:
-                agent_messages.append(
-                    Message(
-                        role="assistant",
-                        content=_to_content_blocks(m.reply),
-                    )
-                )
-
-    if agent_query:
-        agent_messages.append(
-            Message(
-                role="user",
-                content=_to_content_blocks(agent_query),
+    def create_agent(
+        self,
+        agent_model: Model,
+        agent_config: AgentConfig,
+    ) -> AgentRunnable:
+        """Create an agent instance from an AgentConfig."""
+        agent_model = agent_model.get_underlying()
+        if not isinstance(agent_model, StrandsModelUnderlying):
+            raise RuntimeError(
+                f"Expected StrandsModelUnderlying, got {type(agent_model)}"
             )
-        )
-    return agent_messages
-
-
-def _list_tools(
-    tool_retriever: ToolRetriever | None = None,
-    tool_ids: List[str] | None = None,
-    tool_query: AgentRunContent | None = None,
-) -> List[Tool]:
-    if not tool_retriever:
-        return []
-
-    if tool_ids:
-        tools = [tool_retriever.get_tool(name) for name in tool_ids]
-        return [t for t in tools if t is not None]
-
-    if tool_query and tool_query.text:
-        return tool_retriever.retrieve_tools(tool_query.text)
-
-    return tool_retriever.list_tools()
+        return StrandsAgentRunnable(agent_config, agent_model)

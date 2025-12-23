@@ -1,46 +1,6 @@
-"""
-Runnable wrapper for LangChain agents.
-
-This module provides the AgentRunnable class, which wraps LangChain's native
-agent creation functions to provide a consistent Runnable interface for FivcPlayground
-agents. It handles both synchronous and asynchronous invocation with proper message
-formatting and output extraction.
-
-Core Classes:
-    - AgentRunnable: Runnable wrapper for LangChain agents
-
-Features:
-    - Synchronous and asynchronous execution
-    - Automatic message history management
-    - Structured response support via response_model
-    - Callback handler integration for monitoring
-    - Multi-turn conversation support
-
-Return Types:
-    - If response_model is provided: Returns Pydantic model instance
-    - If response_model is None: Returns string content from agent response
-
-Example:
-    >>> from fivcplayground.agents.types import AgentRunnable
-    >>> from langchain_openai import ChatOpenAI
-    >>>
-    >>> # Create a model
-    >>> model = ChatOpenAI(model="gpt-4o-mini")
-    >>>
-    >>> # Create an agent
-    >>> agent = AgentRunnable(
-    ...     model=model,
-    ...     id="my-agent",
-    ...     system_prompt="You are a helpful assistant"
-    ... )
-    >>> result = agent.run("Hello!")
-    >>> print(result)  # Returns string
-"""
-
 import asyncio
 from datetime import datetime
 from typing import List, Type, Callable
-from uuid import uuid4
 
 from langchain_core.messages import (
     HumanMessage,
@@ -49,80 +9,95 @@ from langchain_core.messages import (
     AIMessageChunk,
     ToolMessage,
 )
-from langchain_core.language_models import BaseChatModel
-from langchain.agents import create_agent as lc_create_agent
+from langchain_core.language_models import BaseChatModel as LangchainModelUnderlying
+from langchain.agents import create_agent as LangchainAgentUnderlying
 
 from pydantic import BaseModel
 
-from fivcplayground.agents.types import (
+from fivcplayground.agents import (
+    AgentConfig,
     AgentRunEvent,
     AgentRunStatus,
     AgentRunContent,
-    AgentRun,
     AgentRunToolCall,
-)
-from fivcplayground.agents.types.repositories import (
+    AgentRun,
+    AgentRunnable,
     AgentRunRepository,
     AgentRunSessionSpan,
+    AgentBackend,
 )
+from fivcplayground.models import Model
 from fivcplayground.tools import (
     setup_tools,
     Tool,
     ToolRetriever,
 )
-from fivcplayground.utils import Runnable
 
 
-class AgentRunnable(Runnable):
-    """
-    Runnable wrapper for LangChain agents.
+def _list_messages(
+    agent_run_repository: AgentRunRepository | None = None,
+    agent_run_session_id: str | None = None,
+    agent_query: AgentRunContent | None = None,
+) -> List[BaseMessage]:
+    agent_messages = []
+    if agent_run_repository and agent_run_session_id:
+        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        for m in agent_runs:
+            if not m.is_completed:
+                continue
 
-    This class wraps LangChain's native agent creation functions to provide
-    a consistent Runnable interface for FivcPlayground agents. It handles both
-    synchronous and asynchronous invocation with proper message formatting
-    and output extraction.
+            if m.query and m.query.text:
+                agent_messages.append(HumanMessage(content=m.query.text))
 
-    Attributes:
-        _id: Unique identifier for the runnable
-        _description: Description of the agent
-        _model: The underlying LangChain chat model
-        _system_prompt: System prompt for the agent
-    """
+            if m.reply and m.reply.text:
+                agent_messages.append(AIMessage(content=m.reply.text))
+
+    if agent_query:
+        agent_messages.append(HumanMessage(content=str(agent_query)))
+    return agent_messages
+
+
+def _list_tools(
+    tool_retriever: ToolRetriever | None = None,
+    tool_ids: List[str] | None = None,
+    tool_query: AgentRunContent | None = None,
+) -> List[Tool]:
+    if not tool_retriever:
+        return []
+
+    if tool_ids:
+        tools = [tool_retriever.get_tool(name) for name in tool_ids]
+        return [t for t in tools if t is not None]
+
+    if tool_query and tool_query.text:
+        return tool_retriever.retrieve_tools(tool_query.text)
+
+    return tool_retriever.list_tools()
+
+
+class LangchainAgentRunnable(AgentRunnable):
+    """LangChain agent runnable."""
 
     def __init__(
         self,
-        id: str | None = None,
-        description: str | None = None,
-        model: BaseChatModel | None = None,
-        system_prompt: str | None = None,
+        agent_config: AgentConfig,
+        agent_model: LangchainModelUnderlying,
         **kwargs,  # ignore additional kwargs
     ):
-        """
-        Initialize AgentRunnable.
-
-        Args:
-            id: Unique identifier for the agent (auto-generated if not provided)
-            description: Description of the agent
-            model: LangChain chat model
-            system_prompt: System prompt/instructions for the agent
-            **kwargs: Additional arguments (ignored for compatibility)
-        """
-        self._id = id or str(uuid4())
-        self._description = description or ""
-        self._model = model
-        self._system_prompt = system_prompt
+        self._agent_config = agent_config
+        self._agent_model = agent_model
 
     @property
     def id(self) -> str:
-        return self._id
+        return self._agent_config.id
 
     @property
     def name(self) -> str:
-        return self._id
+        return self._agent_config.name
 
     @property
     def description(self) -> str:
-        return self._description
+        return self._agent_config.description
 
     def run(
         self,
@@ -171,18 +146,19 @@ class AgentRunnable(Runnable):
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
-                self._id,
+                self.id,
             ) as agent_run_session_span,
         ):
-            agent = lc_create_agent(
-                self._model,
-                [t.get_underlying() for t in tools_expanded],
-                name=self._id,
-                system_prompt=self._system_prompt,
+            agent_tools = [t.get_underlying() for t in tools_expanded]
+            agent = LangchainAgentUnderlying(
+                self._agent_model,
+                agent_tools,
+                name=self.id,
+                system_prompt=self._agent_config.system_prompt,
                 response_format=response_model,
             )
             agent_run = AgentRun(
-                agent_id=self._id,
+                agent_id=self.id,
                 status=AgentRunStatus.EXECUTING,
                 query=query or None,
                 started_at=datetime.now(),
@@ -234,11 +210,11 @@ class AgentRunnable(Runnable):
 
             except Exception as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
-                agent = lc_create_agent(
-                    self._model,
-                    tools_expanded,
-                    name=self._id,
-                    system_prompt=self._system_prompt,
+                agent = LangchainAgentUnderlying(
+                    self._agent_model,
+                    agent_tools,
+                    name=self.id,
+                    system_prompt=self._agent_config.system_prompt,
                     response_format=response_model,
                 )
                 outputs = await agent.ainvoke(
@@ -282,42 +258,18 @@ class AgentRunnable(Runnable):
             return agent_run.reply if agent_run.reply else AgentRunContent(text="")
 
 
-def _list_messages(
-    agent_run_repository: AgentRunRepository | None = None,
-    agent_run_session_id: str | None = None,
-    agent_query: AgentRunContent | None = None,
-) -> List[BaseMessage]:
-    agent_messages = []
-    if agent_run_repository and agent_run_session_id:
-        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
-        for m in agent_runs:
-            if not m.is_completed:
-                continue
+class LangchainAgentBackend(AgentBackend):
+    """Langchain agent backend"""
 
-            if m.query and m.query.text:
-                agent_messages.append(HumanMessage(content=m.query.text))
-
-            if m.reply and m.reply.text:
-                agent_messages.append(AIMessage(content=m.reply.text))
-
-    if agent_query:
-        agent_messages.append(HumanMessage(content=str(agent_query)))
-    return agent_messages
-
-
-def _list_tools(
-    tool_retriever: ToolRetriever | None = None,
-    tool_ids: List[str] | None = None,
-    tool_query: AgentRunContent | None = None,
-) -> List[Tool]:
-    if not tool_retriever:
-        return []
-
-    if tool_ids:
-        tools = [tool_retriever.get_tool(name) for name in tool_ids]
-        return [t for t in tools if t is not None]
-
-    if tool_query and tool_query.text:
-        return tool_retriever.retrieve_tools(tool_query.text)
-
-    return tool_retriever.list_tools()
+    def create_agent(
+        self,
+        agent_model: Model,
+        agent_config: AgentConfig,
+    ) -> AgentRunnable:
+        """Create an agent instance from an AgentConfig."""
+        agent_model = agent_model.get_underlying()
+        if not isinstance(agent_model, LangchainModelUnderlying):
+            raise RuntimeError(
+                f"Expected LangchainModelUnderlying, got {type(agent_model)}"
+            )
+        return LangchainAgentRunnable(agent_config, agent_model)

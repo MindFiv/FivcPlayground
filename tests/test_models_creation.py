@@ -123,7 +123,7 @@ class TestModelBackendCreation:
             api_key="sk-test",
         )
 
-        with patch("strands.models.openai.OpenAIModel") as mock_openai:
+        with patch("fivcplayground.backends.strands.models.OpenAIModel") as mock_openai:
             backend = StrandsModelBackend()
             backend.create_model(model_config)
 
@@ -146,7 +146,7 @@ class TestModelBackendCreation:
             base_url="http://localhost:11434",
         )
 
-        with patch("strands.models.ollama.OllamaModel") as mock_ollama:
+        with patch("fivcplayground.backends.strands.models.OllamaModel") as mock_ollama:
             backend = StrandsModelBackend()
             backend.create_model(model_config)
 
@@ -170,7 +170,9 @@ class TestModelBackendCreation:
             api_key="sk-test",
         )
 
-        with patch("langchain_openai.ChatOpenAI") as mock_openai:
+        with patch(
+            "fivcplayground.backends.langchain.models.ChatOpenAI"
+        ) as mock_openai:
             backend = LangchainModelBackend()
             backend.create_model(model_config)
 
@@ -193,7 +195,9 @@ class TestModelBackendCreation:
             base_url="http://localhost:11434",
         )
 
-        with patch("langchain_ollama.ChatOllama") as mock_ollama:
+        with patch(
+            "fivcplayground.backends.langchain.models.ChatOllama"
+        ) as mock_ollama:
             backend = LangchainModelBackend()
             backend.create_model(model_config)
 

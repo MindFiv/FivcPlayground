@@ -36,6 +36,11 @@ class ModelConfig(BaseModel):
 class Model(ABC):
     """Abstract base class for models."""
 
+    # @property
+    # @abstractmethod
+    # def id(self) -> str:
+    #     """Get the id of the model."""
+
     @abstractmethod
     def get_underlying(self) -> Any:
         """Get the underlying model instance."""

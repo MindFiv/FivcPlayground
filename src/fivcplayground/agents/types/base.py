@@ -1,51 +1,7 @@
-"""
-Agent runtime data models.
-
-This module defines the core data models for single-agent execution tracking
-and metadata management. These models form the foundation of the agent runtime
-system, providing structured data for agent configuration, execution state,
-and tool invocations.
-
-Core Models:
-    - AgentRunSession: Agent configuration and metadata
-    - AgentRun: Overall agent execution state and runtime data
-    - AgentRunToolCall: Individual tool call record
-    - AgentRunStatus: Execution status enumeration
-
-These models use Pydantic for validation and serialization, making them
-suitable for:
-    - Persistence in repositories (file-based, database, etc.)
-    - API communication and data exchange
-    - Type-safe data validation
-    - JSON serialization/deserialization
-
-Example:
-    >>> from fivcplayground.agents.types import (
-    ...     AgentRunSession,
-    ...     AgentRun,
-    ...     AgentRunToolCall,
-    ...     AgentRunStatus
-    ... )
-    >>>
-    >>> # Create agent session metadata
-    >>> session = AgentRunSession(
-    ...     agent_id="my-agent",
-    ...     description="A helpful assistant agent"
-    ... )
-    >>>
-    >>> # Create runtime instance
-    >>> runtime = AgentRun(
-    ...     agent_id="my-agent",
-    ...     status=AgentRunStatus.EXECUTING
-    ... )
-
-Note:
-    For agent execution, see AgentRunnable in fivcadvisor.agents.types.backends
-"""
-
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Type, Callable
 from uuid import uuid4
 
 from pydantic import (
@@ -53,6 +9,9 @@ from pydantic import (
     Field,
     computed_field,
 )
+
+from fivcplayground.tools import ToolRetriever
+from fivcplayground.models import Model
 
 
 class AgentConfig(BaseModel):
@@ -88,31 +47,7 @@ class AgentRunContent(BaseModel):
 
 
 class AgentRunStatus(str, Enum):
-    """
-    Agent execution status enumeration.
-
-    Defines the possible states of an agent runtime execution. The status
-    progresses through a lifecycle from PENDING to either COMPLETED or FAILED.
-
-    Attributes:
-        PENDING: Agent runtime created but not yet started
-        EXECUTING: Agent is currently running and processing
-        COMPLETED: Agent finished successfully
-        FAILED: Agent encountered an error and stopped
-
-    Example:
-        >>> runtime = AgentRun(
-        ...     agent_id="my-agent",
-        ...     status=AgentRunStatus.PENDING
-        ... )
-        >>> runtime.status = AgentRunStatus.EXECUTING
-        >>> # ... agent processes ...
-        >>> runtime.status = AgentRunStatus.COMPLETED
-
-    Note:
-        This enum inherits from str, making it JSON-serializable and
-        compatible with string comparisons.
-    """
+    """Agent execution status enumeration."""
 
     PENDING = "pending"
     EXECUTING = "executing"
@@ -121,6 +56,8 @@ class AgentRunStatus(str, Enum):
 
 
 class AgentRunEvent(str, Enum):
+    """Agent runtime event enumeration."""
+
     START = "start"
     FINISH = "finish"
     UPDATE = "update"
@@ -129,48 +66,7 @@ class AgentRunEvent(str, Enum):
 
 
 class AgentRunToolCall(BaseModel):
-    """
-    Single tool call record.
-
-    Represents a single tool invocation during agent execution, tracking
-    the complete lifecycle of a tool call from invocation to completion.
-    Each tool call captures the input parameters, execution result, timing
-    information, and any errors that occurred.
-
-    Attributes:
-        id: Unique identifier for this tool call (required)
-        tool_id: Identifier of the tool being invoked (required)
-        tool_input: Dictionary of input parameters passed to the tool
-        tool_result: Result returned by the tool (None until completed)
-        status: Current status - "pending", "success", or "error"
-        started_at: Timestamp when the tool call started
-        completed_at: Timestamp when the tool call finished
-        error: Error message if the tool call failed
-        duration: Computed field - execution time in seconds
-        is_completed: Computed field - whether the call finished (success or error)
-
-    Example:
-        >>> # Create a pending tool call
-        >>> tool_call = AgentRunToolCall(
-        ...     id="call-123",
-        ...     tool_id="calculator",
-        ...     tool_input={"expression": "2+2"},
-        ...     status="pending",
-        ...     started_at=datetime.now()
-        ... )
-        >>>
-        >>> # Update with result
-        >>> tool_call.status = "success"
-        >>> tool_call.tool_result = 4
-        >>> tool_call.completed_at = datetime.now()
-        >>> print(f"Duration: {tool_call.duration}s")
-
-    Note:
-        - id and tool_id are required fields
-        - status should be one of: "pending", "success", "error"
-        - duration is automatically calculated from timestamps
-        - is_completed returns True for both "success" and "error" statuses
-    """
+    """Single tool call record."""
 
     id: str = Field(description="Unique tool call identifier")
     tool_id: str = Field(description="Identifier of the tool being invoked")
@@ -197,18 +93,7 @@ class AgentRunToolCall(BaseModel):
     @computed_field
     @property
     def duration(self) -> Optional[float]:
-        """
-        Get tool call execution duration in seconds.
-
-        Calculates the time difference between started_at and completed_at.
-
-        Returns:
-            Duration in seconds if both timestamps are set, None otherwise
-
-        Example:
-            >>> tool_call.duration
-            0.523  # 523 milliseconds
-        """
+        """Get tool call duration in seconds"""
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
@@ -216,39 +101,12 @@ class AgentRunToolCall(BaseModel):
     @computed_field
     @property
     def is_completed(self) -> bool:
-        """
-        Check if tool call has completed (successfully or with error).
-
-        Returns:
-            True if status is "success" or "error", False if "pending"
-
-        Example:
-            >>> tool_call.status = "success"
-            >>> tool_call.is_completed
-            True
-        """
+        """Check if tool call is completed (success or failure)"""
         return self.status in ("success", "error")
 
 
 class AgentRunSession(BaseModel):
-    """
-    Agent session metadata.
-
-    Represents the metadata and configuration for an agent session, including
-    agent identification and session tracking.
-
-    Attributes:
-        id: Unique session identifier
-        agent_id: Unique agent identifier
-        description: Description of agent's purpose and capabilities (optional)
-        started_at: Timestamp when the agent session was created (optional)
-
-    Example:
-        >>> session = AgentRunSession(
-        ...     agent_id="my-agent",
-        ...     description="A helpful assistant agent"
-        ... )
-    """
+    """Agent metadata and session information."""
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -266,69 +124,7 @@ class AgentRunSession(BaseModel):
 
 
 class AgentRun(BaseModel):
-    """
-    Agent execution state and runtime metadata.
-
-    Represents the complete state of a single agent execution instance, tracking
-    everything from initialization through completion. This includes execution
-    status, timing information, tool calls, streaming output, and final results.
-
-    Each AgentRun instance represents one execution of an agent, identified
-    by a unique timestamp-based id. Multiple runtimes can exist for
-    the same agent (identified by agent_id).
-
-    Attributes:
-        id: Unique run identifier (timestamp string, auto-generated)
-        agent_id: ID of the agent being executed (optional)
-        status: Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)
-        started_at: Timestamp when execution started
-        completed_at: Timestamp when execution finished
-        query: User query that initiated this agent run
-        tool_calls: Dictionary mapping tool id to AgentRunToolCall instances
-        reply: Final agent reply message
-        streaming_text: Accumulated streaming text output from the agent (excluded from serialization)
-        error: Error message if execution failed
-        duration: Computed field - execution time in seconds
-        is_running: Computed field - whether agent is currently executing
-        is_completed: Computed field - whether execution finished (success or failure)
-        tool_call_count: Computed field - total number of tool calls
-        successful_tool_calls: Computed field - count of successful tool calls
-        failed_tool_calls: Computed field - count of failed tool calls
-
-    Example:
-        >>> # Create a new runtime
-        >>> runtime = AgentRun(
-        ...     agent_id="my-agent",
-        ...     query="What is 2+2?",
-        ...     status=AgentRunStatus.PENDING
-        ... )
-        >>>
-        >>> # Start execution
-        >>> runtime.status = AgentRunStatus.EXECUTING
-        >>> runtime.started_at = datetime.now()
-        >>>
-        >>> # Add tool call
-        >>> tool_call = AgentRunToolCall(
-        ...     id="call-1",
-        ...     tool_id="calculator",
-        ...     tool_input={"expression": "2+2"}
-        ... )
-        >>> runtime.tool_calls[tool_call.id] = tool_call
-        >>>
-        >>> # Complete execution
-        >>> runtime.status = AgentRunStatus.COMPLETED
-        >>> runtime.completed_at = datetime.now()
-        >>> print(f"Duration: {runtime.duration}s")
-        >>> print(f"Tool calls: {runtime.tool_call_count}")
-
-    Note:
-        - id is auto-generated as a timestamp if not provided
-        - tool_calls are stored separately in repositories (not in run.json)
-        - Use AgentRunStatus enum for status values
-        - Computed fields are automatically included in serialization
-        - streaming_text is excluded from serialization (model_dump, JSON output)
-          and is only used for in-memory streaming during agent execution
-    """
+    """Agent runtime execution metadata."""
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -371,20 +167,7 @@ class AgentRun(BaseModel):
     @computed_field
     @property
     def duration(self) -> Optional[float]:
-        """
-        Get total execution duration in seconds.
-
-        Calculates the time difference between started_at and completed_at.
-
-        Returns:
-            Duration in seconds if both timestamps are set, None otherwise
-
-        Example:
-            >>> runtime.started_at = datetime(2024, 1, 1, 12, 0, 0)
-            >>> runtime.completed_at = datetime(2024, 1, 1, 12, 0, 5)
-            >>> runtime.duration
-            5.0
-        """
+        """Get execution duration in seconds"""
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
@@ -392,89 +175,73 @@ class AgentRun(BaseModel):
     @computed_field
     @property
     def is_running(self) -> bool:
-        """
-        Check if execution is currently running.
-
-        Returns:
-            True if status is EXECUTING, False otherwise
-
-        Example:
-            >>> runtime.status = AgentRunStatus.EXECUTING
-            >>> runtime.is_running
-            True
-        """
+        """Check if execution is currently running"""
         return self.status == AgentRunStatus.EXECUTING
 
     @computed_field
     @property
     def is_completed(self) -> bool:
-        """
-        Check if execution has completed (successfully or with failure).
-
-        Returns:
-            True if status is COMPLETED or FAILED, False otherwise
-
-        Example:
-            >>> runtime.status = AgentRunStatus.COMPLETED
-            >>> runtime.is_completed
-            True
-            >>> runtime.status = AgentRunStatus.FAILED
-            >>> runtime.is_completed
-            True
-        """
+        """Check if execution is completed (success or failure)"""
         return self.status in (AgentRunStatus.COMPLETED, AgentRunStatus.FAILED)
 
     @computed_field
     @property
     def tool_call_count(self) -> int:
-        """
-        Get total number of tool calls made during execution.
-
-        Returns:
-            Count of all tool calls in the tool_calls dictionary
-
-        Example:
-            >>> runtime.tool_calls = {
-            ...     "call-1": tool_call_1,
-            ...     "call-2": tool_call_2
-            ... }
-            >>> runtime.tool_call_count
-            2
-        """
+        """Get total number of tool calls made during execution"""
         return len(self.tool_calls)
 
     @computed_field
     @property
     def successful_tool_calls(self) -> int:
-        """
-        Get number of successful tool calls.
-
-        Counts tool calls with status "success".
-
-        Returns:
-            Count of successful tool calls
-
-        Example:
-            >>> # Assuming 2 successful and 1 failed tool call
-            >>> runtime.successful_tool_calls
-            2
-        """
+        """Get number of successful tool calls"""
         return sum(1 for tc in self.tool_calls.values() if tc.status == "success")
 
     @computed_field
     @property
     def failed_tool_calls(self) -> int:
-        """
-        Get number of failed tool calls.
-
-        Counts tool calls with status "error".
-
-        Returns:
-            Count of failed tool calls
-
-        Example:
-            >>> # Assuming 2 successful and 1 failed tool call
-            >>> runtime.failed_tool_calls
-            1
-        """
+        """Get number of failed tool calls"""
         return sum(1 for tc in self.tool_calls.values() if tc.status == "error")
+
+
+class AgentRunnable(ABC):
+    """Abstract base class for agent runnable."""
+
+    @abstractmethod
+    def run(
+        self,
+        query: str | AgentRunContent = "",
+        # agent_run_repository: 'AgentRunRepository' | None = None,
+        # agent_run_session_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
+        **kwargs,  # ignore additional kwargs
+    ) -> BaseModel:
+        """Synchronous execution of agent"""
+
+    @abstractmethod
+    async def run_async(
+        self,
+        query: str | AgentRunContent = "",
+        # agent_run_repository: 'AgentRunRepository' | None = None,
+        # agent_run_session_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
+        **kwargs,  # ignore additional kwargs
+    ) -> BaseModel:
+        """Asynchronous execution of agent"""
+
+
+class AgentBackend(ABC):
+    """Interface for agent backends."""
+
+    @abstractmethod
+    def create_agent(
+        self,
+        agent_model: Model,
+        agent_config: AgentConfig,
+    ) -> AgentRunnable:
+        """Create an agent instance from an AgentConfig."""

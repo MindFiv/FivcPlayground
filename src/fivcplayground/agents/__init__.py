@@ -7,14 +7,17 @@ __all__ = [
     "create_research_agent",
     "create_engineering_agent",
     "create_evaluating_agent",
-    "AgentRunnable",
-    "AgentRun",
     "AgentRunContent",
     "AgentRunEvent",
     "AgentRunStatus",
     "AgentRunToolCall",
     "AgentRunSession",
+    "AgentRunSessionSpan",
     "AgentRunRepository",
+    "AgentRunnable",
+    "AgentRun",
+    "AgentBackend",
+    "AgentConfig",
     "AgentConfigRepository",
 ]
 
@@ -25,13 +28,14 @@ from fivcplayground.agents.types.base import (
     AgentRunStatus,
     AgentRunToolCall,
     AgentRunSession,
+    AgentRunnable,
+    AgentBackend,
 )
 from fivcplayground.agents.types.repositories.base import (
+    AgentConfig,
     AgentConfigRepository,
     AgentRunRepository,
-)
-from fivcplayground.agents.types.backends import (
-    AgentRunnable,
+    AgentRunSessionSpan,
 )
 from fivcplayground.models import (
     ModelConfigRepository,
@@ -43,12 +47,19 @@ from fivcplayground.models import (
 def create_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     agent_config_id: str = "default",
     raise_exception: bool = True,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
     """Create a standard ReAct agent for task execution."""
+    if not agent_backend:
+        if raise_exception:
+            raise RuntimeError("No agent backend specified")
+
+        return None
+
     if not agent_config_repository:
         from fivcplayground.agents.types.repositories.files import (
             FileAgentConfigRepository,
@@ -62,31 +73,27 @@ def create_agent(
             raise ValueError(f"Agent config not found: {agent_config_id}")
         return None
 
-    model_wrapper = create_model(
+    agent_model = create_model(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
         model_config_id=agent_config.model_id,
         raise_exception=raise_exception,
     )
-    if not model_wrapper:
+    if not agent_model:
         if raise_exception:
             raise ValueError(f"Model not found: {agent_config.model_id}")
         return None
 
-    # Extract the underlying model from the Model wrapper
-    underlying_model = model_wrapper.get_underlying()
-
-    return AgentRunnable(
-        model=underlying_model,
-        id=agent_config.id,
-        description=agent_config.description,
-        system_prompt=agent_config.system_prompt,
+    return agent_backend.create_agent(
+        agent_model,
+        agent_config,
     )
 
 
 def create_companion_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -94,6 +101,7 @@ def create_companion_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="companion",
         **kwargs,
@@ -103,6 +111,7 @@ def create_companion_agent(
 def create_tooling_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -110,6 +119,7 @@ def create_tooling_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="tooling",
         **kwargs,
@@ -119,6 +129,7 @@ def create_tooling_agent(
 def create_consultant_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -126,6 +137,7 @@ def create_consultant_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="consultant",
         **kwargs,
@@ -135,6 +147,7 @@ def create_consultant_agent(
 def create_planning_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -142,6 +155,7 @@ def create_planning_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="planner",
         **kwargs,
@@ -151,6 +165,7 @@ def create_planning_agent(
 def create_research_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -158,6 +173,7 @@ def create_research_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="researcher",
         **kwargs,
@@ -167,6 +183,7 @@ def create_research_agent(
 def create_engineering_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -174,6 +191,7 @@ def create_engineering_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="engineer",
         **kwargs,
@@ -183,6 +201,7 @@ def create_engineering_agent(
 def create_evaluating_agent(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
+    agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> AgentRunnable | None:
@@ -190,6 +209,7 @@ def create_evaluating_agent(
     return create_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
+        agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_config_id="evaluator",
         **kwargs,

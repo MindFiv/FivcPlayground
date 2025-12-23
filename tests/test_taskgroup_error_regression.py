@@ -147,9 +147,9 @@ def langchain_backend():
 
     # List of modules that need to be reloaded when backend changes
     modules_to_reload = [
-        "fivcplayground.agents.types.backends",
-        "fivcplayground.agents.types.backends.langchain",
+        "fivcplayground.backends.langchain.agents",
         "fivcplayground.backends.langchain.models",
+        "fivcplayground.backends.strands.agents",
         "fivcplayground.backends.strands.models",
     ]
 
@@ -192,7 +192,7 @@ class TestLangChainBackendSyntax:
     def test_langchain_backend_module_imports(self, langchain_backend):
         """Test that LangChain backend module can be imported without syntax errors."""
         try:
-            import fivcplayground.agents.types.backends.langchain as lc_backend
+            import fivcplayground.backends.langchain.agents as lc_backend
 
             assert lc_backend is not None
         except SyntaxError as e:

@@ -1,5 +1,8 @@
 from typing import Any
 
+from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
+
 from fivcplayground.models.types import (
     Model,
     ModelBackend,
@@ -18,8 +21,6 @@ class LangchainModel(Model):
 class LangchainModelBackend(ModelBackend):
     def create_model(self, model_config: ModelConfig) -> Model:
         if model_config.provider == "openai":
-            from langchain_openai import ChatOpenAI
-
             return LangchainModel(
                 ChatOpenAI(
                     model=model_config.model,
@@ -30,8 +31,6 @@ class LangchainModelBackend(ModelBackend):
                 )
             )
         elif model_config.provider == "ollama":
-            from langchain_ollama import ChatOllama
-
             return LangchainModel(
                 ChatOllama(
                     model=model_config.model,

@@ -1,5 +1,8 @@
 from typing import Any
 
+from strands.models.openai import OpenAIModel
+from strands.models.ollama import OllamaModel
+
 from fivcplayground.models import (
     Model,
     ModelBackend,
@@ -18,8 +21,6 @@ class StrandsModel(Model):
 class StrandsModelBackend(ModelBackend):
     def create_model(self, model_config: ModelConfig) -> Model:
         if model_config.provider == "openai":
-            from strands.models.openai import OpenAIModel
-
             return StrandsModel(
                 OpenAIModel(
                     client_args={
@@ -34,8 +35,6 @@ class StrandsModelBackend(ModelBackend):
                 )
             )
         elif model_config.provider == "ollama":
-            from strands.models.ollama import OllamaModel
-
             return StrandsModel(
                 OllamaModel(
                     model_config.base_url,
