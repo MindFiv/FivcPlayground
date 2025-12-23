@@ -206,6 +206,21 @@ class AgentRun(BaseModel):
 class AgentRunnable(ABC):
     """Abstract base class for agent runnable."""
 
+    @property
+    @abstractmethod
+    def id(self) -> str:
+        """Unique identifier for the agent runnable"""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Name of the agent runnable"""
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Description of the agent runnable"""
+
     @abstractmethod
     def run(
         self,

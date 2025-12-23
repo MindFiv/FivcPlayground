@@ -24,14 +24,11 @@ from fivcplayground.agents import (
     AgentRunnable,
     AgentRunRepository,
     AgentRunSessionSpan,
+    AgentRunToolSpan,
     AgentBackend,
 )
 from fivcplayground.models import Model
-from fivcplayground.tools import (
-    setup_tools,
-    Tool,
-    ToolRetriever,
-)
+from fivcplayground.tools import ToolRetriever
 
 
 def _list_messages(
@@ -55,24 +52,6 @@ def _list_messages(
     if agent_query:
         agent_messages.append(HumanMessage(content=str(agent_query)))
     return agent_messages
-
-
-def _list_tools(
-    tool_retriever: ToolRetriever | None = None,
-    tool_ids: List[str] | None = None,
-    tool_query: AgentRunContent | None = None,
-) -> List[Tool]:
-    if not tool_retriever:
-        return []
-
-    if tool_ids:
-        tools = [tool_retriever.get_tool(name) for name in tool_ids]
-        return [t for t in tools if t is not None]
-
-    if tool_query and tool_query.text:
-        return tool_retriever.retrieve_tools(tool_query.text)
-
-    return tool_retriever.list_tools()
 
 
 class LangchainAgentRunnable(AgentRunnable):
@@ -142,7 +121,11 @@ class LangchainAgentRunnable(AgentRunnable):
         )
 
         async with (
-            setup_tools(_list_tools(tool_retriever, tool_ids, query)) as tools_expanded,
+            AgentRunToolSpan(
+                tool_retriever,
+                tool_ids,
+                query,
+            ) as tools_expanded,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,

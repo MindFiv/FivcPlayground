@@ -10,7 +10,6 @@ __all__ = [
     "AgentBackend",
     "AgentConfigRepository",
     "AgentRunRepository",
-    "AgentRunSessionSpan",
 ]
 
 from .base import (
@@ -27,5 +26,4 @@ from .base import (
 from .repositories.base import (
     AgentConfigRepository,
     AgentRunRepository,
-    AgentRunSessionSpan,
 )

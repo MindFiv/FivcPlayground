@@ -71,12 +71,12 @@ class TestToolsBundleInit:
 
 
 class TestToolsBundleAsync:
-    """Test ToolBundle async loading."""
+    """Test ToolBundle async loading via setup() method."""
 
     @pytest.mark.asyncio
-    async def test_load_async_with_command_config(self):
-        """Test async loading with command-based config (Strands only)."""
-        # Only test with Strands backend since LangChain doesn't have load_async
+    async def test_setup_with_command_config(self):
+        """Test setup() with command-based config (Strands only)."""
+        # Only test with Strands backend since LangChain uses different setup
         tool_config = ToolConfig(
             id="test_bundle",
             description="Test bundle",
@@ -99,16 +99,17 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            async with bundle.load_async() as tools:
+            context = bundle.setup()
+            async with context as tools:
                 assert len(tools) == 1
                 # Verify that the tool is wrapped in StrandsTool
                 assert isinstance(tools[0], StrandsTool)
                 assert tools[0].name == "test_tool"
 
     @pytest.mark.asyncio
-    async def test_load_async_with_url_config(self):
-        """Test async loading with URL-based config (Strands only)."""
-        # Only test with Strands backend since LangChain doesn't have load_async
+    async def test_setup_with_url_config(self):
+        """Test setup() with URL-based config (Strands only)."""
+        # Only test with Strands backend since LangChain uses different setup
         tool_config = ToolConfig(
             id="test_bundle",
             description="Test bundle",
@@ -130,7 +131,8 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            async with bundle.load_async() as tools:
+            context = bundle.setup()
+            async with context as tools:
                 assert len(tools) == 1
                 # Verify that the tool is wrapped in StrandsTool
                 assert isinstance(tools[0], StrandsTool)

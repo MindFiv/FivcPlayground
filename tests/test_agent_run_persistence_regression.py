@@ -18,6 +18,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from fivcplayground.agents import (
+    AgentRunSessionSpan,
+)
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunContent,
@@ -26,7 +29,6 @@ from fivcplayground.agents.types import (
 )
 from fivcplayground.agents.types.repositories import (
     FileAgentRunRepository,
-    AgentRunSessionSpan,
 )
 from fivcplayground.utils import OutputDir
 

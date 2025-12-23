@@ -20,27 +20,11 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
 
-from fivcplayground.agents.types import AgentRunContent
-from fivcplayground.utils import ProxyRunnable, Runnable
+from fivcplayground.agents import AgentRunContent, AgentRunnable
 
 
 class TaskStatus(str, Enum):
-    """
-    Task execution status enumeration.
-
-    Defines the possible states of a task execution. The status progresses
-    through a lifecycle from PENDING to either COMPLETED or FAILED.
-
-    Attributes:
-        PENDING: Task created but not yet started
-        EXECUTING: Task is currently running
-        COMPLETED: Task finished successfully
-        FAILED: Task encountered an error and stopped
-
-    Note:
-        This enum inherits from str, making it JSON-serializable and
-        compatible with string comparisons.
-    """
+    """Task execution status enumeration."""
 
     PENDING = "pending"
     EXECUTING = "executing"
@@ -49,16 +33,15 @@ class TaskStatus(str, Enum):
 
 
 class TaskEvent(str, Enum):
+    """Task runtime event enumeration."""
+
     START = "start"
     FINISH = "finish"
     UPDATE = "update"
 
 
 class TaskAssessment(BaseModel):
-    """Assessment result for a task.
-
-    Determines whether a task requires planning.
-    """
+    """Assessment result for task complexity."""
 
     model_config = {"populate_by_name": True}
 
@@ -70,10 +53,7 @@ class TaskAssessment(BaseModel):
 
 
 class TaskRequirement(BaseModel):
-    """Tool requirements for a task.
-
-    Specifies which tools are needed to complete a task.
-    """
+    """Tool requirements for a task."""
 
     tools: List[str] = Field(description="List of tools needed for the task")
 
@@ -94,25 +74,7 @@ class TaskTeam(BaseModel):
 
 
 class TaskRuntimeStep(BaseModel):
-    """
-    Single task execution step record.
-
-    Represents a single agent's execution within a task, tracking its status,
-    timing, messages, and any errors that occurred.
-
-    Attributes:
-        id: Unique identifier for the step
-        agent_id: Computed field, same as id for backward compatibility
-        agent_name: Name of the agent executing this step
-        status: Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)
-        started_at: When the step started execution
-        completed_at: When the step finished execution
-        messages: List of messages exchanged during execution
-        error: Error message if the step failed
-        duration: Computed field, execution duration in seconds
-        is_running: Computed field, whether step is currently executing
-        is_completed: Computed field, whether step is completed (success or failure)
-    """
+    """Single task execution step record."""
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -161,24 +123,7 @@ class TaskRuntimeStep(BaseModel):
 
 
 class TaskRuntime(BaseModel):
-    """
-    Task execution state and metadata.
-
-    Represents the overall state of a task execution, including its status,
-    timing, and all execution steps.
-
-    Attributes:
-        id: Unique task identifier (UUID)
-        task_id: Computed field, same as id for backward compatibility
-        query: User query for the task
-        team: Task team plan (if available)
-        status: Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)
-        started_at: When the task started execution
-        completed_at: When the task finished execution
-        steps: Dictionary mapping step IDs to TaskRuntimeStep instances
-        duration: Computed field, execution duration in seconds
-        is_completed: Computed field, whether task is completed (success or failure)
-    """
+    """Task runtime execution metadata."""
 
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()), description="Unique task ID"
@@ -291,7 +236,7 @@ class TaskRuntime(BaseModel):
         self.steps.clear()
 
 
-class TaskSimpleRunnable(ProxyRunnable):
+class TaskSimpleRunnable(AgentRunnable):
     """
     Simple task runnable for testing and development.
 
@@ -300,10 +245,31 @@ class TaskSimpleRunnable(ProxyRunnable):
     task execution, but simply returns a predefined result.
     """
 
-    def __init__(self, runnable: Runnable, query: str = "", **kwargs):
+    def __init__(self, runnable: AgentRunnable, query: str = "", **kwargs):
         self._query = query
-        super().__init__(runnable, **kwargs)
+        self._kwargs = kwargs
+        self._runnable = runnable
+
+    @property
+    def id(self) -> str:
+        return self._runnable.id
+
+    @property
+    def name(self) -> str:
+        return self._runnable.name
+
+    @property
+    def description(self) -> str:
+        return self._runnable.description
+
+    def run(self, query: str = "", **kwargs) -> BaseModel:
+        kwargs.update(query=self._query.format(query=query))
+        for k, v in self._kwargs.items():
+            kwargs.setdefault(k, v)
+        return self._runnable.run(**kwargs)
 
     async def run_async(self, query: str = "", **kwargs) -> BaseModel:
-        query = self._query.format(query=query)  # update prompts
-        return await super().run_async(query=query, **kwargs)
+        kwargs.update(query=self._query.format(query=query))
+        for k, v in self._kwargs.items():
+            kwargs.setdefault(k, v)
+        return await self._runnable.run_async(**kwargs)

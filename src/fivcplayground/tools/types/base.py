@@ -2,11 +2,9 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import (
     Any,
-    AsyncGenerator,
     Callable,
     Dict,
     List,
-    Generator,
 )
 
 from pydantic import BaseModel, Field
@@ -52,16 +50,32 @@ class Tool(ABC):
         """Get the underlying tool instance."""
 
 
+class ToolBundleContext(ABC):
+    """Context manager for tool bundles."""
+
+    @abstractmethod
+    async def __aenter__(self) -> List[Tool]:
+        """Enter the context and return the list of tools."""
+
+    @abstractmethod
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """Exit the context."""
+
+
 class ToolBundle(Tool):
     """Tool bundle that groups multiple tools from the same MCP server."""
 
     @abstractmethod
-    def load(self) -> Generator[List[Tool], None]:
-        """Load the tools in the bundle synchronously."""
+    def setup(self) -> ToolBundleContext:
+        """set up the tool bundle."""
 
-    @abstractmethod
-    async def load_async(self) -> AsyncGenerator[List[Tool], None]:
-        """Load the tools in the bundle asynchronously."""
+    # @abstractmethod
+    # def load(self) -> Generator[List[Tool], None]:
+    #     """Load the tools in the bundle synchronously."""
+    #
+    # @abstractmethod
+    # async def load_async(self) -> AsyncGenerator[List[Tool], None]:
+    #     """Load the tools in the bundle asynchronously."""
 
 
 class ToolBackend(ABC):

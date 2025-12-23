@@ -1,16 +1,13 @@
 __all__ = [
     "create_tool_retriever",
-    "setup_tools",
     "Tool",
     "ToolBundle",
+    "ToolBundleContext",
     "ToolBackend",
     "ToolConfig",
     "ToolConfigRepository",
     "ToolRetriever",
 ]
-
-from contextlib import asynccontextmanager, AsyncExitStack
-from typing import AsyncGenerator, List
 
 from fivcplayground.embeddings import (
     EmbeddingBackend,
@@ -22,6 +19,7 @@ from fivcplayground.tools.types import (
     ToolConfig,
     Tool,
     ToolBundle,
+    ToolBundleContext,
     ToolBackend,
 )
 from fivcplayground.tools.types.repositories.base import (
@@ -108,18 +106,3 @@ def create_tool_retriever(
         tool_config_repository=tool_config_repository,
         embedding_db=embedding_db,
     )
-
-
-@asynccontextmanager
-async def setup_tools(tools: List[Tool]) -> AsyncGenerator[List[Tool], None]:
-    """Create agent with tools loaded asynchronously."""
-    async with AsyncExitStack() as stack:  # noqa
-        tools_expanded = []
-        for tool in tools:
-            if isinstance(tool, ToolBundle):
-                bundle_tools = await stack.enter_async_context(tool.load_async())
-                tools_expanded.extend(bundle_tools)
-            else:
-                tools_expanded.append(tool)
-
-        yield tools_expanded

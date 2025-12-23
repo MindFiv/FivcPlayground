@@ -7,13 +7,11 @@ import os
 import tempfile
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock
 
 from fivcplayground.utils import (
     LazyValue,
     OutputDir,
 )
-from fivcplayground.utils.types.runnables import Runnable, ProxyRunnable
 
 
 class TestLazyValue:
@@ -329,134 +327,6 @@ class TestLazyValueAdditionalOperations:
         """Test str of LazyValue."""
         lazy = LazyValue(lambda: "test_string")
         assert str(lazy) == "test_string"
-
-
-class TestRunnable:
-    """Test the Runnable abstract base class."""
-
-    def test_runnable_call_delegates_to_run(self):
-        """Test that __call__ delegates to run method."""
-
-        class TestRunnable(Runnable):
-            @property
-            def id(self):
-                return "test-runnable"
-
-            @property
-            def name(self):
-                return "TestRunnable"
-
-            def run(self, **kwargs):
-                return {"result": "sync"}
-
-            async def run_async(self, **kwargs):
-                return {"result": "async"}
-
-        runnable = TestRunnable()
-        result = runnable(test_param="value")
-
-        assert result == {"result": "sync"}
-
-    def test_runnable_properties(self):
-        """Test Runnable id and name properties."""
-
-        class TestRunnable(Runnable):
-            @property
-            def id(self):
-                return "my-id"
-
-            @property
-            def name(self):
-                return "MyName"
-
-            def run(self, **kwargs):
-                return {}
-
-            async def run_async(self, **kwargs):
-                return {}
-
-        runnable = TestRunnable()
-        assert runnable.id == "my-id"
-        assert runnable.name == "MyName"
-
-
-class TestProxyRunnable:
-    """Test the ProxyRunnable class."""
-
-    def test_proxy_runnable_delegates_to_wrapped(self):
-        """Test that ProxyRunnable delegates to wrapped runnable."""
-        mock_runnable = Mock(spec=Runnable)
-        mock_runnable.id = "wrapped-id"
-        mock_runnable.name = "WrappedRunnable"
-        mock_runnable.run.return_value = {"result": "wrapped"}
-
-        proxy = ProxyRunnable(mock_runnable)
-
-        assert proxy.id == "wrapped-id"
-        assert proxy.name == "WrappedRunnable"
-        result = proxy.run()
-        assert result == {"result": "wrapped"}
-
-    def test_proxy_runnable_merges_kwargs(self):
-        """Test that ProxyRunnable merges kwargs correctly."""
-        mock_runnable = Mock(spec=Runnable)
-        mock_runnable.id = "test"
-        mock_runnable.name = "Test"
-        mock_runnable.run.return_value = {}
-
-        proxy = ProxyRunnable(mock_runnable, default_param="default_value")
-        proxy.run(other_param="other_value")
-
-        # Check that both kwargs were passed
-        call_kwargs = mock_runnable.run.call_args[1]
-        assert call_kwargs["default_param"] == "default_value"
-        assert call_kwargs["other_param"] == "other_value"
-
-    def test_proxy_runnable_kwargs_override(self):
-        """Test that passed kwargs are preserved (setdefault doesn't override)."""
-        mock_runnable = Mock(spec=Runnable)
-        mock_runnable.id = "test"
-        mock_runnable.name = "Test"
-        mock_runnable.run.return_value = {}
-
-        proxy = ProxyRunnable(mock_runnable, param="proxy_value")
-        proxy.run(param="override_value")
-
-        # Check that override value was preserved (setdefault doesn't override existing keys)
-        call_kwargs = mock_runnable.run.call_args[1]
-        assert call_kwargs["param"] == "override_value"  # setdefault keeps original
-
-    @pytest.mark.asyncio
-    async def test_proxy_runnable_async_delegates(self):
-        """Test that ProxyRunnable delegates async calls."""
-        mock_runnable = AsyncMock(spec=Runnable)
-        mock_runnable.id = "test"
-        mock_runnable.name = "Test"
-        mock_runnable.run_async.return_value = {"result": "async"}
-
-        proxy = ProxyRunnable(mock_runnable)
-        result = await proxy.run_async()
-
-        assert result == {"result": "async"}
-        mock_runnable.run_async.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_proxy_runnable_async_merges_kwargs(self):
-        """Test that ProxyRunnable merges kwargs in async calls."""
-        from unittest.mock import AsyncMock
-
-        mock_runnable = AsyncMock(spec=Runnable)
-        mock_runnable.id = "test"
-        mock_runnable.name = "Test"
-        mock_runnable.run_async.return_value = {}
-
-        proxy = ProxyRunnable(mock_runnable, async_param="async_value")
-        await proxy.run_async(other_param="other_value")
-
-        # Check that both kwargs were passed
-        call_kwargs = mock_runnable.run_async.call_args[1]
-        assert call_kwargs["async_param"] == "async_value"
-        assert call_kwargs["other_param"] == "other_value"
 
 
 if __name__ == "__main__":

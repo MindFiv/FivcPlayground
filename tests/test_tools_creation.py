@@ -3,7 +3,6 @@ Tests for tool creation functions in fivcplayground.tools module.
 
 Tests verify:
 - create_tool_retriever with various configurations
-- setup_tools async context manager
 - Error handling for missing dependencies
 """
 
@@ -12,7 +11,6 @@ import pytest
 
 from fivcplayground.tools import (
     create_tool_retriever,
-    setup_tools,
 )
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
@@ -150,41 +148,3 @@ class TestCreateToolRetriever:
                 call_kwargs = mock_retriever_class.call_args[1]
                 assert "tool_list" in call_kwargs
                 assert len(call_kwargs["tool_list"]) >= 2  # clock and calculator
-
-
-class TestSetupTools:
-    """Test setup_tools async context manager."""
-
-    def test_setup_tools_is_callable(self):
-        """Test that setup_tools is callable."""
-        assert callable(setup_tools)
-
-    def test_setup_tools_returns_async_context_manager(self):
-        """Test that setup_tools returns an async context manager."""
-        mock_tool = Mock()
-        mock_tool.name = "tool"
-
-        result = setup_tools([mock_tool])
-
-        # Verify it has async context manager methods
-        assert hasattr(result, "__aenter__")
-        assert hasattr(result, "__aexit__")
-
-    @pytest.mark.asyncio
-    async def test_setup_tools_with_empty_list(self):
-        """Test setup_tools with empty tool list."""
-        async with setup_tools([]) as tools:
-            assert isinstance(tools, list)
-            assert len(tools) == 0
-
-    @pytest.mark.asyncio
-    async def test_setup_tools_with_regular_tools(self):
-        """Test setup_tools with regular tools."""
-        mock_tool1 = Mock()
-        mock_tool1.name = "tool1"
-        mock_tool2 = Mock()
-        mock_tool2.name = "tool2"
-
-        async with setup_tools([mock_tool1, mock_tool2]) as tools:
-            assert isinstance(tools, list)
-            assert len(tools) == 2

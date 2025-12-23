@@ -1,12 +1,7 @@
-# import asyncio
-import contextlib
-
 from typing import (
     Any,
-    AsyncGenerator,
     Callable,
     List,
-    Generator,
 )
 
 from langchain_core.tools import tool
@@ -22,6 +17,7 @@ from fivcplayground.tools import (
     ToolConfig,
     Tool,
     ToolBundle,
+    ToolBundleContext,
     ToolBackend,
 )
 
@@ -42,6 +38,44 @@ class LangchainTool(Tool):
 
     def get_underlying(self) -> Any:
         return self._tool
+
+
+class LangchainToolContext(ToolBundleContext):
+    """Context manager for strands tool bundles"""
+
+    def __init__(self, tool_config: ToolConfig):
+        if tool_config.transport == "stdio":
+            conn = StdioConnection(
+                transport="stdio",
+                command=tool_config.command,
+                args=tool_config.args,
+                env=tool_config.env,
+            )
+        elif tool_config.transport == "sse":
+            conn = SSEConnection(
+                transport="sse",
+                url=tool_config.url,
+            )
+        elif tool_config.transport == "streamable_http":
+            conn = StreamableHttpConnection(
+                transport="streamable_http",
+                url=tool_config.url,
+            )
+        else:
+            raise ValueError(f"Unsupported transport: {tool_config.transport}")
+
+        self._session = create_session(conn)
+
+    async def __aenter__(self) -> List[Tool]:
+        """Enter the context and return the list of tools."""
+        s = await self._session.__aenter__()
+        await s.initialize()
+        tools = await load_mcp_tools(s)
+        return list(LangchainTool(t) for t in tools)
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """Exit the context."""
+        await self._session.__aexit__(exc_type, exc_value, traceback)
 
 
 class LangchainToolBundle(ToolBundle):
@@ -67,38 +101,8 @@ class LangchainToolBundle(ToolBundle):
 
         return tool(_func)
 
-    @contextlib.contextmanager
-    def load(self) -> Generator[List[Tool], None]:
-        raise NotImplementedError("Not implemented yet.")
-
-    @contextlib.asynccontextmanager
-    async def load_async(self) -> AsyncGenerator[List[Tool], None]:
-        """load tool bundle asynchronously"""
-        if self._tool_config.transport == "stdio":
-            conn = StdioConnection(
-                transport="stdio",
-                command=self._tool_config.command,
-                args=self._tool_config.args,
-                env=self._tool_config.env,
-            )
-        elif self._tool_config.transport == "sse":
-            conn = SSEConnection(
-                transport="sse",
-                url=self._tool_config.url,
-            )
-        elif self._tool_config.transport == "streamable_http":
-            conn = StreamableHttpConnection(
-                transport="streamable_http",
-                url=self._tool_config.url,
-            )
-        else:
-            raise ValueError(f"Unsupported transport: {self._tool_config.transport}")
-
-        async with create_session(conn) as session:
-            await session.initialize()
-            tools = await load_mcp_tools(session)
-            tools = [LangchainTool(t) for t in tools]
-            yield tools
+    def setup(self) -> ToolBundleContext:
+        return LangchainToolContext(self._tool_config)
 
 
 class LangchainToolBackend(ToolBackend):

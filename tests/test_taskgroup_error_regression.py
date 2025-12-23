@@ -1,28 +1,17 @@
-#!/usr/bin/env python3
-"""
-Regression tests for TaskGroup error fixes.
-
-These tests prevent regression of the TaskGroup error that occurred when:
-1. setup_tools() created nested lists instead of flattening ToolBundle results
-2. LangChain backend had syntax errors in function signatures
-
-Issue: https://github.com/MindFiv/FivcAdvisor/issues/XXX
-"""
-
 import sys
 import pytest
-from unittest.mock import Mock
-from contextlib import asynccontextmanager
+from unittest.mock import Mock, AsyncMock
 
-from fivcplayground.tools import setup_tools, ToolBundle
+from fivcplayground.tools import ToolBundle
+from fivcplayground.agents import AgentRunToolSpan
 import fivcplayground
 
 
-class TestSetupToolsListFlattening:
-    """Test that setup_tools() properly flattens ToolBundle results."""
+class TestAgentRunToolSpanListFlattening:
+    """Test that AgentRunToolSpan properly flattens ToolBundle results."""
 
     @pytest.mark.asyncio
-    async def test_setup_tools_flattens_tool_bundle_results(self):
+    async def test_agent_run_tool_span_flattens_tool_bundle_results(self):
         """Test that ToolBundle tools are flattened, not nested."""
         # Create mock tools
         mock_tool1 = Mock()
@@ -32,21 +21,18 @@ class TestSetupToolsListFlattening:
         mock_tool3 = Mock()
         mock_tool3.name = "tool3"
 
-        # Create a mock ToolBundle that returns a list of tools
+        # Create a mock ToolBundle that returns a list of tools via setup()
         mock_bundle = Mock(spec=ToolBundle)
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = [mock_tool1, mock_tool2]
+        mock_context.__aexit__.return_value = None
+        mock_bundle.setup = Mock(return_value=mock_context)
 
-        @asynccontextmanager
-        async def mock_load_async():
-            yield [mock_tool1, mock_tool2]
+        # Create AgentRunToolSpan with a mix of regular tools and bundles
+        span = AgentRunToolSpan()
+        span._tools = [mock_bundle, mock_tool3]
 
-        mock_bundle.load_async = mock_load_async
-
-        # Call setup_tools with a mix of regular tools and bundles
-        tools_input = [mock_bundle, mock_tool3]
-
-        tools_expanded = []
-        async with setup_tools(tools_input) as result:
-            tools_expanded = result
+        tools_expanded = await span.__aenter__()
 
         # Verify the result is properly flattened
         assert len(tools_expanded) == 3, f"Expected 3 tools, got {len(tools_expanded)}"
@@ -61,8 +47,8 @@ class TestSetupToolsListFlattening:
             ), f"Found nested list in tools_expanded: {tool}"
 
     @pytest.mark.asyncio
-    async def test_setup_tools_handles_multiple_bundles(self):
-        """Test setup_tools with multiple ToolBundles."""
+    async def test_agent_run_tool_span_handles_multiple_bundles(self):
+        """Test AgentRunToolSpan with multiple ToolBundles."""
         # Create mock tools for bundle 1
         bundle1_tool1 = Mock()
         bundle1_tool1.name = "bundle1_tool1"
@@ -77,22 +63,22 @@ class TestSetupToolsListFlattening:
         mock_bundle1 = Mock(spec=ToolBundle)
         mock_bundle2 = Mock(spec=ToolBundle)
 
-        @asynccontextmanager
-        async def mock_load_async_1():
-            yield [bundle1_tool1, bundle1_tool2]
+        mock_context1 = AsyncMock()
+        mock_context2 = AsyncMock()
 
-        @asynccontextmanager
-        async def mock_load_async_2():
-            yield [bundle2_tool1]
+        mock_context1.__aenter__.return_value = [bundle1_tool1, bundle1_tool2]
+        mock_context1.__aexit__.return_value = None
+        mock_context2.__aenter__.return_value = [bundle2_tool1]
+        mock_context2.__aexit__.return_value = None
 
-        mock_bundle1.load_async = mock_load_async_1
-        mock_bundle2.load_async = mock_load_async_2
+        mock_bundle1.setup = Mock(return_value=mock_context1)
+        mock_bundle2.setup = Mock(return_value=mock_context2)
 
-        # Call setup_tools with multiple bundles
-        tools_input = [mock_bundle1, mock_bundle2]
+        # Create AgentRunToolSpan with multiple bundles
+        span = AgentRunToolSpan()
+        span._tools = [mock_bundle1, mock_bundle2]
 
-        async with setup_tools(tools_input) as result:
-            tools_expanded = result
+        tools_expanded = await span.__aenter__()
 
         # Verify all tools are flattened
         assert len(tools_expanded) == 3
@@ -105,23 +91,22 @@ class TestSetupToolsListFlattening:
             assert not isinstance(tool, list)
 
     @pytest.mark.asyncio
-    async def test_setup_tools_with_empty_bundle(self):
-        """Test setup_tools handles empty ToolBundle results."""
+    async def test_agent_run_tool_span_with_empty_bundle(self):
+        """Test AgentRunToolSpan handles empty ToolBundle results."""
         mock_tool = Mock()
         mock_tool.name = "regular_tool"
 
         mock_bundle = Mock(spec=ToolBundle)
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = []
+        mock_context.__aexit__.return_value = None
+        mock_bundle.setup = Mock(return_value=mock_context)
 
-        @asynccontextmanager
-        async def mock_load_async():
-            yield []
+        # Create AgentRunToolSpan with bundle and regular tool
+        span = AgentRunToolSpan()
+        span._tools = [mock_bundle, mock_tool]
 
-        mock_bundle.load_async = mock_load_async
-
-        tools_input = [mock_bundle, mock_tool]
-
-        async with setup_tools(tools_input) as result:
-            tools_expanded = result
+        tools_expanded = await span.__aenter__()
 
         # Should have only the regular tool
         assert len(tools_expanded) == 1

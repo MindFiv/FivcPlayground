@@ -4,6 +4,7 @@ __all__ = [
     "ToolConfigRepository",
     "Tool",
     "ToolBundle",
+    "ToolBundleContext",
     "ToolBackend",
     "ToolRetriever",
 ]
@@ -13,6 +14,7 @@ from .base import (
     ToolConfig,
     Tool,
     ToolBundle,
+    ToolBundleContext,
     ToolBackend,
 )
 from .repositories.base import ToolConfigRepository

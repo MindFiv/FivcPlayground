@@ -7,16 +7,17 @@ from pydantic import BaseModel
 
 from fivcplayground.tasks import create_briefing_task
 from fivcplayground.agents import (
-    AgentRun,
-    AgentRunRepository,
-    AgentConfigRepository,
     create_companion_agent,
     AgentRunContent,
     AgentRunSession,
+    AgentRun,
+    AgentRunnable,
+    AgentRunRepository,
+    AgentConfigRepository,
+    AgentBackend,
 )
-from fivcplayground.models import ModelConfigRepository
+from fivcplayground.models import ModelConfigRepository, ModelBackend
 from fivcplayground.tools import ToolRetriever
-from fivcplayground.utils import Runnable
 
 
 class Chat(object):
@@ -26,10 +27,10 @@ class Chat(object):
 
     def __init__(
         self,
-        agent_runnable: Runnable | None = None,
+        agent_runnable: AgentRunnable | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
-        briefing_runnable: Runnable | None = None,
+        briefing_runnable: AgentRunnable | None = None,
         tool_retriever: Optional[ToolRetriever] = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
@@ -144,7 +145,9 @@ class Chat(object):
 class ChatManager(object):
     def __init__(
         self,
+        model_backend: ModelBackend | None = None,
         model_config_repository: ModelConfigRepository | None = None,
+        agent_backend: AgentBackend | None = None,
         agent_config_repository: AgentConfigRepository | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         tool_retriever: ToolRetriever | None = None,
@@ -163,7 +166,9 @@ class ChatManager(object):
             agent_config_repository=agent_config_repository,
         )
         self._agent_runnable = create_companion_agent(
+            model_backend=model_backend,
             model_config_repository=model_config_repository,
+            agent_backend=agent_backend,
             agent_config_repository=agent_config_repository,
         )
         self._agent_run_repository = agent_run_repository
