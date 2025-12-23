@@ -246,9 +246,12 @@ main()
 
 ```python
 from fivcplayground.tools import create_tool_retriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever
-retriever = create_tool_retriever()
+# Create a tool retriever with explicit backend selection
+retriever = create_tool_retriever(
+    tool_backend=StrandsToolBackend()
+)
 
 # List all tools (including bundles)
 tools = retriever.list_tools()
@@ -266,9 +269,12 @@ calculator = retriever.get_tool("calculator")
 
 ```python
 from fivcplayground.tools import create_tool_retriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever
-retriever = create_tool_retriever()
+# Create a tool retriever with explicit backend selection
+retriever = create_tool_retriever(
+    tool_backend=StrandsToolBackend()
+)
 
 # Semantic search for relevant tools
 query = "I need to perform a calculation"

@@ -115,7 +115,7 @@ class AgentRunnable(Runnable):
             agent = Agent(
                 name=self._id,
                 model=self._model,
-                tools=tools_expanded
+                tools=[t.get_underlying() for t in tools_expanded]
                 or [tool_retriever.to_tool()],  # always pass at least a tool
                 system_prompt=self._system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),

@@ -13,19 +13,23 @@ from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.utils import OutputDir
-from fivcplayground import __backend__
 
 
-def create_mock_tool(name: str, description: str):
-    """Create a mock tool with correct attributes based on the current backend."""
+def create_mock_tool_langchain(name: str, description: str):
+    """Create a mock tool for LangChain backend."""
     tool = Mock()
-    if __backend__ == "langchain":
-        tool.name = name
-        tool.description = description
-    else:  # strands
-        tool.tool_name = name
-        tool.tool_spec = {"description": description}
+    tool.name = name
+    tool.description = description
+    return tool
+
+
+def create_mock_tool_strands(name: str, description: str):
+    """Create a mock tool for Strands backend."""
+    tool = Mock()
+    tool.tool_name = name
+    tool.tool_spec = {"description": description}
     return tool
 
 
@@ -69,6 +73,7 @@ class TestToolsIntegration:
 
                 # Create retriever
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     tool_config_repository=repo,
                 )
 
@@ -128,6 +133,7 @@ class TestToolsIntegration:
 
                 # Create retriever
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     tool_config_repository=repo,
                 )
 

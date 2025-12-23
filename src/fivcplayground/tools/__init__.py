@@ -3,9 +3,10 @@ __all__ = [
     "setup_tools",
     "Tool",
     "ToolBundle",
-    "ToolRetriever",
+    "ToolBackend",
     "ToolConfig",
     "ToolConfigRepository",
+    "ToolRetriever",
 ]
 
 from contextlib import asynccontextmanager, AsyncExitStack
@@ -17,9 +18,10 @@ from fivcplayground.embeddings import (
 )
 from fivcplayground.tools.types import (
     ToolRetriever,
-    Tool,
     ToolConfig,
+    Tool,
     ToolBundle,
+    ToolBackend,
 )
 from fivcplayground.tools.types.repositories.base import (
     ToolConfigRepository,
@@ -27,6 +29,7 @@ from fivcplayground.tools.types.repositories.base import (
 
 
 def create_tool_retriever(
+    tool_backend: ToolBackend,
     tool_config_repository: ToolConfigRepository | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
@@ -34,25 +37,43 @@ def create_tool_retriever(
     load_builtin_tools: bool = True,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever:
-    """Create a new ToolRetriever instance.
+    """Create a tool retriever.
 
     Args:
-        tool_config_repository: Repository for tool configurations
-        embedding_config_repository: Repository for embedding configurations
-        embedding_config_id: ID of the embedding configuration to use
-        space_id: ID of the embedding space
-        load_builtin_tools: Whether to load built-in tools (clock, calculator)
-        **kwargs: Additional arguments (ignored)
+        tool_backend: The tool backend to use (required). Must be an instance of ToolBackend
+                     (e.g., StrandsToolBackend or LangchainToolBackend).
+        tool_config_repository: Repository for tool configurations. If None, uses FileToolConfigRepository.
+        embedding_config_repository: Repository for embedding configurations. If None, uses FileEmbeddingConfigRepository.
+        embedding_config_id: ID of the embedding configuration to use. Defaults to "default".
+        space_id: Optional space ID for multi-tenancy support.
+        load_builtin_tools: Whether to load built-in tools (clock, calculator). Defaults to True.
+        **kwargs: Additional keyword arguments (ignored).
 
     Returns:
-        ToolRetriever instance with tools loaded
+        ToolRetriever: A configured tool retriever instance.
+
+    Raises:
+        TypeError: If tool_backend is not provided or is not a ToolBackend instance.
     """
+    if tool_backend is None:
+        raise TypeError(
+            "tool_backend is required. Please provide a ToolBackend instance "
+            "(e.g., StrandsToolBackend() or LangchainToolBackend())"
+        )
+
     if not embedding_config_repository:
         from fivcplayground.embeddings.types.repositories.files import (
             FileEmbeddingConfigRepository,
         )
 
         embedding_config_repository = FileEmbeddingConfigRepository()
+
+    if not tool_config_repository:
+        from fivcplayground.tools.types.repositories.files import (
+            FileToolConfigRepository,
+        )
+
+        tool_config_repository = FileToolConfigRepository()
 
     embedding_db = create_embedding_db(
         embedding_config_repository=embedding_config_repository,
@@ -65,10 +86,11 @@ def create_tool_retriever(
         from fivcplayground.tools.clock import clock
         from fivcplayground.tools.calculator import calculator
 
-        tool_list.append(clock)
-        tool_list.append(calculator)
+        tool_list.append(tool_backend.create_tool(clock))
+        tool_list.append(tool_backend.create_tool(calculator))
 
     return ToolRetriever(
+        tool_backend=tool_backend,
         tool_list=tool_list,
         tool_config_repository=tool_config_repository,
         embedding_db=embedding_db,

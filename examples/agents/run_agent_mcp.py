@@ -33,7 +33,7 @@ import asyncio
 import dotenv
 
 from fivcplayground.tools import create_tool_retriever
-from fivcplayground.tools.types.backends import get_tool_name, get_tool_description
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground import agents
 
 dotenv.load_dotenv()
@@ -57,7 +57,9 @@ async def main():
     try:
         # Create a ToolRetriever
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tool_retriever = create_tool_retriever()
+        tool_retriever = create_tool_retriever(
+            tool_backend=StrandsToolBackend()
+        )
 
         # Get all loaded tools from the retriever
         # These tools are now available for use by the agent
@@ -71,9 +73,9 @@ async def main():
         
         print("\nAvailable tools:")
         for tool in all_tools:
-            # Use framework-agnostic functions to get tool name and description
-            tool_name = get_tool_name(tool)
-            tool_desc = get_tool_description(tool)
+            # Use Tool interface to get tool name and description
+            tool_name = tool.name
+            tool_desc = tool.description
             desc = tool_desc[:60] if tool_desc else "No description"
             print(f"  - {tool_name}: {desc}...")
         print()

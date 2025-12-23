@@ -9,15 +9,20 @@ MCP server connections and provides async loading of tools.
 import pytest
 from unittest.mock import Mock, patch
 
-from fivcplayground import __backend__
-from fivcplayground.tools.types.backends import ToolBundle, get_tool_name
 from fivcplayground.tools.types.base import ToolConfig
+from fivcplayground.backends.langchain.tools import LangchainToolBundle
+from fivcplayground.backends.strands.tools import StrandsToolBundle
+
+# Use both implementations - tests will run with whichever backend is active
+# For now, we'll test both implementations
+ToolBundleImpls = [LangchainToolBundle, StrandsToolBundle]
 
 
 class TestToolsBundleInit:
     """Test ToolBundle initialization."""
 
-    def test_init_with_command_config(self):
+    @pytest.mark.parametrize("ToolBundleImpl", ToolBundleImpls)
+    def test_init_with_command_config(self, ToolBundleImpl):
         """Test ToolBundle initialization with command-based MCP config."""
         tool_config = ToolConfig(
             id="test_bundle",
@@ -26,18 +31,15 @@ class TestToolsBundleInit:
             command="python",
             args=["-m", "mcp_server"],
         )
-        bundle = ToolBundle(tool_config)
+        bundle = ToolBundleImpl(tool_config)
 
-        # Use backend-agnostic function to get tool name
-        assert get_tool_name(bundle) == "test_bundle"
+        # Use Tool interface to get tool name
+        assert bundle.name == "test_bundle"
         # Check that config is stored
-        if __backend__ == "strands":
-            assert bundle._config == tool_config
-        else:  # langchain
-            # In LangChain, _config is set via object.__setattr__
-            assert hasattr(bundle, "_config")
+        assert bundle._tool_config == tool_config
 
-    def test_init_with_url_config(self):
+    @pytest.mark.parametrize("ToolBundleImpl", ToolBundleImpls)
+    def test_init_with_url_config(self, ToolBundleImpl):
         """Test ToolBundle initialization with URL-based MCP config."""
         tool_config = ToolConfig(
             id="test_bundle",
@@ -45,48 +47,36 @@ class TestToolsBundleInit:
             transport="sse",
             url="http://localhost:8000/sse",
         )
-        bundle = ToolBundle(tool_config)
+        bundle = ToolBundleImpl(tool_config)
 
-        # Use backend-agnostic function to get tool name
-        assert get_tool_name(bundle) == "test_bundle"
+        # Use Tool interface to get tool name
+        assert bundle.name == "test_bundle"
         # Check that config is stored
-        if __backend__ == "strands":
-            assert bundle._config == tool_config
-        else:  # langchain
-            # In LangChain, _config is set via object.__setattr__
-            assert hasattr(bundle, "_config")
+        assert bundle._tool_config == tool_config
 
-    def test_bundle_has_tool_name_attribute(self):
-        """Test that ToolBundle has a tool_name attribute (or name for LangChain)."""
+    @pytest.mark.parametrize("ToolBundleImpl", ToolBundleImpls)
+    def test_bundle_has_tool_name_attribute(self, ToolBundleImpl):
+        """Test that ToolBundle has a name attribute."""
         tool_config = ToolConfig(
             id="my_bundle",
             description="My bundle",
             transport="stdio",
             command="python",
         )
-        bundle = ToolBundle(tool_config)
+        bundle = ToolBundleImpl(tool_config)
 
-        # Check for backend-specific attributes
-        if __backend__ == "strands":
-            assert hasattr(bundle, "tool_name")
-            assert bundle.tool_name == "my_bundle"
-        else:  # langchain
-            assert hasattr(bundle, "name")
-            assert bundle.name == "my_bundle"
-
-        # Also verify using backend-agnostic function
-        assert get_tool_name(bundle) == "my_bundle"
+        # Both backends use .name property (from Tool interface)
+        assert hasattr(bundle, "name")
+        assert bundle.name == "my_bundle"
 
 
 class TestToolsBundleAsync:
     """Test ToolBundle async loading."""
 
-    @pytest.mark.skipif(
-        __backend__ != "strands", reason="Only test with Strands backend"
-    )
     @pytest.mark.asyncio
     async def test_load_async_with_command_config(self):
-        """Test async loading with command-based config."""
+        """Test async loading with command-based config (Strands only)."""
+        # Only test with Strands backend since LangChain doesn't have load_async
         tool_config = ToolConfig(
             id="test_bundle",
             description="Test bundle",
@@ -94,14 +84,14 @@ class TestToolsBundleAsync:
             command="python",
             args=["-m", "mcp_server"],
         )
-        bundle = ToolBundle(tool_config)
+        bundle = StrandsToolBundle(tool_config)
 
         # Mock the MCPClient and tools
         mock_tool = Mock()
         mock_tool.tool_name = "test_tool"
 
         with patch(
-            "fivcplayground.tools.types.backends.strands.MCPClient"
+            "fivcplayground.backends.strands.tools.MCPClient"
         ) as mock_client_class:
             mock_client = Mock()
             mock_client.list_tools_sync.return_value = [mock_tool]
@@ -109,30 +99,37 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            async with bundle.load_async() as tools:
-                assert len(tools) == 1
-                assert tools[0] == mock_tool
+            # Also mock the tool() decorator to return a wrapped tool
+            with patch(
+                "fivcplayground.backends.strands.tools.tool"
+            ) as mock_tool_decorator:
+                mock_wrapped_tool = Mock()
+                mock_wrapped_tool.tool_name = "test_tool"
+                mock_tool_decorator.return_value = mock_wrapped_tool
 
-    @pytest.mark.skipif(
-        __backend__ != "strands", reason="Only test with Strands backend"
-    )
+                async with bundle.load_async() as tools:
+                    assert len(tools) == 1
+                    # Verify that tool() was called with the mock_tool
+                    mock_tool_decorator.assert_called_with(mock_tool)
+
     @pytest.mark.asyncio
     async def test_load_async_with_url_config(self):
-        """Test async loading with URL-based config."""
+        """Test async loading with URL-based config (Strands only)."""
+        # Only test with Strands backend since LangChain doesn't have load_async
         tool_config = ToolConfig(
             id="test_bundle",
             description="Test bundle",
             transport="sse",
             url="http://localhost:8000/sse",
         )
-        bundle = ToolBundle(tool_config)
+        bundle = StrandsToolBundle(tool_config)
 
         # Mock the MCPClient and tools
         mock_tool = Mock()
         mock_tool.tool_name = "test_tool"
 
         with patch(
-            "fivcplayground.tools.types.backends.strands.MCPClient"
+            "fivcplayground.backends.strands.tools.MCPClient"
         ) as mock_client_class:
             mock_client = Mock()
             mock_client.list_tools_sync.return_value = [mock_tool]
@@ -140,9 +137,18 @@ class TestToolsBundleAsync:
             mock_client.__exit__ = Mock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            async with bundle.load_async() as tools:
-                assert len(tools) == 1
-                assert tools[0] == mock_tool
+            # Also mock the tool() decorator to return a wrapped tool
+            with patch(
+                "fivcplayground.backends.strands.tools.tool"
+            ) as mock_tool_decorator:
+                mock_wrapped_tool = Mock()
+                mock_wrapped_tool.tool_name = "test_tool"
+                mock_tool_decorator.return_value = mock_wrapped_tool
+
+                async with bundle.load_async() as tools:
+                    assert len(tools) == 1
+                    # Verify that tool() was called with the mock_tool
+                    mock_tool_decorator.assert_called_with(mock_tool)
 
 
 if __name__ == "__main__":

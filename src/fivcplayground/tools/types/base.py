@@ -1,5 +1,13 @@
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict
+from typing import (
+    Any,
+    AsyncGenerator,
+    Callable,
+    Dict,
+    List,
+    Generator,
+)
 
 from pydantic import BaseModel, Field
 
@@ -24,3 +32,45 @@ class ToolConfig(BaseModel):
     args: List[str] | None = Field(None, description="Arguments for the command")
     env: Dict[str, str] | None = Field(None, description="Environment variables")
     url: str | None = Field(None, description="URL for the tool")
+
+
+class Tool(ABC):
+    """Abstract base class for tools."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Get the name of the tool."""
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Get the description of the tool."""
+
+    @abstractmethod
+    def get_underlying(self) -> Any:
+        """Get the underlying tool instance."""
+
+
+class ToolBundle(Tool):
+    """Tool bundle that groups multiple tools from the same MCP server."""
+
+    @abstractmethod
+    def load(self) -> Generator[List[Tool], None]:
+        """Load the tools in the bundle synchronously."""
+
+    @abstractmethod
+    async def load_async(self) -> AsyncGenerator[List[Tool], None]:
+        """Load the tools in the bundle asynchronously."""
+
+
+class ToolBackend(ABC):
+    """Interface for tool backends."""
+
+    @abstractmethod
+    def create_tool(self, tool_func: Callable) -> Tool:
+        """Create a tool instance from a ToolConfig."""
+
+    @abstractmethod
+    def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
+        """Create a tool bundle from a ToolConfig."""

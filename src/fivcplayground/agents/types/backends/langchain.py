@@ -176,7 +176,7 @@ class AgentRunnable(Runnable):
         ):
             agent = lc_create_agent(
                 self._model,
-                tools_expanded,
+                [t.get_underlying() for t in tools_expanded],
                 name=self._id,
                 system_prompt=self._system_prompt,
                 response_format=response_model,

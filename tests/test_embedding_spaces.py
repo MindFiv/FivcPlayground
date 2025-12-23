@@ -14,6 +14,7 @@ from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.embeddings.types.backends.chroma import EmbeddingDB
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
 
 class TestEmbeddingDBSpaceIsolation:
@@ -141,6 +142,7 @@ class TestToolRetrieverSpaceIsolation:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
+                tool_backend=StrandsToolBackend(),
                 tool_list=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
@@ -161,6 +163,7 @@ class TestToolRetrieverSpaceIsolation:
             mock_create_db.return_value = mock_db
 
             retriever = ToolRetriever(
+                tool_backend=StrandsToolBackend(),
                 tool_list=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
@@ -183,7 +186,9 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(space_id=None)
+                retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(), space_id=None
+                )
                 assert retriever
 
                 # Verify create_embedding_db was called with space_id=None
@@ -207,7 +212,9 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(space_id="project_website")
+                retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(), space_id="project_website"
+                )
                 assert retriever
 
                 # Verify create_embedding_db was called with space_id="project_website"
@@ -238,6 +245,7 @@ class TestSpaceIsolationIntegration:
                 from fivcplayground.tools import create_tool_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     space_id="user_alice",
                     load_builtin_tools=False,
                 )

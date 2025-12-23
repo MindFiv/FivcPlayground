@@ -19,10 +19,7 @@ The calculator tool supports multiple modes:
 import math
 from typing import Literal, Union
 
-from fivcplayground.tools.types.backends import make_tool
 
-
-@make_tool
 def calculator(
     mode: Literal[
         "eval", "add", "subtract", "multiply", "divide", "power", "sqrt", "factorial"

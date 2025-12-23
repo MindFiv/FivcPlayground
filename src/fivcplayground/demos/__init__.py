@@ -16,6 +16,7 @@ from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepo
 from fivcplayground.models.types.repositories import FileModelConfigRepository
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
 from fivcplayground.tools import create_tool_retriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.agents.types.repositories import (
     FileAgentConfigRepository,
     FileAgentRunRepository,
@@ -40,6 +41,7 @@ def main():
     embedding_config_repository = FileEmbeddingConfigRepository()
     tool_config_repository = FileToolConfigRepository()
     tool_retriever = create_tool_retriever(
+        tool_backend=StrandsToolBackend(),
         embedding_config_repository=embedding_config_repository,
         tool_config_repository=tool_config_repository,
     )

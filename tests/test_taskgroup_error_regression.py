@@ -14,8 +14,7 @@ import pytest
 from unittest.mock import Mock
 from contextlib import asynccontextmanager
 
-from fivcplayground.tools import setup_tools
-from fivcplayground.tools.types.backends import ToolBundle
+from fivcplayground.tools import setup_tools, ToolBundle
 import fivcplayground
 
 
@@ -150,8 +149,6 @@ def langchain_backend():
     modules_to_reload = [
         "fivcplayground.agents.types.backends",
         "fivcplayground.agents.types.backends.langchain",
-        "fivcplayground.tools.types.backends",
-        "fivcplayground.tools.types.backends.langchain",
         "fivcplayground.backends.langchain.models",
         "fivcplayground.backends.strands.models",
     ]

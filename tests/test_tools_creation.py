@@ -14,10 +14,21 @@ from fivcplayground.tools import (
     create_tool_retriever,
     setup_tools,
 )
+from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.backends.langchain.tools import LangchainToolBackend
 
 
 class TestCreateToolRetriever:
     """Test create_tool_retriever function."""
+
+    def test_create_tool_retriever_requires_backend(self):
+        """Test that create_tool_retriever requires tool_backend parameter."""
+        with pytest.raises(TypeError, match="tool_backend is required"):
+            create_tool_retriever(
+                tool_backend=None,
+                embedding_config_repository=None,
+                load_builtin_tools=False,
+            )
 
     def test_create_tool_retriever_default(self):
         """Test creating tool retriever with default settings."""
@@ -32,6 +43,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     embedding_config_repository=None,
                     load_builtin_tools=False,
                 )
@@ -53,6 +65,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=LangchainToolBackend(),
                     embedding_config_repository=None,
                     load_builtin_tools=True,
                 )
@@ -77,6 +90,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     embedding_config_id="custom",
                     load_builtin_tools=False,
@@ -103,6 +117,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=LangchainToolBackend(),
                     embedding_config_repository=None,
                     load_builtin_tools=False,
                 )
@@ -124,6 +139,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
+                    tool_backend=StrandsToolBackend(),
                     embedding_config_repository=None,
                     load_builtin_tools=True,
                 )

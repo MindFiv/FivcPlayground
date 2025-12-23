@@ -14,6 +14,7 @@ from fivcplayground.utils import OutputDir
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
 dotenv.load_dotenv()
 
@@ -31,6 +32,7 @@ async def main():
         # Create a retriever instance with builtin tools
         # Tools are passed during initialization
         retriever = create_tool_retriever(
+            tool_backend=StrandsToolBackend(),
             load_builtin_tools=True,
         )
 

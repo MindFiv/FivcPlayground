@@ -317,10 +317,13 @@ Supported configuration formats:
 The `ToolRetriever` provides semantic search over available tools:
 
 ```python
-from fivcplayground import tools
+from fivcplayground.tools import create_tool_retriever
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever
-retriever = tools.create_tool_retriever()
+# Create a tool retriever with explicit backend selection
+retriever = create_tool_retriever(
+    tool_backend=StrandsToolBackend()
+)
 
 # Get all tools
 all_tools = retriever.list_tools()

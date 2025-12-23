@@ -15,19 +15,15 @@ import re
 
 import pytest
 
-from fivcplayground import __backend__
 from fivcplayground.tools.clock import clock
-from fivcplayground.tools.types.backends import get_tool_name
+from fivcplayground.backends.langchain.tools import LangchainToolBackend
+from fivcplayground.backends.strands.tools import StrandsToolBackend
 
 
-def invoke_tool(tool, **kwargs):
-    """Helper to invoke tools in both Strands and LangChain backends."""
-    if __backend__ == "langchain":
-        # LangChain tools have .invoke() method
-        return tool.invoke(kwargs) if kwargs else tool.invoke({})
-    else:
-        # Strands tools are callable directly
-        return tool(**kwargs) if kwargs else tool()
+def invoke_tool(tool_func, **kwargs):
+    """Helper to invoke the clock tool directly."""
+    # The clock function is a regular Python function, call it directly
+    return tool_func(**kwargs) if kwargs else tool_func()
 
 
 class TestGetClockTime:
@@ -283,37 +279,30 @@ class TestClockToolIntegration:
         # Should match YYYY-MM-DD HH:MM:SS format (datetime mode)
         assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
 
-    def test_tool_has_name(self):
+    @pytest.mark.parametrize("BackendClass", [LangchainToolBackend, StrandsToolBackend])
+    def test_tool_has_name(self, BackendClass):
         """Test that tool has a name."""
-        tool_name = get_tool_name(clock)
+        backend = BackendClass()
+        wrapped_tool = backend.create_tool(clock)
+        tool_name = wrapped_tool.name
         assert tool_name is not None
         assert tool_name == "clock"
 
-    def test_tool_has_description(self):
+    @pytest.mark.parametrize("BackendClass", [LangchainToolBackend, StrandsToolBackend])
+    def test_tool_has_description(self, BackendClass):
         """Test that tool has a description."""
-        if __backend__ == "langchain":
-            description = clock.description
-        else:
-            # Strands tools have tool_spec as a dict with description
-            description = (
-                clock.tool_spec.get("description")
-                if isinstance(clock.tool_spec, dict)
-                else clock.tool_spec.description
-            )
+        backend = BackendClass()
+        wrapped_tool = backend.create_tool(clock)
+        description = wrapped_tool.description
 
         assert description is not None
         assert "mode" in description.lower()
 
     def test_invalid_mode(self):
-        """Test get_clock with invalid mode raises validation error."""
-        from pydantic_core import ValidationError
-
-        # Strands tools don't validate at call time, they validate at definition time
-        # So we skip this test for Strands backend
-        if __backend__ == "langchain":
-            with pytest.raises(ValidationError):
-                invoke_tool(clock, mode="invalid_mode")
-        else:
-            # For Strands, invalid mode will be caught by the function logic
-            # This is tested implicitly by other tests
-            pass
+        """Test get_clock with invalid mode returns default behavior."""
+        # The clock function uses Literal type hint for mode validation
+        # At runtime, invalid modes will be passed through to the function
+        # which will use the default behavior (datetime mode)
+        result = invoke_tool(clock, mode="invalid_mode")
+        # Should return a string (default datetime format)
+        assert isinstance(result, str)

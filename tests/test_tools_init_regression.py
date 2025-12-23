@@ -13,28 +13,42 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 
 import pytest
 from unittest.mock import Mock, patch
-from fivcplayground import __backend__
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
-from fivcplayground.tools.types.backends import get_tool_name
+from fivcplayground.backends.langchain.tools import LangchainToolBackend
+from fivcplayground.backends.strands.tools import StrandsToolBackend
+
+# Test with both backends
+get_tool_backends = [
+    ("langchain", lambda: LangchainToolBackend()),
+    ("strands", lambda: StrandsToolBackend()),
+]
 
 
 def create_mock_tool(name: str, description: str):
     """Create a mock tool with correct attributes based on the current backend."""
-    tool = Mock()
-    if __backend__ == "langchain":
-        tool.name = name
-        tool.description = description
-    else:  # strands
-        tool.tool_name = name
-        tool.tool_spec = {"description": description}
+
+    # Create a simple object with the required attributes
+    # Set both name/description (Tool interface) and tool_name/tool_spec (backend-specific)
+    class SimpleTool:
+        pass
+
+    tool = SimpleTool()
+    # Set attributes for both backends to ensure compatibility
+    tool.name = name
+    tool.description = description
+    tool.tool_name = name
+    tool.tool_spec = {"description": description}
     return tool
 
 
 class TestToolsInitRegression:
     """Regression tests for tools module initialization."""
 
-    def test_create_tool_retriever_uses_correct_tool_attribute(self):
+    @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
+    def test_create_tool_retriever_uses_correct_tool_attribute(
+        self, backend_name, get_backend
+    ):
         """
         Regression test: Ensure create_tool_retriever uses correct tool attributes.
 
@@ -53,6 +67,7 @@ class TestToolsInitRegression:
 
             # This should not raise AttributeError
             result = create_tool_retriever(
+                tool_backend=get_backend(),
                 load_builtin_tools=True,
             )
 
@@ -95,6 +110,7 @@ class TestToolsInitRegression:
                 mock_repo_class.return_value = mock_repo
 
                 retriever = ToolRetriever(
+                    tool_backend=LangchainToolBackend(),  # Use LangChain for this test
                     tool_list=[tool1, tool2],
                     embedding_db=mock_db,
                     tool_config_repository=mock_repo,
@@ -103,13 +119,14 @@ class TestToolsInitRegression:
                 # Get all tools
                 all_tools = retriever.list_tools()
 
-                # Verify all tools can be accessed with get_tool_name
+                # Verify all tools can be accessed with .name property
                 assert len(all_tools) == 2
-                tool_names = [get_tool_name(tool) for tool in all_tools]
+                tool_names = [tool.name for tool in all_tools]
                 assert "tool1" in tool_names
                 assert "tool2" in tool_names
 
-    def test_create_tool_retriever_with_builtin_tools(self):
+    @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
+    def test_create_tool_retriever_with_builtin_tools(self, backend_name, get_backend):
         """
         Test that create_tool_retriever correctly loads builtin tools.
 
@@ -126,6 +143,7 @@ class TestToolsInitRegression:
 
             # Create retriever with builtin tools
             retriever = create_tool_retriever(
+                tool_backend=get_backend(),
                 load_builtin_tools=True,
             )
 
@@ -133,21 +151,16 @@ class TestToolsInitRegression:
             all_tools = retriever.list_tools()
 
             # Verify builtin tools are loaded
-            tool_names = [get_tool_name(tool) for tool in all_tools]
+            tool_names = [tool.name for tool in all_tools]
             assert "clock" in tool_names
             assert "calculator" in tool_names
 
-    @pytest.mark.skipif(
-        __backend__ != "langchain", reason="Only test with LangChain backend"
-    )
     def test_tools_retriever_list_tools_with_langchain_tools(self):
         """
-        Test that ToolRetriever.list_tools() works with actual LangChain Tool objects.
+        Test that ToolRetriever.list_tools() works with LangChain backend.
 
-        This test uses real LangChain tools to ensure compatibility.
-        Only runs when backend is set to "langchain".
+        This test verifies that tools wrapped by LangChain backend have correct attributes.
         """
-        from langchain_core.tools import tool as make_tool
         from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
 
@@ -157,38 +170,44 @@ class TestToolsInitRegression:
         mock_embedding_table.cleanup = Mock()
         mock_db.tools = mock_embedding_table
 
-        retriever = ToolRetriever(
-            embedding_config_repository=None,
-            embedding_config_id="default",
-        )
+        # Create mock tool config repository
+        mock_repo = Mock()
+        mock_repo.list_tool_configs.return_value = []
 
-        # Create a real LangChain tool
-        @make_tool
+        # Create simple Python functions to wrap
         def calculator(expression: str) -> float:
             """Calculate a mathematical expression."""
             return eval(expression)
 
-        @make_tool
         def search(query: str) -> str:
             """Search for information."""
             return f"Results for {query}"
 
-        # Add tools to retriever
-        retriever.add_tool(calculator)
-        retriever.add_tool(search)
+        # Wrap tools with the backend
+        backend = LangchainToolBackend()
+        wrapped_calculator = backend.create_tool(calculator)
+        wrapped_search = backend.create_tool(search)
+
+        # Create a retriever with the tools
+        retriever_with_tools = ToolRetriever(
+            tool_backend=backend,
+            tool_list=[wrapped_calculator, wrapped_search],
+            embedding_db=mock_db,
+            tool_config_repository=mock_repo,
+        )
 
         # Get all tools
-        all_tools = retriever.list_tools()
+        all_tools = retriever_with_tools.list_tools()
 
-        # Verify tools have 'name' attribute (LangChain standard)
+        # Verify tools have 'name' attribute (Tool interface standard)
         assert len(all_tools) == 2
-        tool_names = [get_tool_name(t) for t in all_tools]
+        tool_names = [t.name for t in all_tools]
         assert "calculator" in tool_names
         assert "search" in tool_names
 
         # Verify we can access the name attribute without AttributeError
         for tool in all_tools:
-            name = get_tool_name(tool)  # This should not raise AttributeError
+            name = tool.name  # This should not raise AttributeError
             assert isinstance(name, str)
             assert len(name) > 0
 

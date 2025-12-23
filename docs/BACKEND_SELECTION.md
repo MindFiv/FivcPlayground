@@ -85,7 +85,7 @@ elif __backend__ == "strands":
 
 - **Agents** (`src/fivcplayground/agents/types/backends/`)
 - **Models** (`src/fivcplayground/backends/`)
-- **Tools** (`src/fivcplayground/tools/types/backends/`)
+- **Tools** (`src/fivcplayground/backends/` - backend implementations; `src/fivcplayground/tools/types/backends/` - compatibility layer)
 
 ## ⚠️ Important Notes
 
