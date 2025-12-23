@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
-from fivcplayground.embeddings.types.backends.chroma import EmbeddingDB
+from fivcplayground.backends.chroma import ChromaEmbeddingDB as EmbeddingDB
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.strands.tools import StrandsToolBackend
@@ -29,10 +29,8 @@ class TestEmbeddingDBSpaceIsolation:
             api_key="sk-test",
         )
 
-        with patch("fivcplayground.embeddings.types.backends.chroma.chromadb"):
-            with patch(
-                "fivcplayground.embeddings.types.backends.chroma._create_embedding_function"
-            ):
+        with patch("fivcplayground.backends.chroma.PersistentClient"):
+            with patch("fivcplayground.backends.chroma._create_embedding_function"):
                 # Test with space_id=None (should default to "default")
                 db = EmbeddingDB(config, space_id=None)
                 assert db.space_id == "default"
@@ -50,10 +48,8 @@ class TestEmbeddingDBSpaceIsolation:
             api_key="sk-test",
         )
 
-        with patch("fivcplayground.embeddings.types.backends.chroma.chromadb"):
-            with patch(
-                "fivcplayground.embeddings.types.backends.chroma._create_embedding_function"
-            ):
+        with patch("fivcplayground.backends.chroma.PersistentClient"):
+            with patch("fivcplayground.backends.chroma._create_embedding_function"):
                 db = EmbeddingDB(config, space_id="user_alice")
                 assert db.space_id == "user_alice"
 
@@ -67,15 +63,13 @@ class TestEmbeddingDBSpaceIsolation:
         )
 
         with patch(
-            "fivcplayground.embeddings.types.backends.chroma.chromadb"
-        ) as mock_chroma:
-            with patch(
-                "fivcplayground.embeddings.types.backends.chroma._create_embedding_function"
-            ):
+            "fivcplayground.backends.chroma.PersistentClient"
+        ) as mock_persistent_client:
+            with patch("fivcplayground.backends.chroma._create_embedding_function"):
                 mock_client = Mock()
                 mock_collection = Mock()
                 mock_client.get_or_create_collection.return_value = mock_collection
-                mock_chroma.PersistentClient.return_value = mock_client
+                mock_persistent_client.return_value = mock_client
 
                 db = EmbeddingDB(config, space_id="default")
                 _ = db.tools  # Access tools collection
@@ -95,15 +89,13 @@ class TestEmbeddingDBSpaceIsolation:
         )
 
         with patch(
-            "fivcplayground.embeddings.types.backends.chroma.chromadb"
-        ) as mock_chroma:
-            with patch(
-                "fivcplayground.embeddings.types.backends.chroma._create_embedding_function"
-            ):
+            "fivcplayground.backends.chroma.PersistentClient"
+        ) as mock_persistent_client:
+            with patch("fivcplayground.backends.chroma._create_embedding_function"):
                 mock_client = Mock()
                 mock_collection = Mock()
                 mock_client.get_or_create_collection.return_value = mock_collection
-                mock_chroma.PersistentClient.return_value = mock_client
+                mock_persistent_client.return_value = mock_client
 
                 db = EmbeddingDB(config, space_id="user_alice")
                 _ = db.tools  # Access tools collection

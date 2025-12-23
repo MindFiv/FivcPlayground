@@ -1,6 +1,7 @@
 __all__ = [
     "EmbeddingDB",
     "EmbeddingTable",
+    "EmbeddingBackend",
     "EmbeddingConfigRepository",
     "create_embedding_db",
 ]
@@ -8,11 +9,13 @@ __all__ = [
 from fivcplayground.embeddings.types import (
     EmbeddingDB,
     EmbeddingTable,
+    EmbeddingBackend,
     EmbeddingConfigRepository,
 )
 
 
 def create_embedding_db(
+    embedding_backend: EmbeddingBackend | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
     space_id: str | None = None,
@@ -23,6 +26,7 @@ def create_embedding_db(
     Factory function to create an embedding database.
 
     Args:
+        embedding_backend: The embedding backend to use (required). Must be an instance of EmbeddingBackend
         embedding_config_repository: Repository for embedding configurations
         embedding_config_id: ID of the embedding configuration to use
         space_id: Optional embedding space identifier for data isolation.
@@ -44,6 +48,12 @@ def create_embedding_db(
         # Project-specific space
         db = create_embedding_db(space_id="project_website")
     """
+    if not embedding_backend:
+        if raise_exception:
+            raise RuntimeError("No embedding backend specified")
+
+        return None
+
     if not embedding_config_repository:
         from fivcplayground.embeddings.types.repositories.files import (
             FileEmbeddingConfigRepository,
@@ -60,4 +70,6 @@ def create_embedding_db(
             raise ValueError(f"Embedding not found {embedding_config_id}")
         return None
 
-    return EmbeddingDB(embedding_config, space_id=space_id, **kwargs)
+    return embedding_backend.create_embedding_db(
+        embedding_config, space_id=space_id, **kwargs
+    )

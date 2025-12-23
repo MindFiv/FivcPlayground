@@ -23,7 +23,7 @@ class TestCreateToolRetriever:
 
     def test_create_tool_retriever_requires_backend(self):
         """Test that create_tool_retriever requires tool_backend parameter."""
-        with pytest.raises(TypeError, match="tool_backend is required"):
+        with pytest.raises(RuntimeError, match="tool_backend is required"):
             create_tool_retriever(
                 tool_backend=None,
                 embedding_config_repository=None,

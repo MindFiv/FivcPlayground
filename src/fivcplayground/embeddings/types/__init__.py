@@ -2,16 +2,15 @@ __all__ = [
     "EmbeddingConfig",
     "EmbeddingDB",
     "EmbeddingTable",
+    "EmbeddingBackend",
     "EmbeddingConfigRepository",
 ]
 
 from .base import (
     EmbeddingConfig,
-)
-
-from .backends import (
     EmbeddingDB,
     EmbeddingTable,
+    EmbeddingBackend,
 )
 from .repositories import (
     EmbeddingConfigRepository,

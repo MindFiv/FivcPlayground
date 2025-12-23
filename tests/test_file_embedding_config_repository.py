@@ -11,6 +11,7 @@ from fivcplayground.embeddings.types.repositories.files import (
     FileEmbeddingConfigRepository,
 )
 from fivcplayground.embeddings import create_embedding_db, EmbeddingDB, EmbeddingTable
+from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 from fivcplayground.utils import OutputDir
 
 
@@ -292,6 +293,7 @@ class TestEmbeddingDBIntegration:
 
             # Create EmbeddingDB using factory function
             db = create_embedding_db(
+                embedding_backend=ChromaEmbeddingBackend(),
                 embedding_config_repository=repo,
                 embedding_config_id="default",
             )
@@ -317,6 +319,7 @@ class TestEmbeddingDBIntegration:
 
             # Create EmbeddingDB and access collection via dynamic attribute
             db = create_embedding_db(
+                embedding_backend=ChromaEmbeddingBackend(),
                 embedding_config_repository=repo,
                 embedding_config_id="default",
             )
