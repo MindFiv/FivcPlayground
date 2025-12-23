@@ -84,7 +84,7 @@ elif __backend__ == "strands":
 ### Affected Components
 
 - **Agents** (`src/fivcplayground/agents/types/backends/`)
-- **Models** (`src/fivcplayground/models/types/backends/`)
+- **Models** (`src/fivcplayground/backends/`)
 - **Tools** (`src/fivcplayground/tools/types/backends/`)
 
 ## ⚠️ Important Notes

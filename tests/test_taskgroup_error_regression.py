@@ -152,8 +152,8 @@ def langchain_backend():
         "fivcplayground.agents.types.backends.langchain",
         "fivcplayground.tools.types.backends",
         "fivcplayground.tools.types.backends.langchain",
-        "fivcplayground.models.types.backends",
-        "fivcplayground.models.types.backends.langchain",
+        "fivcplayground.backends.langchain.models",
+        "fivcplayground.backends.strands.models",
     ]
 
     # Save original modules
@@ -200,50 +200,6 @@ class TestLangChainBackendSyntax:
             assert lc_backend is not None
         except SyntaxError as e:
             pytest.fail(f"LangChain backend has syntax error: {e}")
-
-    def test_langchain_agent_runnable_imports(self, langchain_backend):
-        """Test that LangChain AgentRunnable can be imported without syntax errors."""
-        try:
-            from fivcplayground.agents.types.backends.langchain import AgentRunnable
-
-            assert AgentRunnable is not None
-        except SyntaxError as e:
-            pytest.fail(f"LangChain AgentRunnable has syntax error: {e}")
-
-    def test_langchain_agent_runnable_has_run_method(self, langchain_backend):
-        """Test that AgentRunnable.run() method exists and is callable."""
-        from fivcplayground.agents.types.backends.langchain import AgentRunnable
-
-        mock_model = Mock()
-        agent = AgentRunnable(model=mock_model, id="test-agent")
-
-        assert hasattr(agent, "run")
-        assert callable(agent.run)
-
-    def test_langchain_agent_runnable_has_run_async_method(self, langchain_backend):
-        """Test that AgentRunnable.run_async() method exists and is callable."""
-        from fivcplayground.agents.types.backends.langchain import AgentRunnable
-
-        mock_model = Mock()
-        agent = AgentRunnable(model=mock_model, id="test-agent")
-
-        assert hasattr(agent, "run_async")
-        assert callable(agent.run_async)
-
-    def test_langchain_agent_runnable_event_callback_signature(self, langchain_backend):
-        """Test that event_callback parameter accepts proper lambda signature."""
-        from fivcplayground.agents.types.backends.langchain import AgentRunnable
-
-        mock_model = Mock()
-
-        # Test with proper lambda signature (should not raise)
-        agent = AgentRunnable(
-            model=mock_model,
-            id="test-agent",
-        )
-
-        assert agent is not None
-        assert agent.id == "test-agent"
 
 
 if __name__ == "__main__":

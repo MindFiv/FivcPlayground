@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -28,3 +31,19 @@ class ModelConfig(BaseModel):
     max_tokens: int = Field(
         default=4096, description="Maximum tokens for the model (if applicable)"
     )
+
+
+class Model(ABC):
+    """Abstract base class for models."""
+
+    @abstractmethod
+    def get_underlying(self) -> Any:
+        """Get the underlying model instance."""
+
+
+class ModelBackend(ABC):
+    """Interface for model backends."""
+
+    @abstractmethod
+    def create_model(self, model_config: ModelConfig) -> Model:
+        """Create a model instance from a ModelConfig."""

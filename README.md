@@ -68,12 +68,14 @@ uv run fivcplayground --help
 src/fivcplayground/
 ├── agents/          # Agent creation and management
 │   └── types/       # Agent retriever and creator types
+├── backends/        # Backend implementations (langchain, strands)
+│   ├── langchain/   # LangChain backend
+│   └── strands/     # Strands backend
 ├── demos/           # Streamlit web interface
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
 ├── models/          # LLM model factories and providers
 │   └── types/       # Model types and implementations
-│       ├── backends/      # Backend implementations (langchain, strands)
 │       ├── repositories/  # Model configuration repositories
 │       └── base.py        # ModelConfig data model
 ├── schemas.py       # Pydantic data schemas

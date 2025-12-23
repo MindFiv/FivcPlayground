@@ -30,20 +30,21 @@ from fivcplayground.demos.views import (
 # Apply nest_asyncio to allow nested event loops in Streamlit context
 nest_asyncio.apply()
 
-agent_run_repository = FileAgentRunRepository()
-agent_config_repository = FileAgentConfigRepository()
-model_config_repository = FileModelConfigRepository()
-embedding_config_repository = FileEmbeddingConfigRepository()
-tool_config_repository = FileToolConfigRepository()
-tool_retriever = create_tool_retriever(
-    embedding_config_repository=embedding_config_repository,
-    tool_config_repository=tool_config_repository,
-)
-tool_retriever.index_tools()
-
 
 def main():
     """Main Streamlit application entry point with custom ViewNavigation"""
+    # Initialize repositories and tool retriever
+    agent_run_repository = FileAgentRunRepository()
+    agent_config_repository = FileAgentConfigRepository()
+    model_config_repository = FileModelConfigRepository()
+    embedding_config_repository = FileEmbeddingConfigRepository()
+    tool_config_repository = FileToolConfigRepository()
+    tool_retriever = create_tool_retriever(
+        embedding_config_repository=embedding_config_repository,
+        tool_config_repository=tool_config_repository,
+    )
+    tool_retriever.index_tools()
+
     # Page configuration (must be called first)
     st.set_page_config(
         page_title="FivcPlayground - Intelligent Agent Assistant",
