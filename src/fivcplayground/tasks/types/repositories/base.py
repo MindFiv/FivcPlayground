@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from fivcplayground.tasks.types.base import TaskRuntime, TaskRuntimeStep
+from fivcplayground.tasks.types.base import TaskRun, TaskRunStage
 
 
 class TaskRuntimeRepository(ABC):
@@ -22,12 +22,12 @@ class TaskRuntimeRepository(ABC):
     """
 
     @abstractmethod
-    def update_task_runtime(self, task: TaskRuntime) -> None:
+    def update_task_runtime(self, task: TaskRun) -> None:
         """Create or update a task's metadata."""
         ...
 
     @abstractmethod
-    def get_task_runtime(self, task_id: str) -> Optional[TaskRuntime]:
+    def get_task_runtime(self, task_id: str) -> Optional[TaskRun]:
         """Retrieve a task by ID."""
         ...
 
@@ -37,23 +37,23 @@ class TaskRuntimeRepository(ABC):
         ...
 
     @abstractmethod
-    def list_task_runtimes(self) -> List[TaskRuntime]:
+    def list_task_runtimes(self) -> List[TaskRun]:
         """List all tasks in the repository."""
         ...
 
     @abstractmethod
     def get_task_runtime_step(
         self, task_id: str, step_id: str
-    ) -> Optional[TaskRuntimeStep]:
+    ) -> Optional[TaskRunStage]:
         """Retrieve a specific step by task ID and step ID."""
         ...
 
     @abstractmethod
-    def update_task_runtime_step(self, task_id: str, step: TaskRuntimeStep) -> None:
+    def update_task_runtime_step(self, task_id: str, step: TaskRunStage) -> None:
         """Create or update an execution step."""
         ...
 
     @abstractmethod
-    def list_task_runtime_steps(self, task_id: str) -> List[TaskRuntimeStep]:
+    def list_task_runtime_steps(self, task_id: str) -> List[TaskRunStage]:
         """List all steps for a task."""
         ...

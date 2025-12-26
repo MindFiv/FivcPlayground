@@ -268,21 +268,6 @@ def setup(
     )
 
     try:
-        embedding_backend = ChromaEmbeddingBackend()
-        embedding_config_repository = FileEmbeddingConfigRepository()
-
-        tool_backend = StrandsToolBackend()
-        tool_config_repository = FileToolConfigRepository()
-
-        tool_retriever = create_tool_retriever(
-            tool_backend=tool_backend,
-            tool_config_repository=tool_config_repository,
-            embedding_backend=embedding_backend,
-            embedding_config_repository=embedding_config_repository,
-            embedding_config_id="default",
-        )
-        tool_retriever.index_tools()
-
         # Get current working directory
         cwd = Path.cwd()
         config_dir = cwd / ".fivcplayground" / "configs"
@@ -369,6 +354,23 @@ def setup(
         console.print("4. Configure embeddings (embeddings.yaml)")
         console.print("5. Configure tools (tools.yaml)")
         console.print("\n[green]✅ Setup completed successfully![/green]")
+
+        embedding_backend = ChromaEmbeddingBackend()
+        embedding_config_repository = FileEmbeddingConfigRepository()
+
+        tool_backend = StrandsToolBackend()
+        tool_config_repository = FileToolConfigRepository()
+
+        tool_retriever = create_tool_retriever(
+            tool_backend=tool_backend,
+            tool_config_repository=tool_config_repository,
+            embedding_backend=embedding_backend,
+            embedding_config_repository=embedding_config_repository,
+            embedding_config_id="default",
+            raise_exception=False,
+        )
+        if tool_retriever:
+            tool_retriever.index_tools()
 
     except typer.Exit:
         raise

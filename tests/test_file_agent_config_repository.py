@@ -142,6 +142,52 @@ class TestFileAgentConfigRepository:
             assert agent_data["description"] == "Test description"
             assert agent_data["system_prompt"] == "Test prompt"
 
+    def test_tool_ids_serialization(self):
+        """Test that tool_ids field is properly serialized and deserialized"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentConfigRepository(output_dir=output_dir)
+
+            # Create agent config with tool_ids
+            agent_config = AgentConfig(
+                id="test-agent-with-tools",
+                description="Agent with specific tools",
+                system_prompt="Test prompt",
+                tool_ids=["tool1", "tool2", "tool3"],
+            )
+            repo.update_agent_config(agent_config)
+
+            # Retrieve and verify tool_ids
+            retrieved = repo.get_agent_config("test-agent-with-tools")
+            assert retrieved is not None
+            assert retrieved.tool_ids == ["tool1", "tool2", "tool3"]
+
+            # Verify YAML file contains tool_ids
+            agents_file = repo._get_agents_file()
+            with open(agents_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+
+            agent_data = data["test-agent-with-tools"]
+            assert agent_data["tool_ids"] == ["tool1", "tool2", "tool3"]
+
+    def test_tool_ids_none_serialization(self):
+        """Test that tool_ids=None is properly handled"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentConfigRepository(output_dir=output_dir)
+
+            # Create agent config without tool_ids (defaults to None)
+            agent_config = AgentConfig(
+                id="test-agent-no-tools",
+                description="Agent without specific tools",
+            )
+            repo.update_agent_config(agent_config)
+
+            # Retrieve and verify tool_ids is None
+            retrieved = repo.get_agent_config("test-agent-no-tools")
+            assert retrieved is not None
+            assert retrieved.tool_ids is None
+
     def test_yaml_file_location(self):
         """Test that agent configs are stored in the correct YAML file location"""
         with tempfile.TemporaryDirectory() as tmpdir:

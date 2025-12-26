@@ -11,7 +11,7 @@ execution steps, and real-time progress updates.
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from fivcplayground.tasks.types import TaskRuntime, TaskStatus
+from fivcplayground.tasks.types import TaskRun, TaskRunStatus
 
 
 class TaskMessage:
@@ -38,25 +38,25 @@ class TaskMessage:
         STATUS_COLORS (dict): Mapping of TaskStatus to color descriptions
 
     Example:
-        >>> runtime = TaskRuntime(...)
+        >>> runtime = TaskRun(...)
         >>> task_msg = TaskMessage(runtime)
         >>> task_msg.render(st.container())
     """
 
     # Status indicators with emoji
     STATUS_ICONS = {
-        TaskStatus.PENDING: "🟡",
-        TaskStatus.EXECUTING: "🔵",
-        TaskStatus.COMPLETED: "🟢",
-        TaskStatus.FAILED: "🔴",
+        TaskRunStatus.PENDING: "🟡",
+        TaskRunStatus.EXECUTING: "🔵",
+        TaskRunStatus.COMPLETED: "🟢",
+        TaskRunStatus.FAILED: "🔴",
     }
 
-    def __init__(self, runtime: TaskRuntime):
+    def __init__(self, runtime: TaskRun):
         """
-        Initialize TaskMessage with a TaskRuntime instance.
+        Initialize TaskMessage with a TaskRun instance.
 
         Args:
-            runtime: TaskRuntime instance containing task execution data
+            runtime: TaskRun instance containing task execution data
         """
         self.runtime = runtime
 

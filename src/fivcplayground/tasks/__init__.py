@@ -6,8 +6,8 @@ __all__ = [
     "TaskAssessment",
     "TaskRequirement",
     "TaskTeam",
-    "TaskRuntimeStep",
-    "TaskStatus",
+    "TaskRunStage",
+    "TaskRunStatus",
 ]
 
 from fivcplayground.agents import (
@@ -26,8 +26,8 @@ from fivcplayground.tasks.types import (
     TaskAssessment,
     TaskRequirement,
     TaskTeam,
-    TaskRuntimeStep,
-    TaskStatus,
+    TaskRunStage,
+    TaskRunStatus,
     TaskSimpleRunnable,
 )
 from fivcplayground.tools import ToolRetriever

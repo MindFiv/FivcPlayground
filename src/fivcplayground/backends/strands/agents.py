@@ -150,7 +150,7 @@ class StrandsAgentRunnable(AgentRunnable):
         async with (
             AgentRunToolSpan(
                 tool_retriever,
-                tool_ids,
+                tool_ids or self._agent_config.tool_ids,
                 query,
             ) as tools_expanded,
             AgentRunSessionSpan(

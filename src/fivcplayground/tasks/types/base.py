@@ -1,17 +1,15 @@
-"""
-Task runtime data models.
-
-This module defines the core data models for task execution tracking:
-    - TaskAssessment: Assessment result for task complexity
-    - TaskRequirement: Tool requirements for a task
-    - TaskTeam: Team plan with specialist agents
-    - TaskRuntimeStep: Individual agent execution step
-    - TaskRuntime: Overall task execution state
-    - TaskStatus: Execution status enumeration
-
-These models use Pydantic for validation and serialization, making them
-suitable for persistence and API communication.
-"""
+__all__ = [
+    "TaskAssessment",
+    "TaskRequirement",
+    "TaskTeam",
+    "TaskRunContent",
+    "TaskRunStatus",
+    "TaskRunEvent",
+    "TaskRunStage",
+    "TaskRun",
+    "TaskRunnable",
+    "TaskSimpleRunnable",
+]
 
 import uuid
 from typing import Optional, List, Dict
@@ -20,19 +18,20 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
 
-from fivcplayground.agents import AgentRunContent, AgentRunnable
+from fivcplayground.agents import (
+    AgentRunStatus as TaskRunStatus,
+    AgentRunContent as TaskRunContent,
+    AgentRunnable as TaskRunnable,
+)
 
 
-class TaskStatus(str, Enum):
-    """Task execution status enumeration."""
+class TaskConfig(BaseModel):
+    """Task configuration."""
 
-    PENDING = "pending"
-    EXECUTING = "executing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    id: str = Field(..., description="Unique identifier for the task")
 
 
-class TaskEvent(str, Enum):
+class TaskRunEvent(str, Enum):
     """Task runtime event enumeration."""
 
     START = "start"
@@ -73,7 +72,7 @@ class TaskTeam(BaseModel):
     )
 
 
-class TaskRuntimeStep(BaseModel):
+class TaskRunStage(BaseModel):
     """Single task execution step record."""
 
     model_config = {"arbitrary_types_allowed": True}
@@ -87,8 +86,8 @@ class TaskRuntimeStep(BaseModel):
 
     agent_name: str = Field(description="Name of the agent")
 
-    status: TaskStatus = Field(
-        default=TaskStatus.PENDING, description="Current execution status"
+    status: TaskRunStatus = Field(
+        default=TaskRunStatus.PENDING, description="Current execution status"
     )
     started_at: Optional[datetime] = Field(
         default=None, description="Step start timestamp"
@@ -96,7 +95,7 @@ class TaskRuntimeStep(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Step completion timestamp"
     )
-    messages: List[AgentRunContent] = Field(
+    messages: List[TaskRunContent] = Field(
         default_factory=list, description="Messages during execution"
     )
     error: Optional[str] = Field(default=None, description="Error message if failed")
@@ -113,16 +112,16 @@ class TaskRuntimeStep(BaseModel):
     @property
     def is_running(self) -> bool:
         """Check if execution is currently runtime"""
-        return self.status == TaskStatus.EXECUTING
+        return self.status == TaskRunStatus.EXECUTING
 
     @computed_field
     @property
     def is_completed(self) -> bool:
         """Check if execution is completed (success or failure)"""
-        return self.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)
+        return self.status in (TaskRunStatus.COMPLETED, TaskRunStatus.FAILED)
 
 
-class TaskRuntime(BaseModel):
+class TaskRun(BaseModel):
     """Task runtime execution metadata."""
 
     id: str = Field(
@@ -138,8 +137,8 @@ class TaskRuntime(BaseModel):
     team: Optional[TaskTeam] = Field(
         default=None, description="Task team plan (if available)"
     )
-    status: TaskStatus = Field(
-        default=TaskStatus.PENDING, description="Current execution status"
+    status: TaskRunStatus = Field(
+        default=TaskRunStatus.PENDING, description="Current execution status"
     )
     started_at: Optional[datetime] = Field(
         default=None, description="Task start timestamp"
@@ -147,7 +146,7 @@ class TaskRuntime(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Task completion timestamp"
     )
-    steps: Dict[str, TaskRuntimeStep] = Field(
+    steps: Dict[str, TaskRunStage] = Field(
         default_factory=dict, description="Task execution steps"
     )
 
@@ -163,80 +162,51 @@ class TaskRuntime(BaseModel):
     @property
     def is_completed(self) -> bool:
         """Check if task is completed (success or failure)"""
-        return self.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)
+        return self.status in (TaskRunStatus.COMPLETED, TaskRunStatus.FAILED)
 
     def sync_status(self):
-        """
-        Synchronize task status based on step statuses.
-
-        Updates the task status according to the following rules:
-        - EXECUTING: If any step is currently executing
-        - FAILED: If any step has failed
-        - COMPLETED: If all steps are completed
-        - PENDING: Otherwise (no steps or all pending)
-        """
-        if any(step.status == TaskStatus.EXECUTING for step in self.steps.values()):
-            self.status = TaskStatus.EXECUTING
-        elif any(step.status == TaskStatus.FAILED for step in self.steps.values()):
-            self.status = TaskStatus.FAILED
-        elif all(step.status == TaskStatus.COMPLETED for step in self.steps.values()):
-            self.status = TaskStatus.COMPLETED
+        """Synchronize task status based on step statuses."""
+        if any(step.status == TaskRunStatus.EXECUTING for step in self.steps.values()):
+            self.status = TaskRunStatus.EXECUTING
+        elif any(step.status == TaskRunStatus.FAILED for step in self.steps.values()):
+            self.status = TaskRunStatus.FAILED
+        elif all(
+            step.status == TaskRunStatus.COMPLETED for step in self.steps.values()
+        ):
+            self.status = TaskRunStatus.COMPLETED
         else:
-            self.status = TaskStatus.PENDING
+            self.status = TaskRunStatus.PENDING
 
     def sync_started_at(self):
-        """
-        Synchronize task start timestamp based on step timestamps.
-
-        Sets started_at to the earliest step start time.
-        Does nothing if no steps have started.
-        """
+        """Synchronize task start timestamp based on step timestamps."""
         if self.steps:
             self.started_at = min(
                 step.started_at for step in self.steps.values() if step.started_at
             )
 
     def sync_completed_at(self):
-        """
-        Synchronize task completion timestamp based on step timestamps.
-
-        Sets completed_at to the latest step completion time.
-        Does nothing if no steps have completed.
-        """
+        """Synchronize task completion timestamp based on step timestamps."""
         if self.steps:
             self.completed_at = max(
                 step.completed_at for step in self.steps.values() if step.completed_at
             )
 
-    def sync(self) -> "TaskRuntime":
-        """
-        Synchronize all task metadata based on step data.
-
-        Calls sync_status(), sync_started_at(), and sync_completed_at()
-        to update task-level metadata from step-level data.
-
-        Returns:
-            Self for method chaining
-        """
+    def sync(self) -> "TaskRun":
+        """Synchronize all task metadata based on step data."""
         self.sync_status()
         self.sync_started_at()
         self.sync_completed_at()
         return self
 
     def cleanup(self):
-        """
-        Clean up task data and reset to initial state.
-
-        Resets status to PENDING, clears timestamps, and removes all steps.
-        Use this to prepare a task for reuse or before deletion.
-        """
-        self.status = TaskStatus.PENDING
+        """Clean up task data and reset to initial state."""
+        self.status = TaskRunStatus.PENDING
         self.started_at = None
         self.completed_at = None
         self.steps.clear()
 
 
-class TaskSimpleRunnable(AgentRunnable):
+class TaskSimpleRunnable(TaskRunnable):
     """
     Simple task runnable for testing and development.
 
@@ -245,7 +215,7 @@ class TaskSimpleRunnable(AgentRunnable):
     task execution, but simply returns a predefined result.
     """
 
-    def __init__(self, runnable: AgentRunnable, query: str = "", **kwargs):
+    def __init__(self, runnable: TaskRunnable, query: str = "", **kwargs):
         self._query = query
         self._kwargs = kwargs
         self._runnable = runnable

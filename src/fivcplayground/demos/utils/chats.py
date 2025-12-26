@@ -162,7 +162,9 @@ class ChatManager(object):
         assert agent_run_repository is not None, "agent_run_repository is required"
 
         self._briefing_runnable = create_briefing_task(
+            model_backend=model_backend,
             model_config_repository=model_config_repository,
+            agent_backend=agent_backend,
             agent_config_repository=agent_config_repository,
         )
         self._agent_runnable = create_companion_agent(

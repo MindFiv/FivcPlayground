@@ -10,7 +10,7 @@ allowing users to create, monitor, and manage multi-agent tasks. The view handle
 - Rendering task execution steps with real-time updates
 - Tracking runtime changes and agent execution progress
 
-The tasks view uses the TaskManager utility for state management and the TaskRuntime
+The tasks view uses the TaskManager utility for state management and the TaskRun
 system for tracking execution state and persistence.
 """
 

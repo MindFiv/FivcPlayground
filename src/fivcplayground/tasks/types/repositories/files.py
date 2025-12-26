@@ -27,8 +27,8 @@ from typing import Optional, List
 
 from fivcplayground.utils import OutputDir
 from fivcplayground.tasks.types.repositories import (
-    TaskRuntime,
-    TaskRuntimeStep,
+    TaskRun,
+    TaskRunStage,
     TaskRuntimeRepository,
 )
 
@@ -67,12 +67,12 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         """Get the file path for a step."""
         return self._get_steps_dir(task_id) / f"step_{step_id}.json"
 
-    def update_task_runtime(self, task: TaskRuntime) -> None:
+    def update_task_runtime(self, task: TaskRun) -> None:
         """
         Create or update a task.
 
         Args:
-            task: TaskRuntime instance to persist
+            task: TaskRun instance to persist
         """
         task_dir = self._get_task_dir(str(task.id))
         task_dir.mkdir(parents=True, exist_ok=True)
@@ -85,7 +85,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         with open(task_file, "w", encoding="utf-8") as f:
             json.dump(task_data, f, indent=2, ensure_ascii=False)
 
-    def get_task_runtime(self, task_id: str) -> Optional[TaskRuntime]:
+    def get_task_runtime(self, task_id: str) -> Optional[TaskRun]:
         """
         Retrieve a task by ID.
 
@@ -93,7 +93,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             task_id: Task ID to retrieve
 
         Returns:
-            TaskRuntime instance or None if not found
+            TaskRun instance or None if not found
         """
         task_file = self._get_task_file(task_id)
 
@@ -104,9 +104,9 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             with open(task_file, "r", encoding="utf-8") as f:
                 task_data = json.load(f)
 
-            # Reconstruct TaskRuntime from JSON
+            # Reconstruct TaskRun from JSON
             # Note: steps are loaded separately via list_task_runtime_steps
-            return TaskRuntime.model_validate(task_data)
+            return TaskRun.model_validate(task_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(f"Error loading task {task_id}: {e}")
@@ -124,12 +124,12 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         if task_dir.exists():
             shutil.rmtree(task_dir)
 
-    def list_task_runtimes(self) -> List[TaskRuntime]:
+    def list_task_runtimes(self) -> List[TaskRun]:
         """
         List all tasks.
 
         Returns:
-            List of TaskRuntime instances
+            List of TaskRun instances
         """
         tasks = []
 
@@ -150,7 +150,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
 
     def get_task_runtime_step(
         self, task_id: str, step_id: str
-    ) -> Optional[TaskRuntimeStep]:
+    ) -> Optional[TaskRunStage]:
         """
         Retrieve a step by task ID and step ID.
 
@@ -159,7 +159,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             step_id: Step ID
 
         Returns:
-            TaskRuntimeStep instance or None if not found
+            TaskRunStage instance or None if not found
         """
         step_file = self._get_step_file(task_id, step_id)
 
@@ -170,20 +170,20 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             with open(step_file, "r", encoding="utf-8") as f:
                 step_data = json.load(f)
 
-            # Reconstruct TaskRuntimeStep from JSON
-            return TaskRuntimeStep.model_validate(step_data)
+            # Reconstruct TaskRunStage from JSON
+            return TaskRunStage.model_validate(step_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(f"Error loading step {step_id} for task {task_id}: {e}")
             return None
 
-    def update_task_runtime_step(self, task_id: str, step: TaskRuntimeStep) -> None:
+    def update_task_runtime_step(self, task_id: str, step: TaskRunStage) -> None:
         """
         Create or update a step.
 
         Args:
             task_id: Task ID
-            step: TaskRuntimeStep instance to persist
+            step: TaskRunStage instance to persist
         """
         steps_dir = self._get_steps_dir(task_id)
         steps_dir.mkdir(parents=True, exist_ok=True)
@@ -196,7 +196,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         with open(step_file, "w", encoding="utf-8") as f:
             json.dump(step_data, f, indent=2, ensure_ascii=False)
 
-    def list_task_runtime_steps(self, task_id: str) -> List[TaskRuntimeStep]:
+    def list_task_runtime_steps(self, task_id: str) -> List[TaskRunStage]:
         """
         List all steps for a task.
 
@@ -204,7 +204,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             task_id: Task ID
 
         Returns:
-            List of TaskRuntimeStep instances
+            List of TaskRunStage instances
         """
         steps = []
         steps_dir = self._get_steps_dir(task_id)

@@ -27,6 +27,9 @@ class AgentConfig(BaseModel):
     model_id: str | None = Field(
         default=None, description="Model name (e.g., 'default', 'chat')"
     )
+    tool_ids: List[str] | None = Field(
+        default=None, description="List of tool IDs to use with the agent"
+    )
     description: str | None = Field(
         default=None, description="Description of the agent"
     )

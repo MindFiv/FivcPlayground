@@ -12,6 +12,8 @@ tooling:
   model_id: "reasoning"
   description: "Specialized in finding the right tools"
   system_prompt: "You are a tool retrieval specialist with deep expertise in identifying the most appropriate tools for a given task. Skilled at quickly assessing task requirements, analyzing available toolsets, and selecting the best tools for the job."
+  tool_ids:
+    - "tool_retriever"
 
 consultant:
   model_id: "reasoning"

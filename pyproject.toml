@@ -8,6 +8,7 @@ dynamic = ["version"]
 description = "Personal Simple Generic Agents"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
 authors = [
     { name = "Charlie ZHANG", email = "sunnypig2002@gmail.com" }
 ]
@@ -58,7 +59,6 @@ where = ["src"]
 version = { attr = "fivcplayground.__version__" }
 
 [dependency-groups]
-
 dev = [
     "pytest>=8.4.1",
 ]
@@ -86,7 +86,7 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
-    "-p", "no:warnings", # Disable warnings plugin
+#    "-p", "no:warnings", # Disable warnings plugin
 ]
 
 # Markers for test categorization

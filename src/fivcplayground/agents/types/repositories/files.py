@@ -61,6 +61,8 @@ class FileAgentConfigRepository(AgentConfigRepository):
     Data stored per agent:
         - id: Unique agent identifier
         - name: Agent display name (computed from id)
+        - model_id: Optional model identifier
+        - tool_ids: Optional list of tool IDs to use with the agent
         - description: Optional agent description
         - system_prompt: Optional system prompt for the agent
 

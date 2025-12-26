@@ -84,6 +84,7 @@ class LangchainAgentRunnable(AgentRunnable):
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
@@ -94,6 +95,7 @@ class LangchainAgentRunnable(AgentRunnable):
                 agent_run_repository=agent_run_repository,
                 agent_run_session_id=agent_run_session_id,
                 tool_retriever=tool_retriever,
+                tool_ids=tool_ids,
                 response_model=response_model,
                 event_callback=event_callback,
                 **kwargs,
@@ -123,7 +125,7 @@ class LangchainAgentRunnable(AgentRunnable):
         async with (
             AgentRunToolSpan(
                 tool_retriever,
-                tool_ids,
+                tool_ids or self._agent_config.tool_ids,
                 query,
             ) as tools_expanded,
             AgentRunSessionSpan(

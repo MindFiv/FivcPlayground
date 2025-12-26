@@ -41,6 +41,7 @@ class TestCreateAgent:
             model_id="test-model",
             description="Test agent",
             system_prompt="You are helpful",
+            tool_ids=["tool1", "tool2"],
         )
         mock_agent_repo = Mock()
         mock_agent_repo.get_agent_config.return_value = mock_agent_config

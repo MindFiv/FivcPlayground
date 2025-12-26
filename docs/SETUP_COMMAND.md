@@ -41,6 +41,7 @@ Defines available agents and their configurations:
 - Model to use
 - System prompt/backstory
 - Description
+- Tool IDs (optional list of specific tools to use)
 
 ### models.yaml
 Configures LLM providers and models:
