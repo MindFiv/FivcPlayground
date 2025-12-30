@@ -231,7 +231,7 @@ class StrandsAgentRunnable(AgentRunnable):
                         event_callback(event, agent_run)
 
                     if event == AgentRunEvent.UPDATE:
-                        agent_run_session_span(agent_run)
+                        await agent_run_session_span(agent_run)
 
                 agent_run.status = AgentRunStatus.COMPLETED
 
@@ -254,7 +254,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 event_callback(AgentRunEvent.FINISH, agent_run)
 
                 # Save the final agent run state to the repository
-                agent_run_session_span(agent_run)
+                await agent_run_session_span(agent_run)
 
             # Return structured output if available, otherwise return reply
             if isinstance(output, StrandsAgentResult) and output.structured_output:

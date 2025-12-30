@@ -1,13 +1,13 @@
 __all__ = [
     "create_model",
-    "create_chat_model",
-    "create_reasoning_model",
-    "create_coding_model",
+    "create_model_async",
     "Model",
     "ModelBackend",
     "ModelConfig",
     "ModelConfigRepository",
 ]
+
+from typing_extensions import deprecated
 
 from fivcplayground.models.types import (
     Model,
@@ -17,7 +17,29 @@ from fivcplayground.models.types import (
 )
 
 
+@deprecated("Use create_model_async instead")
 def create_model(
+    model_backend: ModelBackend | None = None,
+    model_config_repository: ModelConfigRepository | None = None,
+    model_config_id: str = "default",
+    raise_exception: bool = True,
+    **kwargs,  # ignore additional kwargs
+) -> Model | None:
+    """Factory function to create a LLM instance."""
+    import asyncio
+
+    return asyncio.run(
+        create_model_async(
+            model_backend=model_backend,
+            model_config_repository=model_config_repository,
+            model_config_id=model_config_id,
+            raise_exception=raise_exception,
+            **kwargs,
+        )
+    )
+
+
+async def create_model_async(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
     model_config_id: str = "default",
@@ -32,14 +54,12 @@ def create_model(
         return None
 
     if not model_config_repository:
-        # Use file-based repository by default
-        from fivcplayground.models.types.repositories.files import (
-            FileModelConfigRepository,
-        )
+        if raise_exception:
+            raise RuntimeError("No model config repository specified")
 
-        model_config_repository = FileModelConfigRepository()
+        return None
 
-    model_config = model_config_repository.get_model_config(
+    model_config = await model_config_repository.get_model_config_async(
         model_config_id,
     )
 
@@ -51,6 +71,7 @@ def create_model(
     return model_backend.create_model(model_config)
 
 
+@deprecated("Use create_model(model_config_id='chat') instead")
 def create_chat_model(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
@@ -59,6 +80,7 @@ def create_chat_model(
     return create_model(model_backend, model_config_repository, "chat", **kwargs)
 
 
+@deprecated("Use create_model(model_config_id='reasoning') instead")
 def create_reasoning_model(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
@@ -67,6 +89,7 @@ def create_reasoning_model(
     return create_model(model_backend, model_config_repository, "reasoning", **kwargs)
 
 
+@deprecated("Use create_model(model_config_id='coding') instead")
 def create_coding_model(
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,

@@ -46,26 +46,6 @@ This structure provides:
     - JSON storage for complex data types
     - Cascading deletes for data consistency
 
-Example:
-    >>> from fivcplayground.agents.types.repositories.sqlite import SqliteAgentRunRepository
-    >>> from fivcplayground.agents.types import AgentRunSession, AgentRun
-    >>>
-    >>> # Create repository
-    >>> repo = SqliteAgentRunRepository(db_path="./agents.db")
-    >>>
-    >>> # Store agent session metadata
-    >>> agent_session = AgentRunSession(
-    ...     agent_id="my-agent",
-    ...     description="A helpful assistant agent"
-    ... )
-    >>> repo.update_agent_run_session(agent_session)
-    >>>
-    >>> # Create and store a runtime
-    >>> runtime = AgentRun(agent_id="my-agent")
-    >>> repo.update_agent_run(agent_session.id, runtime)
-    >>>
-    >>> # List all agents
-    >>> agents = repo.list_agent_run_sessions()
 """
 
 import json
@@ -231,7 +211,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         self.connection.commit()
 
-    def update_agent_run_session(self, agent: AgentRunSession) -> None:
+    async def update_agent_run_session_async(self, agent: AgentRunSession) -> None:
         """Create or update an agent's metadata."""
         cursor = self.connection.cursor()
         agent_data = agent.model_dump(mode="json")
@@ -271,7 +251,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
         )
         self.connection.commit()
 
-    def get_agent_run_session(self, session_id: str) -> Optional[AgentRunSession]:
+    async def get_agent_run_session_async(
+        self, session_id: str
+    ) -> Optional[AgentRunSession]:
         """Retrieve an agent session's metadata by session ID."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents WHERE session_id = ?", (session_id,))
@@ -293,7 +275,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
             print(f"Error loading session {session_id}: {e}")
             return None
 
-    def list_agent_run_sessions(self) -> List[AgentRunSession]:
+    async def list_agent_run_sessions_async(self) -> List[AgentRunSession]:
         """List all agents in the repository."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM agents ORDER BY agent_id")
@@ -315,7 +297,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    def delete_agent_run_session(self, session_id: str) -> None:
+    async def delete_agent_run_session_async(self, session_id: str) -> None:
         """Delete an agent session and all its associated runtimes."""
         cursor = self.connection.cursor()
         # Delete all runtimes for this session (which will cascade delete tool calls)
@@ -324,7 +306,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute("DELETE FROM agents WHERE session_id = ?", (session_id,))
         self.connection.commit()
 
-    def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
+    async def update_agent_run_async(
+        self, session_id: str, agent_run: AgentRun
+    ) -> None:
         """Create or update an agent runtime with embedded tool calls.
 
         Note:
@@ -402,7 +386,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         self.connection.commit()
 
-    def get_agent_run(self, session_id: str, run_id: str) -> Optional[AgentRun]:
+    async def get_agent_run_async(
+        self, session_id: str, run_id: str
+    ) -> Optional[AgentRun]:
         """Retrieve an agent runtime by session ID and run ID with embedded tool calls.
 
         Note:
@@ -476,7 +462,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
             print(f"Error loading runtime {run_id}: {e}")
             return None
 
-    def delete_agent_run(self, session_id: str, run_id: str) -> None:
+    async def delete_agent_run_async(self, session_id: str, run_id: str) -> None:
         """Delete an agent runtime and all its tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -485,7 +471,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
         )
         self.connection.commit()
 
-    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
+    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
         """List all agent runtimes for a specific session with embedded tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(

@@ -4,7 +4,10 @@ __all__ = [
     "EmbeddingBackend",
     "EmbeddingConfigRepository",
     "create_embedding_db",
+    "create_embedding_db_async",
 ]
+
+from typing_extensions import deprecated
 
 from fivcplayground.embeddings.types import (
     EmbeddingDB,
@@ -14,6 +17,7 @@ from fivcplayground.embeddings.types import (
 )
 
 
+@deprecated("Use create_embedding_db_async instead")
 def create_embedding_db(
     embedding_backend: EmbeddingBackend | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
@@ -48,6 +52,29 @@ def create_embedding_db(
         # Project-specific space
         db = create_embedding_db(space_id="project_website")
     """
+    import asyncio
+
+    return asyncio.run(
+        create_embedding_db_async(
+            embedding_backend=embedding_backend,
+            embedding_config_repository=embedding_config_repository,
+            embedding_config_id=embedding_config_id,
+            space_id=space_id,
+            raise_exception=raise_exception,
+            **kwargs,
+        )
+    )
+
+
+async def create_embedding_db_async(
+    embedding_backend: EmbeddingBackend | None = None,
+    embedding_config_repository: EmbeddingConfigRepository | None = None,
+    embedding_config_id: str = "default",
+    space_id: str | None = None,
+    raise_exception: bool = True,
+    **kwargs,
+) -> EmbeddingDB | None:
+    """Async version of create_embedding_db."""
     if not embedding_backend:
         if raise_exception:
             raise RuntimeError("No embedding backend specified")
@@ -55,13 +82,12 @@ def create_embedding_db(
         return None
 
     if not embedding_config_repository:
-        from fivcplayground.embeddings.types.repositories.files import (
-            FileEmbeddingConfigRepository,
-        )
+        if raise_exception:
+            raise RuntimeError("No embedding config repository specified")
 
-        embedding_config_repository = FileEmbeddingConfigRepository()
+        return None
 
-    embedding_config = embedding_config_repository.get_embedding_config(
+    embedding_config = await embedding_config_repository.get_embedding_config_async(
         embedding_config_id,
     )
 

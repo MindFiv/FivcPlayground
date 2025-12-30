@@ -4,7 +4,7 @@ Tests for the tools retriever module.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.embeddings.types.base import EmbeddingConfig
@@ -50,6 +50,9 @@ class TestToolRetriever:
             base_url="https://api.openai.com/v1",
             dimension=1536,
         )
+        # Add async methods
+        mock_repo.get_tool_config_async = AsyncMock(return_value=None)
+        mock_repo.list_tool_configs_async = AsyncMock(return_value=[])
         return mock_repo
 
     @pytest.fixture
@@ -362,7 +365,10 @@ class TestToolRetriever:
             assert tool2 not in results
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_call(self, mock_embedding_config_repository, backend_name, get_backend):
+    @pytest.mark.asyncio
+    async def test_call(
+        self, mock_embedding_config_repository, backend_name, get_backend
+    ):
         """Test calling retriever as a function."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
@@ -391,7 +397,7 @@ class TestToolRetriever:
                 embedding_db=mock_db,
             )
 
-            results = retriever("math calculation")
+            results = await retriever("math calculation")
 
             assert len(results) == 1
             assert results[0]["name"] == "calculator"

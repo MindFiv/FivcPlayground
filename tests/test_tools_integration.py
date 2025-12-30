@@ -56,13 +56,18 @@ class TestToolsIntegration:
             ]
 
             for config in tool_configs:
-                repo.update_tool_config(config)
+                await repo.update_tool_config_async(config)
 
             # Verify configs are stored
-            assert len(repo.list_tool_configs()) == 1
+            configs = await repo.list_tool_configs_async()
+            assert len(configs) == 1
 
             # Setup retriever with mocked embedding DB
-            with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            mock_embedding_repo = Mock()
+
+            with patch(
+                "fivcplayground.tools.create_embedding_db_async"
+            ) as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
                 mock_collection.cleanup = Mock()
@@ -74,6 +79,7 @@ class TestToolsIntegration:
                 # Create retriever
                 retriever = create_tool_retriever(
                     tool_backend=StrandsToolBackend(),
+                    embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=repo,
                 )
 
@@ -95,11 +101,11 @@ class TestToolsIntegration:
                 transport="stdio",
                 command="python",
             )
-            repo1.update_tool_config(config)
+            await repo1.update_tool_config_async(config)
 
             # Second session: verify config persists
             repo2 = FileToolConfigRepository(output_dir=output_dir)
-            retrieved = repo2.get_tool_config("persistent_tool")
+            retrieved = await repo2.get_tool_config_async("persistent_tool")
 
             assert retrieved is not None
             assert retrieved.id == "persistent_tool"
@@ -119,10 +125,14 @@ class TestToolsIntegration:
                 transport="stdio",
                 command="python",
             )
-            repo.update_tool_config(config1)
+            await repo.update_tool_config_async(config1)
 
             # Setup retriever with mocked embedding DB
-            with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+            mock_embedding_repo = Mock()
+
+            with patch(
+                "fivcplayground.tools.create_embedding_db_async"
+            ) as mock_create_db:
                 mock_embedding_db = Mock()
                 mock_collection = Mock()
                 mock_collection.cleanup = Mock()
@@ -134,6 +144,7 @@ class TestToolsIntegration:
                 # Create retriever
                 retriever = create_tool_retriever(
                     tool_backend=StrandsToolBackend(),
+                    embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=repo,
                 )
 

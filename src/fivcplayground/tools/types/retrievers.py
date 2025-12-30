@@ -1,3 +1,6 @@
+import json
+from typing_extensions import deprecated
+
 from pydantic import BaseModel, Field
 from fivcplayground import embeddings
 from fivcplayground.tools.types.base import (
@@ -45,22 +48,6 @@ class ToolRetriever(object):
     def __str__(self):
         return f"ToolRetriever(num_tools={len(self.tools)})"
 
-    def get_tool(self, name: str) -> Tool | None:
-        tool = self.tools.get(name)
-        if tool:
-            return tool
-
-        tool_config = self.tool_config_repository.get_tool_config(name)
-        return (
-            self.tool_backend.create_tool_bundle(tool_config) if tool_config else None
-        )
-
-    def list_tools(self) -> list[Tool]:
-        tools = list(self.tools.values())
-        tool_configs = self.tool_config_repository.list_tool_configs()
-        tools.extend([self.tool_backend.create_tool_bundle(c) for c in tool_configs])
-        return tools
-
     @property
     def retrieve_min_score(self):
         return self.min_score
@@ -77,14 +64,56 @@ class ToolRetriever(object):
     def retrieve_max_num(self, value: int):
         self.max_num = value
 
+    @deprecated("Use get_tool_async instead")
+    def get_tool(self, name: str) -> Tool | None:
+        import asyncio
+
+        return asyncio.run(self.get_tool_async(name))
+
+    @deprecated("Use list_tools_async instead")
+    def list_tools(self) -> list[Tool]:
+        import asyncio
+
+        return asyncio.run(self.list_tools_async())
+
+    @deprecated("Use index_tools_async instead")
     def index_tools(self):
-        """Index all tools in the retriever."""
+        import asyncio
+
+        asyncio.run(self.index_tools_async())
+
+    @deprecated("Use retrieve_tools_async instead")
+    def retrieve_tools(self, query: str, **kwargs) -> list[Tool]:
+        import asyncio
+
+        return asyncio.run(self.retrieve_tools_async(query, **kwargs))
+
+    async def get_tool_async(self, name: str) -> Tool | None:
+        """Get a tool by name (async version)."""
+        tool = self.tools.get(name)
+        if tool:
+            return tool
+
+        tool_config = await self.tool_config_repository.get_tool_config_async(name)
+        return (
+            self.tool_backend.create_tool_bundle(tool_config) if tool_config else None
+        )
+
+    async def list_tools_async(self) -> list[Tool]:
+        """List all tools (async version)."""
+        tools = list(self.tools.values())
+        tool_configs = await self.tool_config_repository.list_tool_configs_async()
+        tools.extend([self.tool_backend.create_tool_bundle(c) for c in tool_configs])
+        return tools
+
+    async def index_tools_async(self):
+        """Index all tools in the retriever (async version)."""
 
         # cleanup the indices
         self.tool_indices.cleanup()
 
         # rebuild indices
-        for tool in self.list_tools():
+        for tool in await self.list_tools_async():
             tool_name = tool.name
             tool_desc = tool.description
             self.tool_indices.add(
@@ -92,8 +121,8 @@ class ToolRetriever(object):
                 metadata={"__tool__": tool_name},
             )
 
-    def retrieve_tools(self, query: str, **kwargs) -> list[Tool]:
-        """Retrieve tools based on a query."""
+    async def retrieve_tools_async(self, query: str, **kwargs) -> list[Tool]:
+        """Retrieve tools based on a query (async version)."""
         sources = self.tool_indices.search(
             query,
             num_documents=self.retrieve_max_num,
@@ -105,10 +134,10 @@ class ToolRetriever(object):
             if src["score"] >= self.retrieve_min_score
         )
 
-        return [self.get_tool(name) for name in tool_names]
+        return [await self.get_tool_async(name) for name in tool_names]
 
-    def __call__(self, *args, **kwargs) -> list[dict]:
-        tools = self.retrieve_tools(*args, **kwargs)
+    async def __call__(self, *args, **kwargs) -> list[dict]:
+        tools = await self.retrieve_tools_async(*args, **kwargs)
         return [{"name": t.name, "description": t.description} for t in tools]
 
     class _ToolSchema(BaseModel):
@@ -117,11 +146,11 @@ class ToolRetriever(object):
     def to_tool(self) -> Tool:
         """Convert the retriever to a tool."""
 
-        def _func(query: str) -> str:
+        async def _func(query: str) -> str:
             """Use this tool to retrieve the best tools for a given task"""
             # Use __call__ to get tool metadata (name and description) instead of
             # the full BaseTool objects, which can cause infinite recursion when
             # converting to string due to circular references in Pydantic models
-            return str(self(query))
+            return json.dumps(await self.__call__(query))
 
         return self.tool_backend.create_tool(_func)

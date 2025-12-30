@@ -79,25 +79,6 @@ class FileAgentConfigRepository(AgentConfigRepository):
         - This repository stores ONLY configuration, not execution data
         - For runtime execution data, use FileAgentRunRepository instead
 
-    Example:
-        >>> from fivcplayground.agents.types.repositories.files import FileAgentConfigRepository
-        >>> from fivcplayground.agents.types.base import AgentConfig
-        >>> from fivcplayground.utils import OutputDir
-        >>>
-        >>> # Create repository
-        >>> repo = FileAgentConfigRepository()
-        >>>
-        >>> # Store agent configuration
-        >>> config = AgentConfig(
-        ...     id="assistant-v1",
-        ...     description="Main assistant",
-        ...     system_prompt="You are helpful"
-        ... )
-        >>> repo.update_agent_config(config)
-        >>>
-        >>> # Retrieve configuration
-        >>> retrieved = repo.get_agent_config("assistant-v1")
-        >>> all_configs = repo.list_agent_configs()
     """
 
     def __init__(self, output_dir: Optional[OutputDir] = None):
@@ -157,7 +138,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
         with open(agents_file, "w", encoding="utf-8") as f:
             yaml.dump(agents_data, f, default_flow_style=False, allow_unicode=True)
 
-    def update_agent_config(self, agent_config: AgentConfig) -> None:
+    async def update_agent_config_async(self, agent_config: AgentConfig) -> None:
         """
         Create or update an agent configuration.
 
@@ -179,7 +160,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
         agents_data[agent_id] = agent_data
         self._save_agents_data(agents_data)
 
-    def get_agent_config(self, agent_id: str) -> Optional[AgentConfig]:
+    async def get_agent_config_async(self, agent_id: str) -> Optional[AgentConfig]:
         """
         Retrieve an agent configuration by ID.
 
@@ -203,7 +184,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
             print(f"Error loading agent config {agent_id}: {e}")
             return None
 
-    def list_agent_configs(self) -> List[AgentConfig]:
+    async def list_agent_configs_async(self) -> List[AgentConfig]:
         """
         List all agent configurations in the repository.
 
@@ -225,7 +206,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
         return configs
 
-    def delete_agent_config(self, agent_id: str) -> None:
+    async def delete_agent_config_async(self, agent_id: str) -> None:
         """
         Delete an agent configuration.
 
@@ -277,30 +258,6 @@ class FileAgentRunRepository(AgentRunRepository):
         - Supports cascading deletes (deleting an agent removes all its runtimes)
         - Tool calls are embedded within AgentRun objects, not stored separately
 
-    Example:
-        >>> from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
-        >>> from fivcplayground.agents.types import AgentRunSession, AgentRun, AgentRunToolCall
-        >>> from fivcplayground.utils import OutputDir
-        >>>
-        >>> # Create repository
-        >>> repo = FileAgentRunRepository(output_dir=OutputDir("./agent_runs"))
-        >>>
-        >>> # Store agent session metadata
-        >>> agent_session = AgentRunSession(
-        ...     agent_id="my-agent",
-        ...     description="A helpful assistant agent"
-        ... )
-        >>> repo.update_agent_run_session(agent_session)
-        >>>
-        >>> # Create and store a runtime execution with embedded tool calls
-        >>> runtime = AgentRun(agent_id="my-agent")
-        >>> tool_call = AgentRunToolCall(id="call-1", tool_id="calculator")
-        >>> runtime.tool_calls["call-1"] = tool_call
-        >>> repo.update_agent_run(agent_session.id, runtime)
-        >>>
-        >>> # List all agents and their runtimes
-        >>> agents = repo.list_agent_run_sessions()
-        >>> runtimes = repo.list_agent_runs(agent_session.id)
     """
 
     def __init__(self, output_dir: Optional[OutputDir] = None):
@@ -355,27 +312,8 @@ class FileAgentRunRepository(AgentRunRepository):
         """
         return self._get_session_dir(session_id) / f"run_{agent_run_id}.json"
 
-    def update_agent_run_session(self, agent: AgentRunSession) -> None:
-        """
-        Create or update an agent's metadata.
-
-        Stores agent configuration including agent_id and description in session.json
-        file. Creates the session directory if it doesn't exist.
-
-        Args:
-            agent: AgentRunSession instance containing agent configuration
-
-        Example:
-            >>> agent_session = AgentRunSession(
-            ...     agent_id="my-agent",
-            ...     description="A helpful assistant"
-            ... )
-            >>> repo.update_agent_run_session(agent_session)
-
-        Note:
-            This operation is idempotent - calling it multiple times with the
-            same session id will overwrite the existing metadata.
-        """
+    async def update_agent_run_session_async(self, agent: AgentRunSession) -> None:
+        """Create or update an agent's metadata."""
         session_dir = self._get_session_dir(agent.id)
         session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -387,27 +325,10 @@ class FileAgentRunRepository(AgentRunRepository):
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent_run_session(self, session_id: str) -> Optional[AgentRunSession]:
-        """
-        Retrieve an agent session's metadata by session ID.
-
-        Reads and deserializes the session.json file for the specified session.
-
-        Args:
-            session_id: Unique identifier for the session
-
-        Returns:
-            AgentRunSession instance if found, None if session doesn't exist
-            or if the session.json file is corrupted
-
-        Example:
-            >>> session = repo.get_agent_run_session("1234567890.123")
-            >>> if session:
-            ...     print(f"Agent: {session.agent_id}")
-
-        Note:
-            Corrupted JSON files are logged to stdout and return None.
-        """
+    async def get_agent_run_session_async(
+        self, session_id: str
+    ) -> Optional[AgentRunSession]:
+        """Retrieve an agent session's metadata by session ID."""
         if not self.base_path.exists():
             return None
 
@@ -428,25 +349,8 @@ class FileAgentRunRepository(AgentRunRepository):
             print(f"Error loading session from {session_file}: {e}")
             return None
 
-    def list_agent_run_sessions(self) -> List[AgentRunSession]:
-        """
-        List all agents in the repository.
-
-        Scans all session_* directories and loads their metadata. Corrupted
-        session files are skipped.
-
-        Returns:
-            List of AgentRunSession instances sorted by agent_id.
-            Returns empty list if no agents exist or repository is empty.
-
-        Example:
-            >>> agents = repo.list_agent_run_sessions()
-            >>> for agent in agents:
-            ...     print(f"{agent.agent_id}: {agent.id}")
-
-        Note:
-            Results are sorted alphabetically by agent_id for consistent ordering.
-        """
+    async def list_agent_run_sessions_async(self) -> List[AgentRunSession]:
+        """List all agents in the repository."""
         agents = []
 
         if not self.base_path.exists():
@@ -475,25 +379,8 @@ class FileAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    def delete_agent_run_session(self, session_id: str) -> None:
-        """
-        Delete an agent session and all its associated runtimes.
-
-        This is a cascading delete operation that removes:
-            - Agent metadata (session.json)
-            - All agent runtimes for this session
-
-        Args:
-            session_id: Unique identifier for the session to delete
-
-        Example:
-            >>> repo.delete_agent_run_session("1234567890.123")
-            >>> # All data for this session is now deleted
-
-        Note:
-            This operation is safe to call on non-existent sessions - it will
-            not raise an error if the session doesn't exist.
-        """
+    async def delete_agent_run_session_async(self, session_id: str) -> None:
+        """Delete an agent session and all its associated runtimes."""
         if not self.base_path.exists():
             return
 
@@ -501,32 +388,10 @@ class FileAgentRunRepository(AgentRunRepository):
         if session_dir.exists():
             shutil.rmtree(session_dir)
 
-    def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
-        """
-        Create or update an agent runtime.
-
-        Stores runtime execution metadata including status, timestamps, streaming text,
-        and embedded tool calls.
-
-        Args:
-            session_id: Session ID that owns this runtime
-            agent_run: AgentRun instance to persist (with embedded tool_calls)
-
-        Example:
-            >>> runtime = AgentRun(
-            ...     agent_id="my-agent",
-            ...     status=AgentRunStatus.EXECUTING
-            ... )
-            >>> tool_call = AgentRunToolCall(id="call-1", tool_id="calculator")
-            >>> runtime.tool_calls["call-1"] = tool_call
-            >>> repo.update_agent_run(session.id, runtime)
-
-        Note:
-            This operation is idempotent - calling it multiple times with the
-            same id will overwrite the existing runtime metadata.
-            Creates the session directory if it doesn't exist.
-            Tool calls are embedded within the AgentRun object.
-        """
+    async def update_agent_run_async(
+        self, session_id: str, agent_run: AgentRun
+    ) -> None:
+        """Create or update an agent runtime."""
         session_dir = self._get_session_dir(session_id)
         session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -539,33 +404,10 @@ class FileAgentRunRepository(AgentRunRepository):
         with open(run_file, "w", encoding="utf-8") as f:
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
-    def get_agent_run(self, session_id: str, run_id: str) -> Optional[AgentRun]:
-        """
-        Retrieve an agent runtime by session ID and run ID.
-
-        Reads and deserializes the run.json file for the specified runtime.
-        Tool calls are included as embedded data within the AgentRun object.
-
-        Args:
-            session_id: Session ID that owns the runtime
-            run_id: Unique identifier for the runtime instance
-
-        Returns:
-            AgentRun instance if found (with embedded tool_calls), None if runtime
-            doesn't exist or if the run.json file is corrupted
-
-        Example:
-            >>> runtime = repo.get_agent_run(session.id, "1234567890.123")
-            >>> if runtime:
-            ...     print(f"Status: {runtime.status}")
-            ...     print(f"Tool calls: {len(runtime.tool_calls)}")
-
-        Note:
-            Tool calls are embedded within the AgentRun object.
-            Corrupted JSON files are logged to stdout and return None.
-            streaming_text is excluded from serialization and will be empty string
-            when loaded from the file. It is only used for in-memory streaming.
-        """
+    async def get_agent_run_async(
+        self, session_id: str, run_id: str
+    ) -> Optional[AgentRun]:
+        """Retrieve an agent runtime by session ID and run ID."""
         run_file = self._get_run_file(session_id, run_id)
 
         if not run_file.exists():
@@ -583,53 +425,15 @@ class FileAgentRunRepository(AgentRunRepository):
             print(f"Error loading session {session_id} run {run_id}: {e}")
             return None
 
-    def delete_agent_run(self, session_id: str, run_id: str) -> None:
-        """
-        Delete an agent runtime and all its embedded tool calls.
-
-        Removes the runtime metadata file (run.json) which contains the embedded
-        tool calls.
-
-        Args:
-            session_id: Session ID that owns the runtime
-            run_id: Unique identifier for the runtime to delete
-
-        Example:
-            >>> repo.delete_agent_run(session.id, "1234567890.123")
-            >>> # Runtime and all its embedded tool calls are now deleted
-
-        Note:
-            This operation is safe to call on non-existent runtimes - it will
-            not raise an error if the runtime doesn't exist.
-        """
+    async def delete_agent_run_async(self, session_id: str, run_id: str) -> None:
+        """Delete an agent runtime and all its embedded tool calls."""
         run_file = self._get_run_file(session_id, run_id)
 
         if run_file.exists():
             run_file.unlink()
 
-    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
-        """
-        List all agent runtimes for a specific session in chronological order.
-
-        Scans all run_*.json files in the session directory for the specified session
-        and loads their metadata. Corrupted runtime files are skipped.
-
-        Args:
-            session_id: Session ID to list runtimes for
-
-        Returns:
-            List of AgentRun instances sorted by id (timestamp)
-            in increasing order. Returns empty list if no runtimes exist.
-
-        Example:
-            >>> runtimes = repo.list_agent_runs(session.id)
-            >>> for runtime in runtimes:
-            ...     print(f"{runtime.id}: {runtime.status}")
-
-        Note:
-            Results are sorted chronologically by id (timestamp string)
-            for consistent ordering. Earlier runs appear first in the list.
-        """
+    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+        """List all agent runtimes for a specific session."""
         runtimes = []
 
         session_dir = self._get_session_dir(session_id)

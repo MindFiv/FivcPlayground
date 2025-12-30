@@ -254,17 +254,17 @@ tool_config = ToolConfig(
     env={"VAR": "value"}  # optional
 )
 
-# Store the configuration
-repo.update_tool_config(tool_config)
+# Store the configuration (async)
+await repo.update_tool_config_async(tool_config)
 
-# Retrieve a configuration
-config = repo.get_tool_config("my_server")
+# Retrieve a configuration (async)
+config = await repo.get_tool_config_async("my_server")
 
-# List all configurations
-all_configs = repo.list_tool_configs()
+# List all configurations (async)
+all_configs = await repo.list_tool_configs_async()
 
-# Delete a configuration
-repo.delete_tool_config("my_server")
+# Delete a configuration (async)
+await repo.delete_tool_config_async("my_server")
 ```
 
 **Configuration Types:**
@@ -299,14 +299,13 @@ tool_config = ToolConfig(
 
 - `ToolConfig` - Pydantic model for tool configuration with validation
 - `ToolConfigRepository` - Abstract base class for tool configuration storage
-- `FileToolConfigRepository` - File-based implementation using JSON storage
-- `update_tool_config(config)` - Stores or updates a tool configuration
-- `get_tool_config(tool_id)` - Retrieves a specific configuration
-- `list_tool_configs()` - Lists all stored configurations
-- `delete_tool_config(tool_id)` - Removes a configuration
-- `list()` - Returns all configuration names
-- `load(filename)` - Loads configurations from file (validates all entries)
-- `save(filename)` - Saves configurations to file
+- `FileToolConfigRepository` - File-based implementation using YAML storage
+- `update_tool_config_async(config)` - Stores or updates a tool configuration (async)
+- `get_tool_config_async(tool_id)` - Retrieves a specific configuration (async)
+- `list_tool_configs_async()` - Lists all stored configurations (async)
+- `delete_tool_config_async(tool_id)` - Removes a configuration (async)
+
+**Note**: All repository methods use async/await pattern. Deprecated synchronous methods (without `_async` suffix) are still available for backward compatibility but should be migrated to async versions.
 
 Supported configuration formats:
 - **YAML** (.yaml, .yml) - Human-readable format

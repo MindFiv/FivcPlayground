@@ -16,29 +16,6 @@ This structure allows for:
     - Simple backup and version control
     - Atomic updates of all embeddings
 
-Example:
-    >>> from fivcplayground.embeddings.types.repositories.files import FileEmbeddingConfigRepository
-    >>> from fivcplayground.embeddings.types.base import EmbeddingConfig
-    >>> from fivcplayground.utils import OutputDir
-    >>>
-    >>> # Create repository
-    >>> repo = FileEmbeddingConfigRepository(output_dir=OutputDir("./embeddings"))
-    >>>
-    >>> # Store embedding configuration
-    >>> embedding_config = EmbeddingConfig(
-    ...     id="openai-ada",
-    ...     provider="openai",
-    ...     model="text-embedding-ada-002",
-    ...     api_key="sk-...",
-    ...     dimension=1536
-    ... )
-    >>> repo.update_embedding_config(embedding_config)
-    >>>
-    >>> # Retrieve embedding configuration
-    >>> config = repo.get_embedding_config("openai-ada")
-    >>>
-    >>> # List all embeddings
-    >>> embeddings = repo.list_embedding_configs()
 """
 
 import yaml
@@ -133,7 +110,9 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         with open(embeddings_file, "w", encoding="utf-8") as f:
             yaml.dump(embeddings_data, f, default_flow_style=False, allow_unicode=True)
 
-    def update_embedding_config(self, embedding_config: EmbeddingConfig) -> None:
+    async def update_embedding_config_async(
+        self, embedding_config: EmbeddingConfig
+    ) -> None:
         """
         Create or update an embedding configuration.
 
@@ -161,7 +140,9 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         # Save all embeddings back to file
         self._save_embeddings_data(embeddings_data)
 
-    def get_embedding_config(self, embedding_id: str) -> EmbeddingConfig | None:
+    async def get_embedding_config_async(
+        self, embedding_id: str
+    ) -> EmbeddingConfig | None:
         """
         Retrieve an embedding configuration by ID.
 
@@ -185,7 +166,7 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
             print(f"Error loading embedding {embedding_id}: {e}")
             return None
 
-    def list_embedding_configs(self, **kwargs) -> List[EmbeddingConfig]:
+    async def list_embedding_configs_async(self, **kwargs) -> List[EmbeddingConfig]:
         """
         List all embedding configurations in the repository.
 
@@ -208,7 +189,7 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
 
         return embeddings
 
-    def delete_embedding_config(self, embedding_id: str) -> None:
+    async def delete_embedding_config_async(self, embedding_id: str) -> None:
         """
         Delete an embedding configuration.
 

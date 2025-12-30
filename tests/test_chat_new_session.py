@@ -54,7 +54,7 @@ class TestChatNewSession:
 
                 # Create the session in the repository (simulating what AgentRunSessionSpan does)
                 if session_id and agent_run_repo:
-                    agent_run_repo.update_agent_run_session(
+                    await agent_run_repo.update_agent_run_session_async(
                         AgentRunSession(
                             id=session_id,
                             agent_id=agent_id,
@@ -93,7 +93,7 @@ class TestChatNewSession:
             assert isinstance(chat.id, str)
 
             # Verify the session was created in the repository
-            session = repo.get_agent_run_session(chat.id)
+            session = asyncio.run(repo.get_agent_run_session_async(chat.id))
             assert session is not None
             assert session.agent_id == "test-agent"
 
@@ -109,7 +109,7 @@ class TestChatNewSession:
                 agent_id="test-agent",
                 description="Existing chat",
             )
-            repo.update_agent_run_session(session)
+            asyncio.run(repo.update_agent_run_session_async(session))
 
             # Create a chat with existing session ID
             chat = Chat(

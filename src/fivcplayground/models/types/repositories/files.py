@@ -16,29 +16,6 @@ This structure allows for:
     - Simple backup and version control
     - Atomic updates of all models
 
-Example:
-    >>> from fivcplayground.models.types.repositories.files import FileModelConfigRepository
-    >>> from fivcplayground.models.types.base import ModelConfig
-    >>> from fivcplayground.utils import OutputDir
-    >>>
-    >>> # Create repository
-    >>> repo = FileModelConfigRepository(output_dir=OutputDir("./models"))
-    >>>
-    >>> # Store model configuration
-    >>> model_config = ModelConfig(
-    ...     id="gpt-4",
-    ...     model="gpt-4",
-    ...     provider="openai",
-    ...     api_key="sk-...",
-    ...     temperature=0.7
-    ... )
-    >>> repo.update_model_config(model_config)
-    >>>
-    >>> # Retrieve model configuration
-    >>> config = repo.get_model_config("gpt-4")
-    >>>
-    >>> # List all models
-    >>> models = repo.list_model_configs()
 """
 
 from pathlib import Path
@@ -135,7 +112,7 @@ class FileModelConfigRepository(ModelConfigRepository):
         with open(models_file, "w", encoding="utf-8") as f:
             yaml.dump(models_data, f, default_flow_style=False, allow_unicode=True)
 
-    def update_model_config(self, model_config: ModelConfig) -> None:
+    async def update_model_config_async(self, model_config: ModelConfig) -> None:
         """
         Create or update a model configuration.
 
@@ -163,7 +140,7 @@ class FileModelConfigRepository(ModelConfigRepository):
         # Save all models back to file
         self._save_models_data(models_data)
 
-    def get_model_config(self, model_id: str) -> ModelConfig | None:
+    async def get_model_config_async(self, model_id: str) -> ModelConfig | None:
         """
         Retrieve a model configuration by ID.
 
@@ -187,7 +164,7 @@ class FileModelConfigRepository(ModelConfigRepository):
             print(f"Error loading model {model_id}: {e}")
             return None
 
-    def list_model_configs(self, **kwargs) -> List[ModelConfig]:
+    async def list_model_configs_async(self, **kwargs) -> List[ModelConfig]:
         """
         List all model configurations in the repository.
 
@@ -210,7 +187,7 @@ class FileModelConfigRepository(ModelConfigRepository):
 
         return models
 
-    def delete_model_config(self, model_id: str) -> None:
+    async def delete_model_config_async(self, model_id: str) -> None:
         """
         Delete a model configuration.
 

@@ -3,6 +3,7 @@
 Tests for FileToolConfigRepository functionality.
 """
 
+import pytest
 import yaml
 import tempfile
 
@@ -14,7 +15,8 @@ from fivcplayground.utils import OutputDir
 class TestFileToolConfigRepository:
     """Tests for FileToolConfigRepository class"""
 
-    def test_initialization_with_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_with_output_dir(self):
         """Test repository initialization with custom output directory"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -24,13 +26,15 @@ class TestFileToolConfigRepository:
             assert repo.base_path.exists()
             assert repo.base_path.is_dir()
 
-    def test_initialization_without_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_without_output_dir(self):
         """Test repository initialization with default output directory"""
         repo = FileToolConfigRepository()
         assert repo.base_path.exists()
         assert repo.base_path.is_dir()
 
-    def test_update_and_get_tool_config(self):
+    @pytest.mark.asyncio
+    async def test_update_and_get_tool_config(self):
         """Test creating and retrieving a tool configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -44,10 +48,10 @@ class TestFileToolConfigRepository:
                 command="python",
                 args=["calculator.py"],
             )
-            repo.update_tool_config(tool_config)
+            await repo.update_tool_config_async(tool_config)
 
             # Retrieve the tool config
-            retrieved_config = repo.get_tool_config("calculator")
+            retrieved_config = await repo.get_tool_config_async("calculator")
             assert retrieved_config is not None
             assert retrieved_config.id == "calculator"
             assert retrieved_config.description == "A calculator tool"
@@ -55,7 +59,8 @@ class TestFileToolConfigRepository:
             assert retrieved_config.command == "python"
             assert retrieved_config.args == ["calculator.py"]
 
-    def test_update_existing_tool_config(self):
+    @pytest.mark.asyncio
+    async def test_update_existing_tool_config(self):
         """Test updating an existing tool configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -68,7 +73,7 @@ class TestFileToolConfigRepository:
                 transport="sse",
                 url="http://localhost:8000/sse",
             )
-            repo.update_tool_config(tool_config)
+            await repo.update_tool_config_async(tool_config)
 
             # Update tool config
             updated_config = ToolConfig(
@@ -77,14 +82,15 @@ class TestFileToolConfigRepository:
                 transport="sse",
                 url="http://localhost:9000/sse",
             )
-            repo.update_tool_config(updated_config)
+            await repo.update_tool_config_async(updated_config)
 
             # Verify updated config
-            retrieved_config = repo.get_tool_config("weather")
+            retrieved_config = await repo.get_tool_config_async("weather")
             assert retrieved_config.description == "Updated weather tool"
             assert retrieved_config.url == "http://localhost:9000/sse"
 
-    def test_list_tool_configs(self):
+    @pytest.mark.asyncio
+    async def test_list_tool_configs(self):
         """Test listing all tool configurations"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -107,15 +113,16 @@ class TestFileToolConfigRepository:
             ]
 
             for tool in tools:
-                repo.update_tool_config(tool)
+                await repo.update_tool_config_async(tool)
 
             # List all tools
-            listed_tools = repo.list_tool_configs()
+            listed_tools = await repo.list_tool_configs_async()
             assert len(listed_tools) == 3
             tool_ids = {tool.id for tool in listed_tools}
             assert tool_ids == {"tool1", "tool2", "tool3"}
 
-    def test_delete_tool_config(self):
+    @pytest.mark.asyncio
+    async def test_delete_tool_config(self):
         """Test deleting a tool configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -128,30 +135,32 @@ class TestFileToolConfigRepository:
                 transport="stdio",
                 command="test",
             )
-            repo.update_tool_config(tool_config)
+            await repo.update_tool_config_async(tool_config)
 
             # Verify tool exists
-            assert repo.get_tool_config("test-tool") is not None
+            assert await repo.get_tool_config_async("test-tool") is not None
 
             # Delete tool
-            repo.delete_tool_config("test-tool")
+            await repo.delete_tool_config_async("test-tool")
 
             # Verify tool is deleted
-            assert repo.get_tool_config("test-tool") is None
+            assert await repo.get_tool_config_async("test-tool") is None
             # Verify deletion in YAML data
             tools_data = repo._load_tools_data()
             assert "test-tool" not in tools_data
 
-    def test_delete_nonexistent_tool(self):
+    @pytest.mark.asyncio
+    async def test_delete_nonexistent_tool(self):
         """Test deleting a tool that doesn't exist (should be safe)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileToolConfigRepository(output_dir=output_dir)
 
             # Delete non-existent tool (should not raise error)
-            repo.delete_tool_config("nonexistent-tool")
+            await repo.delete_tool_config_async("nonexistent-tool")
 
-    def test_yaml_file_format(self):
+    @pytest.mark.asyncio
+    async def test_yaml_file_format(self):
         """Test that tool configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -165,7 +174,7 @@ class TestFileToolConfigRepository:
                 command="python",
                 args=["test.py"],
             )
-            repo.update_tool_config(tool_config)
+            await repo.update_tool_config_async(tool_config)
 
             # Read YAML file directly
             tools_file = repo._get_tools_file()
@@ -178,7 +187,8 @@ class TestFileToolConfigRepository:
             assert data["test-tool"]["description"] == "Test description"
             assert data["test-tool"]["transport"] == "stdio"
 
-    def test_corrupted_yaml_handling(self):
+    @pytest.mark.asyncio
+    async def test_corrupted_yaml_handling(self):
         """Test handling of corrupted YAML files"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -193,7 +203,8 @@ class TestFileToolConfigRepository:
             tools_data = repo._load_tools_data()
             assert tools_data == {}
 
-    def test_id_field_set_on_get(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_get(self):
         """Test that id field is properly set when retrieving tool config"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -206,17 +217,18 @@ class TestFileToolConfigRepository:
                 transport="stdio",
                 command="python",
             )
-            repo.update_tool_config(tool_config)
+            await repo.update_tool_config_async(tool_config)
 
             # Retrieve and verify id field is set
-            retrieved = repo.get_tool_config("test-tool")
+            retrieved = await repo.get_tool_config_async("test-tool")
             assert retrieved is not None
             assert retrieved.id == "test-tool"
             assert retrieved.description == "Test tool"
             assert retrieved.transport == "stdio"
             assert retrieved.command == "python"
 
-    def test_id_field_set_on_list(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_list(self):
         """Test that id field is properly set when listing tool configs"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -245,10 +257,10 @@ class TestFileToolConfigRepository:
             ]
 
             for tool in tools:
-                repo.update_tool_config(tool)
+                await repo.update_tool_config_async(tool)
 
             # List and verify all id fields are set
-            listed_tools = repo.list_tool_configs()
+            listed_tools = await repo.list_tool_configs_async()
             assert len(listed_tools) == 3
 
             for tool in listed_tools:

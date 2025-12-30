@@ -375,7 +375,10 @@ def setup(
     except typer.Exit:
         raise
     except Exception as e:
+        import traceback
+
         console.print(f"[red]❌ Setup failed: {e}[/red]")
+        console.print(traceback.format_exc())
         raise typer.Exit(1)
 
 

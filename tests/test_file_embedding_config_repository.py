@@ -3,6 +3,7 @@
 Tests for FileEmbeddingConfigRepository functionality and EmbeddingDB/EmbeddingTable integration.
 """
 
+import pytest
 import yaml
 import tempfile
 
@@ -10,7 +11,11 @@ from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.embeddings.types.repositories.files import (
     FileEmbeddingConfigRepository,
 )
-from fivcplayground.embeddings import create_embedding_db, EmbeddingDB, EmbeddingTable
+from fivcplayground.embeddings import (
+    create_embedding_db_async,
+    EmbeddingDB,
+    EmbeddingTable,
+)
 from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 from fivcplayground.utils import OutputDir
 
@@ -18,7 +23,8 @@ from fivcplayground.utils import OutputDir
 class TestFileEmbeddingConfigRepository:
     """Tests for FileEmbeddingConfigRepository class"""
 
-    def test_initialization_with_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_with_output_dir(self):
         """Test repository initialization with custom output directory"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -28,13 +34,15 @@ class TestFileEmbeddingConfigRepository:
             assert repo.base_path.exists()
             assert repo.base_path.is_dir()
 
-    def test_initialization_without_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_without_output_dir(self):
         """Test repository initialization with default output directory"""
         repo = FileEmbeddingConfigRepository()
         assert repo.base_path.exists()
         assert repo.base_path.is_dir()
 
-    def test_update_and_get_embedding_config(self):
+    @pytest.mark.asyncio
+    async def test_update_and_get_embedding_config(self):
         """Test creating and retrieving an embedding configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -51,21 +59,22 @@ class TestFileEmbeddingConfigRepository:
             )
 
             # Save embedding config
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Verify embeddings file exists
             embeddings_file = repo._get_embeddings_file()
             assert embeddings_file.exists()
 
             # Retrieve embedding config
-            retrieved_config = repo.get_embedding_config("openai-ada")
+            retrieved_config = await repo.get_embedding_config_async("openai-ada")
             assert retrieved_config is not None
             assert retrieved_config.model == "text-embedding-ada-002"
             assert retrieved_config.provider == "openai"
             assert retrieved_config.api_key == "sk-test-key"
             assert retrieved_config.dimension == 1536
 
-    def test_update_existing_embedding_config(self):
+    @pytest.mark.asyncio
+    async def test_update_existing_embedding_config(self):
         """Test updating an existing embedding configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -78,7 +87,7 @@ class TestFileEmbeddingConfigRepository:
                 model="text-embedding-3-small",
                 dimension=1536,
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Update embedding config
             updated_config = EmbeddingConfig(
@@ -87,14 +96,15 @@ class TestFileEmbeddingConfigRepository:
                 model="text-embedding-3-large",
                 dimension=3072,
             )
-            repo.update_embedding_config(updated_config)
+            await repo.update_embedding_config_async(updated_config)
 
             # Verify updated config
-            retrieved_config = repo.get_embedding_config("test-embedding")
+            retrieved_config = await repo.get_embedding_config_async("test-embedding")
             assert retrieved_config.model == "text-embedding-3-large"
             assert retrieved_config.dimension == 3072
 
-    def test_list_embedding_configs(self):
+    @pytest.mark.asyncio
+    async def test_list_embedding_configs(self):
         """Test listing all embedding configurations"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -118,24 +128,26 @@ class TestFileEmbeddingConfigRepository:
             ]
 
             for embedding in embeddings:
-                repo.update_embedding_config(embedding)
+                await repo.update_embedding_config_async(embedding)
 
             # List all embeddings
-            listed_embeddings = repo.list_embedding_configs()
+            listed_embeddings = await repo.list_embedding_configs_async()
             assert len(listed_embeddings) == 3
             assert all(isinstance(e, EmbeddingConfig) for e in listed_embeddings)
 
-    def test_list_empty_repository(self):
+    @pytest.mark.asyncio
+    async def test_list_empty_repository(self):
         """Test listing embeddings from empty repository"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileEmbeddingConfigRepository(output_dir=output_dir)
 
             # List embeddings from empty repository
-            embeddings = repo.list_embedding_configs()
+            embeddings = await repo.list_embedding_configs_async()
             assert embeddings == []
 
-    def test_delete_embedding_config(self):
+    @pytest.mark.asyncio
+    async def test_delete_embedding_config(self):
         """Test deleting an embedding configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -147,31 +159,33 @@ class TestFileEmbeddingConfigRepository:
                 provider="openai",
                 model="text-embedding-ada-002",
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Verify embedding exists
-            assert repo.get_embedding_config("test-embedding") is not None
+            assert await repo.get_embedding_config_async("test-embedding") is not None
 
             # Delete embedding
-            repo.delete_embedding_config("test-embedding")
+            await repo.delete_embedding_config_async("test-embedding")
 
             # Verify embedding is deleted
-            assert repo.get_embedding_config("test-embedding") is None
+            assert await repo.get_embedding_config_async("test-embedding") is None
 
             # Verify embedding is not in the YAML file
             embeddings_data = repo._load_embeddings_data()
             assert "test-embedding" not in embeddings_data
 
-    def test_delete_nonexistent_embedding(self):
+    @pytest.mark.asyncio
+    async def test_delete_nonexistent_embedding(self):
         """Test deleting an embedding that doesn't exist (should be safe)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileEmbeddingConfigRepository(output_dir=output_dir)
 
             # Delete non-existent embedding (should not raise error)
-            repo.delete_embedding_config("nonexistent-embedding")
+            await repo.delete_embedding_config_async("nonexistent-embedding")
 
-    def test_yaml_file_format(self):
+    @pytest.mark.asyncio
+    async def test_yaml_file_format(self):
         """Test that embedding configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -187,7 +201,7 @@ class TestFileEmbeddingConfigRepository:
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Read YAML file directly
             embeddings_file = repo._get_embeddings_file()
@@ -204,7 +218,8 @@ class TestFileEmbeddingConfigRepository:
             assert embedding_data["api_key"] == "sk-test"
             assert embedding_data["dimension"] == 1536
 
-    def test_id_field_set_on_get(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_get(self):
         """Test that id field is properly set when retrieving embedding config"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -217,17 +232,18 @@ class TestFileEmbeddingConfigRepository:
                 model="text-embedding-ada-002",
                 dimension=1536,
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Retrieve and verify id field is set
-            retrieved = repo.get_embedding_config("test-embedding")
+            retrieved = await repo.get_embedding_config_async("test-embedding")
             assert retrieved is not None
             assert retrieved.id == "test-embedding"
             assert retrieved.provider == "openai"
             assert retrieved.model == "text-embedding-ada-002"
             assert retrieved.dimension == 1536
 
-    def test_id_field_set_on_list(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_list(self):
         """Test that id field is properly set when listing embedding configs"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -253,10 +269,10 @@ class TestFileEmbeddingConfigRepository:
             ]
 
             for embedding in embeddings:
-                repo.update_embedding_config(embedding)
+                await repo.update_embedding_config_async(embedding)
 
             # List and verify all id fields are set
-            listed_embeddings = repo.list_embedding_configs()
+            listed_embeddings = await repo.list_embedding_configs_async()
             assert len(listed_embeddings) == 3
 
             for embedding in listed_embeddings:
@@ -274,7 +290,8 @@ class TestFileEmbeddingConfigRepository:
 class TestEmbeddingDBIntegration:
     """Tests for EmbeddingDB and EmbeddingTable integration with new API"""
 
-    def test_create_embedding_db_with_config(self):
+    @pytest.mark.asyncio
+    async def test_create_embedding_db_with_config(self):
         """Test creating EmbeddingDB with EmbeddingConfig"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create and save embedding config
@@ -289,10 +306,10 @@ class TestEmbeddingDBIntegration:
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Create EmbeddingDB using factory function
-            db = create_embedding_db(
+            db = await create_embedding_db_async(
                 embedding_backend=ChromaEmbeddingBackend(),
                 embedding_config_repository=repo,
                 embedding_config_id="default",
@@ -300,7 +317,8 @@ class TestEmbeddingDBIntegration:
 
             assert isinstance(db, EmbeddingDB)
 
-    def test_embedding_table_dynamic_access(self):
+    @pytest.mark.asyncio
+    async def test_embedding_table_dynamic_access(self):
         """Test accessing EmbeddingTable via dynamic attribute access"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create and save embedding config
@@ -315,10 +333,10 @@ class TestEmbeddingDBIntegration:
                 base_url="https://api.openai.com/v1",
                 dimension=1536,
             )
-            repo.update_embedding_config(embedding_config)
+            await repo.update_embedding_config_async(embedding_config)
 
             # Create EmbeddingDB and access collection via dynamic attribute
-            db = create_embedding_db(
+            db = await create_embedding_db_async(
                 embedding_backend=ChromaEmbeddingBackend(),
                 embedding_config_repository=repo,
                 embedding_config_id="default",

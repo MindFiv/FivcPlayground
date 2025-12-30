@@ -1,5 +1,6 @@
 __all__ = [
     "create_tool_retriever",
+    "create_tool_retriever_async",
     "Tool",
     "ToolBundle",
     "ToolBundleContext",
@@ -9,10 +10,12 @@ __all__ = [
     "ToolRetriever",
 ]
 
+from typing_extensions import deprecated
+
 from fivcplayground.embeddings import (
     EmbeddingBackend,
     EmbeddingConfigRepository,
-    create_embedding_db,
+    create_embedding_db_async,
 )
 from fivcplayground.tools.types import (
     ToolRetriever,
@@ -27,6 +30,7 @@ from fivcplayground.tools.types.repositories.base import (
 )
 
 
+@deprecated("Use create_tool_retriever_async instead")
 def create_tool_retriever(
     tool_backend: ToolBackend | None = None,
     tool_config_repository: ToolConfigRepository | None = None,
@@ -58,6 +62,35 @@ def create_tool_retriever(
     Raises:
         TypeError: If tool_backend is not provided or is not a ToolBackend instance.
     """
+    import asyncio
+
+    return asyncio.run(
+        create_tool_retriever_async(
+            tool_backend=tool_backend,
+            tool_config_repository=tool_config_repository,
+            embedding_backend=embedding_backend,
+            embedding_config_repository=embedding_config_repository,
+            embedding_config_id=embedding_config_id,
+            space_id=space_id,
+            raise_exception=raise_exception,
+            load_builtin_tools=load_builtin_tools,
+            **kwargs,
+        )
+    )
+
+
+async def create_tool_retriever_async(
+    tool_backend: ToolBackend | None = None,
+    tool_config_repository: ToolConfigRepository | None = None,
+    embedding_backend: EmbeddingBackend | None = None,
+    embedding_config_repository: EmbeddingConfigRepository | None = None,
+    embedding_config_id: str = "default",
+    space_id: str | None = None,
+    raise_exception: bool = True,
+    load_builtin_tools: bool = True,
+    **kwargs,  # ignore additional kwargs
+) -> ToolRetriever | None:
+    """Async version of create_tool_retriever."""
     if tool_backend is None:
         if raise_exception:
             raise RuntimeError(
@@ -67,20 +100,18 @@ def create_tool_retriever(
         return None
 
     if not embedding_config_repository:
-        from fivcplayground.embeddings.types.repositories.files import (
-            FileEmbeddingConfigRepository,
-        )
+        if raise_exception:
+            raise RuntimeError("No embedding config repository specified")
 
-        embedding_config_repository = FileEmbeddingConfigRepository()
+        return None
 
     if not tool_config_repository:
-        from fivcplayground.tools.types.repositories.files import (
-            FileToolConfigRepository,
-        )
+        if raise_exception:
+            raise RuntimeError("No tool config repository specified")
 
-        tool_config_repository = FileToolConfigRepository()
+        return None
 
-    embedding_db = create_embedding_db(
+    embedding_db = await create_embedding_db_async(
         embedding_backend=embedding_backend,
         embedding_config_repository=embedding_config_repository,
         embedding_config_id=embedding_config_id,

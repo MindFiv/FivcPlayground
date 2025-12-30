@@ -8,14 +8,11 @@ Tests verify:
 - Model backend creation
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 import pytest
 
 from fivcplayground.models import (
     create_model,
-    # create_chat_model,
-    # create_reasoning_model,
-    # create_coding_model,
 )
 from fivcplayground.models.types.base import ModelConfig
 
@@ -32,7 +29,9 @@ class TestCreateModel:
             model="gpt-4o-mini",
         )
         mock_model_repo = Mock()
-        mock_model_repo.get_model_config.return_value = mock_model_config
+        mock_model_repo.get_model_config_async = AsyncMock(
+            return_value=mock_model_config
+        )
 
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model
@@ -44,13 +43,13 @@ class TestCreateModel:
         )
 
         assert result == mock_model
-        mock_model_repo.get_model_config.assert_called_once_with("test-model")
+        mock_model_repo.get_model_config_async.assert_called_once_with("test-model")
         mock_backend.create_model.assert_called_once_with(mock_model_config)
 
     def test_create_model_missing_config(self):
         """Test create_model raises error when config not found."""
         mock_model_repo = Mock()
-        mock_model_repo.get_model_config.return_value = None
+        mock_model_repo.get_model_config_async = AsyncMock(return_value=None)
 
         mock_backend = Mock()
 
@@ -68,7 +67,9 @@ class TestCreateModel:
             model="gpt-4o-mini",
         )
         mock_model_repo = Mock()
-        mock_model_repo.get_model_config.return_value = mock_model_config
+        mock_model_repo.get_model_config_async = AsyncMock(
+            return_value=mock_model_config
+        )
 
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model
@@ -77,7 +78,7 @@ class TestCreateModel:
             model_backend=mock_backend, model_config_repository=mock_model_repo
         )
 
-        mock_model_repo.get_model_config.assert_called_once_with("default")
+        mock_model_repo.get_model_config_async.assert_called_once_with("default")
 
     def test_create_model_passes_config_to_backend(self):
         """Test create_model passes config to backend create function."""
@@ -90,7 +91,9 @@ class TestCreateModel:
             max_tokens=1000,
         )
         mock_model_repo = Mock()
-        mock_model_repo.get_model_config.return_value = mock_model_config
+        mock_model_repo.get_model_config_async = AsyncMock(
+            return_value=mock_model_config
+        )
 
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model

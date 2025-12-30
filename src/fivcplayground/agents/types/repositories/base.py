@@ -1,5 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import List
+from typing_extensions import deprecated
+
 
 from fivcplayground.agents.types.base import (
     AgentConfig,
@@ -16,25 +18,37 @@ class AgentConfigRepository(ABC):
     Implementations can use different storage backends (files, databases, etc.).
     """
 
-    @abstractmethod
+    @deprecated("Use update_agent_config_async instead")
     def update_agent_config(self, agent_config: AgentConfig) -> None:
         """Create or update an agent configuration."""
-        ...
 
-    @abstractmethod
+    @deprecated("Use get_agent_config_async instead")
     def get_agent_config(self, agent_id: str) -> AgentConfig | None:
         """Retrieve an agent configuration by ID."""
-        ...
 
-    @abstractmethod
+    @deprecated("Use list_agent_configs_async instead")
     def list_agent_configs(self) -> List[AgentConfig]:
         """List all agent configurations in the repository."""
-        ...
 
-    @abstractmethod
+    @deprecated("Use delete_agent_config_async instead")
     def delete_agent_config(self, agent_id: str) -> None:
         """Delete an agent configuration."""
-        ...
+
+    @abstractmethod
+    async def update_agent_config_async(self, agent_config: AgentConfig) -> None:
+        """Create or update an agent configuration."""
+
+    @abstractmethod
+    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
+        """Retrieve an agent configuration by ID."""
+
+    @abstractmethod
+    async def list_agent_configs_async(self) -> List[AgentConfig]:
+        """List all agent configurations in the repository."""
+
+    @abstractmethod
+    async def delete_agent_config_async(self, agent_id: str) -> None:
+        """Delete an agent configuration."""
 
 
 class AgentRunRepository(ABC):
@@ -50,133 +64,72 @@ class AgentRunRepository(ABC):
         3. Tool calls (AgentRunToolCall) - Tool invocations within runtimes
     """
 
-    @abstractmethod
+    @deprecated("Use update_agent_run_session_async instead")
     def update_agent_run_session(self, session: AgentRunSession) -> None:
-        """
-        Create or update an agent's metadata.
+        """Create or update an agent's metadata."""
 
-        Args:
-            session: AgentRunSession instance containing agent configuration
-
-        Note:
-            This operation is idempotent - calling it multiple times with the
-            same agent_id will update the existing agent metadata.
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use get_agent_run_session_async instead")
     def get_agent_run_session(self, session_id: str) -> AgentRunSession | None:
-        """
-        Retrieve an agent's metadata by ID.
+        """Retrieve an agent's metadata by session ID."""
 
-        Args:
-            session_id: Unique identifier for the agent
-
-        Returns:
-            AgentRunSession instance if found, None otherwise
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use list_agent_run_sessions_async instead")
     def list_agent_run_sessions(self) -> List[AgentRunSession]:
-        """
-        List all agents in the repository.
+        """List all agents in the repository."""
 
-        Returns:
-            List of AgentRunSession instances for all agents.
-            Returns empty list if no agents exist.
-
-        Note:
-            The order of returned agents is implementation-specific but
-            should be consistent across calls.
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use delete_agent_run_session_async instead")
     def delete_agent_run_session(self, session_id: str) -> None:
-        """
-        Delete an agent and all its associated runtimes.
+        """Delete an agent's metadata and all its runtimes."""
 
-        This is a cascading delete operation that removes:
-            - Agent metadata
-            - All agent runtimes for this agent
-            - All tool calls within those runtimes
-
-        Args:
-            session_id: Unique identifier for the agent to delete
-
-        Note:
-            This operation should not raise an error if the agent doesn't exist.
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use update_agent_run_async instead")
     def update_agent_run(self, session_id: str, agent_run: AgentRun) -> None:
-        """
-        Create or update an agent runtime's metadata.
+        """Create or update an agent runtime."""
 
-        Args:
-            session_id: Session ID that owns this runtime
-            agent_run: AgentRun instance to persist (with embedded tool_calls)
-
-        Note:
-            This operation is idempotent - calling it multiple times with the
-            same id will update the existing runtime.
-            Tool calls are embedded within the AgentRun object.
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use get_agent_run_async instead")
     def get_agent_run(self, session_id: str, run_id: str) -> AgentRun | None:
-        """
-        Retrieve an agent runtime by session ID and run ID.
+        """Retrieve an agent runtime by session ID and run ID."""
 
-        Args:
-            session_id: Session ID that owns the runtime
-            run_id: Unique identifier for the runtime instance
-
-        Returns:
-            AgentRun instance if found (with embedded tool_calls), None otherwise
-
-        Note:
-            Tool calls are embedded within the AgentRun object.
-        """
-        ...
-
-    @abstractmethod
+    @deprecated("Use delete_agent_run_async instead")
     def delete_agent_run(self, session_id: str, run_id: str) -> None:
-        """
-        Delete an agent runtime and all its tool calls.
+        """Delete an agent runtime and all its tool calls."""
 
-        This is a cascading delete operation that removes:
-            - Agent runtime metadata
-            - All tool calls within this runtime
-
-        Args:
-            session_id: Session ID that owns the runtime
-            run_id: Unique identifier for the runtime to delete
-
-        Note:
-            This operation should not raise an error if the runtime doesn't exist.
-        """
-        ...
+    @deprecated("Use list_agent_runs_async instead")
+    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
+        """List all agent runtimes for a specific session."""
 
     @abstractmethod
-    def list_agent_runs(self, session_id: str) -> List[AgentRun]:
-        """
-        List all agent runtimes for a specific session.
+    async def update_agent_run_session_async(self, session: AgentRunSession) -> None:
+        """Create or update an agent's metadata."""
 
-        Args:
-            session_id: Session ID to list runtimes for
+    @abstractmethod
+    async def get_agent_run_session_async(
+        self, session_id: str
+    ) -> AgentRunSession | None:
+        """Retrieve an agent's metadata by session ID."""
 
-        Returns:
-            List of AgentRun instances for the specified session.
-            Returns empty list if no runtimes exist.
+    @abstractmethod
+    async def list_agent_run_sessions_async(self) -> List[AgentRunSession]:
+        """List all agents in the repository."""
 
-        Note:
-            The order of returned runtimes is implementation-specific but
-            should be consistent across calls. Chronological ordering by
-            id is recommended.
-            Tool calls are embedded within each AgentRun instance.
-        """
-        ...
+    @abstractmethod
+    async def delete_agent_run_session_async(self, session_id: str) -> None:
+        """Delete an agent's metadata and all its runtimes."""
+
+    @abstractmethod
+    async def update_agent_run_async(
+        self, session_id: str, agent_run: AgentRun
+    ) -> None:
+        """Create or update an agent runtime."""
+
+    @abstractmethod
+    async def get_agent_run_async(
+        self, session_id: str, run_id: str
+    ) -> AgentRun | None:
+        """Retrieve an agent runtime by session ID and run ID."""
+
+    @abstractmethod
+    async def delete_agent_run_async(self, session_id: str, run_id: str) -> None:
+        """Delete an agent runtime and all its tool calls."""
+
+    @abstractmethod
+    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+        """List all agent runtimes for a specific session."""

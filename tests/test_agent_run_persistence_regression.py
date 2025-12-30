@@ -13,6 +13,7 @@ These tests prevent regression of the bug where agent run final states were not
 being persisted to the repository after the FINISH event.
 """
 
+import pytest
 import tempfile
 import json
 from datetime import datetime
@@ -36,7 +37,8 @@ from fivcplayground.utils import OutputDir
 class TestAgentRunFinalStatePersistence:
     """Test that agent run final state is persisted to repository."""
 
-    def test_agent_run_session_span_saves_on_call(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_session_span_saves_on_call(self):
         """Test that AgentRunSessionSpan saves agent run when called."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -45,7 +47,7 @@ class TestAgentRunFinalStatePersistence:
             agent_id = "test-agent"
 
             # Create a session first
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -65,17 +67,18 @@ class TestAgentRunFinalStatePersistence:
 
             # Create AgentRunSessionSpan and call it to save
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Verify the agent run was saved
-            saved_run = repo.get_agent_run(session_id, agent_run.id)
+            saved_run = await repo.get_agent_run_async(session_id, agent_run.id)
             assert saved_run is not None
             assert saved_run.status == AgentRunStatus.COMPLETED
             assert saved_run.reply is not None
             assert saved_run.reply.text == "test response"
             assert saved_run.completed_at is not None
 
-    def test_agent_run_json_file_contains_final_state(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_json_file_contains_final_state(self):
         """Test that persisted JSON file contains final state with reply."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -84,7 +87,7 @@ class TestAgentRunFinalStatePersistence:
             agent_id = "test-agent"
 
             # Create session
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -103,7 +106,7 @@ class TestAgentRunFinalStatePersistence:
             )
 
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Find and read the JSON file
             session_dir = Path(tmpdir) / f"session_{session_id}"
@@ -120,7 +123,8 @@ class TestAgentRunFinalStatePersistence:
             assert data["reply"]["text"] == "hello there"
             assert data["is_completed"] is True
 
-    def test_agent_run_failed_status_persisted(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_failed_status_persisted(self):
         """Test that failed agent runs are persisted with error status."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -129,7 +133,7 @@ class TestAgentRunFinalStatePersistence:
             agent_id = "test-agent"
 
             # Create session
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -148,10 +152,10 @@ class TestAgentRunFinalStatePersistence:
             )
 
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Verify failed state was persisted
-            saved_run = repo.get_agent_run(session_id, agent_run.id)
+            saved_run = await repo.get_agent_run_async(session_id, agent_run.id)
             assert saved_run is not None
             assert saved_run.status == AgentRunStatus.FAILED
             assert saved_run.error == "Test error occurred"
@@ -162,7 +166,8 @@ class TestAgentRunFinalStatePersistence:
 class TestAgentRunFinishEventPersistence:
     """Test that FINISH event properly triggers repository save."""
 
-    def test_finish_event_callback_saves_agent_run(self):
+    @pytest.mark.asyncio
+    async def test_finish_event_callback_saves_agent_run(self):
         """Test that FINISH event callback saves agent run to repository."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -171,7 +176,7 @@ class TestAgentRunFinishEventPersistence:
             agent_id = "test-agent"
 
             # Create session
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -192,15 +197,16 @@ class TestAgentRunFinishEventPersistence:
             # Create span and simulate event callback
             # The span's __call__ method is invoked with just the agent_run
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Verify agent run was saved
-            saved_run = repo.get_agent_run(session_id, agent_run.id)
+            saved_run = await repo.get_agent_run_async(session_id, agent_run.id)
             assert saved_run is not None
             assert saved_run.status == AgentRunStatus.COMPLETED
             assert saved_run.reply is not None
 
-    def test_agent_run_without_repository_doesnt_crash(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_without_repository_doesnt_crash(self):
         """Test that agent run without repository doesn't crash."""
         # Create span with None repository
         span = AgentRunSessionSpan(None, None, None)
@@ -215,9 +221,10 @@ class TestAgentRunFinishEventPersistence:
         )
 
         # Should not raise exception
-        span(agent_run)
+        await span(agent_run)
 
-    def test_agent_run_without_session_id_doesnt_crash(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_without_session_id_doesnt_crash(self):
         """Test that agent run without session ID doesn't crash."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -236,13 +243,14 @@ class TestAgentRunFinishEventPersistence:
             )
 
             # Should not raise exception
-            span(agent_run)
+            await span(agent_run)
 
 
 class TestAgentRunErrorScenarios:
     """Test agent run persistence in error scenarios."""
 
-    def test_agent_run_with_exception_still_persists(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_with_exception_still_persists(self):
         """Test that agent run is persisted even if exception occurs."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -251,7 +259,7 @@ class TestAgentRunErrorScenarios:
             agent_id = "test-agent"
 
             # Create session
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -271,17 +279,18 @@ class TestAgentRunErrorScenarios:
 
             # Save via span
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Verify error state was persisted
-            saved_run = repo.get_agent_run(session_id, agent_run.id)
+            saved_run = await repo.get_agent_run_async(session_id, agent_run.id)
             assert saved_run is not None
             assert saved_run.status == AgentRunStatus.FAILED
             assert saved_run.error is not None
             assert "Exception" in saved_run.error
             assert saved_run.completed_at is not None
 
-    def test_agent_run_reply_not_null_after_completion(self):
+    @pytest.mark.asyncio
+    async def test_agent_run_reply_not_null_after_completion(self):
         """Test that reply field is not null after agent completion."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -290,7 +299,7 @@ class TestAgentRunErrorScenarios:
             agent_id = "test-agent"
 
             # Create session
-            repo.update_agent_run_session(
+            await repo.update_agent_run_session_async(
                 AgentRunSession(
                     id=session_id,
                     agent_id=agent_id,
@@ -309,10 +318,10 @@ class TestAgentRunErrorScenarios:
             )
 
             span = AgentRunSessionSpan(repo, session_id, agent_id)
-            span(agent_run)
+            await span(agent_run)
 
             # Verify reply is not null
-            saved_run = repo.get_agent_run(session_id, agent_run.id)
+            saved_run = await repo.get_agent_run_async(session_id, agent_run.id)
             assert saved_run.reply is not None
             assert saved_run.reply.text == "2+2 equals 4"
             assert saved_run.is_completed is True

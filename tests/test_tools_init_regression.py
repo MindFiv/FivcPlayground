@@ -12,7 +12,7 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 from fivcplayground.tools import create_tool_retriever
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
@@ -57,7 +57,13 @@ class TestToolsInitRegression:
         - LangChain: 'name' and 'description'
         - Strands: 'tool_name' and 'tool_spec'
         """
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        mock_embedding_repo = Mock()
+        mock_tool_repo = Mock()
+        mock_tool_repo.list_tool_configs_async = AsyncMock(
+            return_value=[]
+        )  # Use AsyncMock for async method
+
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -68,6 +74,8 @@ class TestToolsInitRegression:
             # This should not raise AttributeError
             result = create_tool_retriever(
                 tool_backend=get_backend(),
+                embedding_config_repository=mock_embedding_repo,
+                tool_config_repository=mock_tool_repo,
                 load_builtin_tools=True,
             )
 
@@ -88,7 +96,7 @@ class TestToolsInitRegression:
         from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
 
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             # Create mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -106,7 +114,9 @@ class TestToolsInitRegression:
                 "fivcplayground.tools.types.repositories.files.FileToolConfigRepository"
             ) as mock_repo_class:
                 mock_repo = Mock()
-                mock_repo.list_tool_configs.return_value = []
+                mock_repo.list_tool_configs_async = AsyncMock(
+                    return_value=[]
+                )  # Use AsyncMock
                 mock_repo_class.return_value = mock_repo
 
                 retriever = ToolRetriever(
@@ -133,7 +143,13 @@ class TestToolsInitRegression:
         This test verifies that when load_builtin_tools=True, the retriever
         includes the builtin tools (clock and calculator).
         """
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        mock_embedding_repo = Mock()
+        mock_tool_repo = Mock()
+        mock_tool_repo.list_tool_configs_async = AsyncMock(
+            return_value=[]
+        )  # Use AsyncMock for async method
+
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             # Setup mock embedding DB
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -144,6 +160,8 @@ class TestToolsInitRegression:
             # Create retriever with builtin tools
             retriever = create_tool_retriever(
                 tool_backend=get_backend(),
+                embedding_config_repository=mock_embedding_repo,
+                tool_config_repository=mock_tool_repo,
                 load_builtin_tools=True,
             )
 
@@ -172,7 +190,7 @@ class TestToolsInitRegression:
 
         # Create mock tool config repository
         mock_repo = Mock()
-        mock_repo.list_tool_configs.return_value = []
+        mock_repo.list_tool_configs_async = AsyncMock(return_value=[])
 
         # Create simple Python functions to wrap
         def calculator(expression: str) -> float:

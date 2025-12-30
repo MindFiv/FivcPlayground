@@ -167,7 +167,10 @@ class TestToolRetrieverSpaceIsolation:
 
     def test_create_tool_retriever_default_space(self):
         """Test create_tool_retriever with default space."""
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        mock_embedding_repo = Mock()
+        mock_tool_repo = Mock()
+
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
                 mock_db = Mock()
                 mock_db.tools = Mock()
@@ -179,11 +182,14 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
-                    tool_backend=StrandsToolBackend(), space_id=None
+                    tool_backend=StrandsToolBackend(),
+                    embedding_config_repository=mock_embedding_repo,
+                    tool_config_repository=mock_tool_repo,
+                    space_id=None,
                 )
                 assert retriever
 
-                # Verify create_embedding_db was called with space_id=None
+                # Verify create_embedding_db_async was called with space_id=None
                 mock_create_db.assert_called_once()
                 call_kwargs = mock_create_db.call_args[1]
                 assert call_kwargs.get("space_id") is None
@@ -193,7 +199,10 @@ class TestToolRetrieverSpaceIsolation:
 
     def test_create_tool_retriever_custom_space(self):
         """Test create_tool_retriever with custom space."""
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        mock_embedding_repo = Mock()
+        mock_tool_repo = Mock()
+
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
                 mock_db = Mock()
                 mock_db.tools = Mock()
@@ -205,11 +214,14 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = create_tool_retriever(
-                    tool_backend=StrandsToolBackend(), space_id="project_website"
+                    tool_backend=StrandsToolBackend(),
+                    embedding_config_repository=mock_embedding_repo,
+                    tool_config_repository=mock_tool_repo,
+                    space_id="project_website",
                 )
                 assert retriever
 
-                # Verify create_embedding_db was called with space_id="project_website"
+                # Verify create_embedding_db_async was called with space_id="project_website"
                 mock_create_db.assert_called_once()
                 call_kwargs = mock_create_db.call_args[1]
                 assert call_kwargs.get("space_id") == "project_website"
@@ -224,7 +236,10 @@ class TestSpaceIsolationIntegration:
     def test_space_id_propagation(self):
         """Test that space_id is properly propagated through the component hierarchy."""
         # Test with custom space_id
-        with patch("fivcplayground.tools.create_embedding_db") as mock_create_db:
+        mock_embedding_repo = Mock()
+        mock_tool_repo = Mock()
+
+        with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             with patch("fivcplayground.tools.ToolRetriever") as mock_retriever_class:
                 mock_db = Mock()
                 mock_db.space_id = "user_alice"
@@ -238,6 +253,8 @@ class TestSpaceIsolationIntegration:
 
                 retriever = create_tool_retriever(
                     tool_backend=StrandsToolBackend(),
+                    embedding_config_repository=mock_embedding_repo,
+                    tool_config_repository=mock_tool_repo,
                     space_id="user_alice",
                     load_builtin_tools=False,
                 )

@@ -10,15 +10,16 @@ FivcPlayground uses a **fivcglue interface-based architecture** pattern for flex
 
 **Structure**:
 ```python
-# Abstract interface
+# Abstract interface with async methods
 class AgentConfigRepository(ABC):
     @abstractmethod
-    def get_agent_config(self, agent_id: str) -> AgentConfig | None:
+    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
+        """Retrieve an agent configuration by ID."""
         pass
 
 # Concrete implementation
 class FileAgentConfigRepository(AgentConfigRepository):
-    def get_agent_config(self, agent_id: str) -> AgentConfig | None:
+    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
         # File-based implementation
         pass
 ```
@@ -27,6 +28,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
 - Easy to swap implementations (file, database, cloud)
 - Testable with mock repositories
 - Consistent interface across components
+- Async/await support for non-blocking I/O operations
 
 **Used for**:
 - Agent configurations
@@ -34,6 +36,8 @@ class FileAgentConfigRepository(AgentConfigRepository):
 - Tool configurations
 - Embedding configurations
 - Agent run history
+
+**Note**: All repository methods use async/await pattern. Deprecated synchronous methods are still available for backward compatibility but should be migrated to async versions.
 
 ### 2. Factory Pattern
 

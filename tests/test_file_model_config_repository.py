@@ -3,6 +3,7 @@
 Tests for FileModelConfigRepository functionality.
 """
 
+import pytest
 import yaml
 import tempfile
 
@@ -14,7 +15,8 @@ from fivcplayground.utils import OutputDir
 class TestFileModelConfigRepository:
     """Tests for FileModelConfigRepository class"""
 
-    def test_initialization_with_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_with_output_dir(self):
         """Test repository initialization with custom output directory"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -24,13 +26,15 @@ class TestFileModelConfigRepository:
             assert repo.base_path.exists()
             assert repo.base_path.is_dir()
 
-    def test_initialization_without_output_dir(self):
+    @pytest.mark.asyncio
+    async def test_initialization_without_output_dir(self):
         """Test repository initialization with default output directory"""
         repo = FileModelConfigRepository()
         assert repo.base_path.exists()
         assert repo.base_path.is_dir()
 
-    def test_update_and_get_model_config(self):
+    @pytest.mark.asyncio
+    async def test_update_and_get_model_config(self):
         """Test creating and retrieving a model configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -49,14 +53,14 @@ class TestFileModelConfigRepository:
             )
 
             # Save model config
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Verify models file exists
             models_file = repo._get_models_file()
             assert models_file.exists()
 
             # Retrieve model config
-            retrieved_config = repo.get_model_config("gpt-4")
+            retrieved_config = await repo.get_model_config_async("gpt-4")
             assert retrieved_config is not None
             assert retrieved_config.model == "gpt-4"
             assert retrieved_config.provider == "openai"
@@ -64,17 +68,19 @@ class TestFileModelConfigRepository:
             assert retrieved_config.temperature == 0.7
             assert retrieved_config.max_tokens == 2048
 
-    def test_get_nonexistent_model(self):
+    @pytest.mark.asyncio
+    async def test_get_nonexistent_model(self):
         """Test retrieving a model that doesn't exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileModelConfigRepository(output_dir=output_dir)
 
             # Try to get non-existent model
-            config = repo.get_model_config("nonexistent-model")
+            config = await repo.get_model_config_async("nonexistent-model")
             assert config is None
 
-    def test_update_existing_model_config(self):
+    @pytest.mark.asyncio
+    async def test_update_existing_model_config(self):
         """Test updating an existing model configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -87,7 +93,7 @@ class TestFileModelConfigRepository:
                 provider="openai",
                 temperature=0.5,
             )
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Update model config
             updated_config = ModelConfig(
@@ -97,14 +103,15 @@ class TestFileModelConfigRepository:
                 temperature=0.8,
                 max_tokens=4096,
             )
-            repo.update_model_config(updated_config)
+            await repo.update_model_config_async(updated_config)
 
             # Verify updated config
-            retrieved_config = repo.get_model_config("gpt-3.5")
+            retrieved_config = await repo.get_model_config_async("gpt-3.5")
             assert retrieved_config.temperature == 0.8
             assert retrieved_config.max_tokens == 4096
 
-    def test_list_model_configs(self):
+    @pytest.mark.asyncio
+    async def test_list_model_configs(self):
         """Test listing all model configurations"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -118,10 +125,10 @@ class TestFileModelConfigRepository:
             ]
 
             for model in models:
-                repo.update_model_config(model)
+                await repo.update_model_config_async(model)
 
             # List all models
-            listed_models = repo.list_model_configs()
+            listed_models = await repo.list_model_configs_async()
             assert len(listed_models) == 3
             assert all(isinstance(m, ModelConfig) for m in listed_models)
 
@@ -129,17 +136,19 @@ class TestFileModelConfigRepository:
             model_names = [m.model for m in listed_models]
             assert model_names == sorted(model_names)
 
-    def test_list_empty_repository(self):
+    @pytest.mark.asyncio
+    async def test_list_empty_repository(self):
         """Test listing models from empty repository"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileModelConfigRepository(output_dir=output_dir)
 
             # List models from empty repository
-            models = repo.list_model_configs()
+            models = await repo.list_model_configs_async()
             assert models == []
 
-    def test_delete_model_config(self):
+    @pytest.mark.asyncio
+    async def test_delete_model_config(self):
         """Test deleting a model configuration"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -151,31 +160,33 @@ class TestFileModelConfigRepository:
                 model="test-model",
                 provider="test-provider",
             )
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Verify model exists
-            assert repo.get_model_config("test-model") is not None
+            assert await repo.get_model_config_async("test-model") is not None
 
             # Delete model
-            repo.delete_model_config("test-model")
+            await repo.delete_model_config_async("test-model")
 
             # Verify model is deleted
-            assert repo.get_model_config("test-model") is None
+            assert await repo.get_model_config_async("test-model") is None
 
             # Verify model is not in the YAML file
             models_data = repo._load_models_data()
             assert "test-model" not in models_data
 
-    def test_delete_nonexistent_model(self):
+    @pytest.mark.asyncio
+    async def test_delete_nonexistent_model(self):
         """Test deleting a model that doesn't exist (should be safe)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileModelConfigRepository(output_dir=output_dir)
 
             # Delete non-existent model (should not raise error)
-            repo.delete_model_config("nonexistent-model")
+            await repo.delete_model_config_async("nonexistent-model")
 
-    def test_yaml_file_format(self):
+    @pytest.mark.asyncio
+    async def test_yaml_file_format(self):
         """Test that model configs are stored in correct YAML format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -190,7 +201,7 @@ class TestFileModelConfigRepository:
                 api_key="test-key",
                 temperature=0.5,
             )
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Read YAML file directly
             models_file = repo._get_models_file()
@@ -206,7 +217,8 @@ class TestFileModelConfigRepository:
             assert model_data["api_key"] == "test-key"
             assert model_data["temperature"] == 0.5
 
-    def test_corrupted_yaml_handling(self):
+    @pytest.mark.asyncio
+    async def test_corrupted_yaml_handling(self):
         """Test handling of corrupted YAML files"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -223,10 +235,11 @@ class TestFileModelConfigRepository:
             assert models_data == {}
 
             # Try to list models (should return empty list)
-            models = repo.list_model_configs()
+            models = await repo.list_model_configs_async()
             assert models == []
 
-    def test_model_config_with_minimal_fields(self):
+    @pytest.mark.asyncio
+    async def test_model_config_with_minimal_fields(self):
         """Test model config with only required fields"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -238,10 +251,10 @@ class TestFileModelConfigRepository:
                 model="minimal-model",
                 provider="test-provider",
             )
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Retrieve and verify
-            retrieved = repo.get_model_config("minimal-model")
+            retrieved = await repo.get_model_config_async("minimal-model")
             assert retrieved is not None
             assert retrieved.id == "minimal-model"
             assert retrieved.model == "minimal-model"
@@ -252,7 +265,8 @@ class TestFileModelConfigRepository:
             assert retrieved.temperature == 0.5  # default value
             assert retrieved.max_tokens == 4096  # default value
 
-    def test_id_field_set_on_get(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_get(self):
         """Test that id field is properly set when retrieving model config"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -265,17 +279,18 @@ class TestFileModelConfigRepository:
                 provider="test-provider",
                 temperature=0.7,
             )
-            repo.update_model_config(model_config)
+            await repo.update_model_config_async(model_config)
 
             # Retrieve and verify id field is set
-            retrieved = repo.get_model_config("test-model")
+            retrieved = await repo.get_model_config_async("test-model")
             assert retrieved is not None
             assert retrieved.id == "test-model"
             assert retrieved.model == "test-model"
             assert retrieved.provider == "test-provider"
             assert retrieved.temperature == 0.7
 
-    def test_id_field_set_on_list(self):
+    @pytest.mark.asyncio
+    async def test_id_field_set_on_list(self):
         """Test that id field is properly set when listing model configs"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
@@ -289,10 +304,10 @@ class TestFileModelConfigRepository:
             ]
 
             for model in models:
-                repo.update_model_config(model)
+                await repo.update_model_config_async(model)
 
             # List and verify all id fields are set
-            listed_models = repo.list_model_configs()
+            listed_models = await repo.list_model_configs_async()
             assert len(listed_models) == 3
 
             for model in listed_models:
