@@ -5,7 +5,7 @@ from typing import Optional, Callable, List
 
 from pydantic import BaseModel
 
-from fivcplayground.tasks import create_briefing_task
+from fivcplayground.tasks import create_briefing_task_async
 from fivcplayground.agents import (
     create_companion_agent,
     AgentRunContent,
@@ -161,11 +161,13 @@ class ChatManager(object):
         ), "agent_config_repository is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
 
-        self._briefing_runnable = create_briefing_task(
-            model_backend=model_backend,
-            model_config_repository=model_config_repository,
-            agent_backend=agent_backend,
-            agent_config_repository=agent_config_repository,
+        self._briefing_runnable = asyncio.run(
+            create_briefing_task_async(
+                model_backend=model_backend,
+                model_config_repository=model_config_repository,
+                agent_backend=agent_backend,
+                agent_config_repository=agent_config_repository,
+            )
         )
         self._agent_runnable = create_companion_agent(
             model_backend=model_backend,

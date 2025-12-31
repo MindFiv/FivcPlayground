@@ -26,7 +26,7 @@ from fivcplayground.demos.utils import (
 from fivcplayground.demos.components import ChatMessage
 from fivcplayground.agents.types import AgentRun, AgentRunContent
 
-# from fivcplayground.tasks import create_assessing_task
+# from fivcplayground.tasks import create_assessing_task_async
 from .base import ViewBase, ViewNavigation
 
 
@@ -152,12 +152,12 @@ class ChatView(ViewBase):
             # Execute query with streaming callback
             is_new_chat = self.chat.id is None
 
-            # assessment_task = create_assessing_task(
+            # assessment_task = await create_assessing_task_async(
             #     user_query,
             #     tool_retriever=self.chat.tool_retriever,
             # )
             # # Assess query
-            # assessment = asyncio.run(assessment_task.run_async())
+            # assessment = await assessment_task.run_async()
             # if assessment.require_planning and default_running_config.get(
             #     "enable_tasks"
             # ):

@@ -1,59 +1,39 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from fivcplayground.tasks.types.base import TaskRun, TaskRunPhase
+from fivcplayground.tasks.types.base import TaskRun
 
 
-class TaskRuntimeRepository(ABC):
+class TaskRunRepository(ABC):
     """
-    Abstract base class for task runtime data repositories.
+    Abstract base class for task run data repositories.
 
     Defines the interface for persisting and retrieving task execution data.
     Implementations can use different storage backends (files, databases, etc.).
 
     Methods:
-        update_task_runtime: Create or update a task's metadata
-        get_task_runtime: Retrieve a task by ID
-        delete_task_runtime: Delete a task and all its steps
-        list_task_runtimes: List all tasks in the repository
-        update_task_runtime_step: Create or update an execution step
-        get_task_runtime_step: Retrieve a specific step by task ID and step ID
-        list_task_runtime_steps: List all steps for a task
+        update_task_run_async: Create or update a task's metadata
+        get_task_run_async: Retrieve a task by ID
+        delete_task_run_async: Delete a task and all its steps
+        list_task_runs_async: List all tasks in the repository
     """
 
     @abstractmethod
-    def update_task_runtime(self, task: TaskRun) -> None:
+    async def update_task_run_async(self, task: TaskRun) -> None:
         """Create or update a task's metadata."""
         ...
 
     @abstractmethod
-    def get_task_runtime(self, task_id: str) -> Optional[TaskRun]:
+    async def get_task_run_async(self, task_id: str) -> Optional[TaskRun]:
         """Retrieve a task by ID."""
         ...
 
     @abstractmethod
-    def delete_task_runtime(self, task_id: str) -> None:
+    async def delete_task_run_async(self, task_id: str) -> None:
         """Delete a task and all its steps."""
         ...
 
     @abstractmethod
-    def list_task_runtimes(self) -> List[TaskRun]:
+    async def list_task_runs_async(self) -> List[TaskRun]:
         """List all tasks in the repository."""
-        ...
-
-    @abstractmethod
-    def get_task_runtime_step(
-        self, task_id: str, step_id: str
-    ) -> Optional[TaskRunPhase]:
-        """Retrieve a specific step by task ID and step ID."""
-        ...
-
-    @abstractmethod
-    def update_task_runtime_step(self, task_id: str, step: TaskRunPhase) -> None:
-        """Create or update an execution step."""
-        ...
-
-    @abstractmethod
-    def list_task_runtime_steps(self, task_id: str) -> List[TaskRunPhase]:
-        """List all steps for a task."""
         ...

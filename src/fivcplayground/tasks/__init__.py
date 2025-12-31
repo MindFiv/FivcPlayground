@@ -1,8 +1,8 @@
 __all__ = [
-    "create_tooling_task",
-    "create_briefing_task",
-    "create_assessing_task",
-    "create_planning_task",
+    "create_tooling_task_async",
+    "create_briefing_task_async",
+    "create_assessing_task_async",
+    "create_planning_task_async",
     "TaskAssessment",
     "TaskRequirement",
     "TaskTeam",
@@ -28,20 +28,20 @@ from fivcplayground.tasks.types import (
     TaskTeam,
     TaskRunPhase,
     TaskRunStatus,
+    TaskRunnable,
     TaskSimpleRunnable,
 )
 from fivcplayground.tools import ToolRetriever
-from fivcplayground.agents import AgentRunnable
 
 
-def create_tooling_task(
+async def create_tooling_task_async(
     agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
     tool_retriever: ToolRetriever | None = None,
     **kwargs,  # ignore additional kwargs
-) -> AgentRunnable:
+) -> TaskRunnable:
     """
     Create a tooling task to identify required tools for a query.
     """
@@ -60,14 +60,14 @@ def create_tooling_task(
     )
 
 
-def create_briefing_task(
+async def create_briefing_task_async(
     agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
     tool_retriever: ToolRetriever | None = None,
     **kwargs,  # ignore additional kwargs
-) -> AgentRunnable:
+) -> TaskRunnable:
     agent_runnable = create_companion_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
@@ -83,14 +83,14 @@ def create_briefing_task(
     )
 
 
-def create_assessing_task(
+async def create_assessing_task_async(
     agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
     tool_retriever: ToolRetriever | None = None,
     **kwargs,  # ignore additional kwargs
-) -> AgentRunnable:
+) -> TaskRunnable:
     agent_runnable = create_consultant_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
@@ -111,14 +111,14 @@ def create_assessing_task(
     )
 
 
-def create_planning_task(
+async def create_planning_task_async(
     agent_backend: AgentBackend | None = None,
     agent_config_repository: AgentConfigRepository | None = None,
     model_backend: ModelBackend | None = None,
     model_config_repository: ModelConfigRepository | None = None,
     tool_retriever: ToolRetriever | None = None,
     **kwargs,  # ignore additional kwargs
-) -> AgentRunnable:
+) -> TaskRunnable:
     agent_runnable = create_planning_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,

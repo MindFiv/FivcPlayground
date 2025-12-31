@@ -1,8 +1,7 @@
 __all__ = [
     "TaskRun",
-    "TaskRunPhase",
-    "TaskRuntimeRepository",
+    "TaskRunRepository",
 ]
 
-from fivcplayground.tasks.types.base import TaskRun, TaskRunPhase
-from fivcplayground.tasks.types.repositories.base import TaskRuntimeRepository
+from fivcplayground.tasks.types.base import TaskRun
+from fivcplayground.tasks.types.repositories.base import TaskRunRepository
