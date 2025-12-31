@@ -82,8 +82,8 @@ class TaskMessage:
         if self.runtime.team:
             self._render_task_team(placeholder)
 
-        # Render execution steps
-        if self.runtime.steps:
+        # Render execution phases
+        if self.runtime.phases:
             self._render_execution_steps(placeholder)
 
     def _render_task_header(self, placeholder: DeltaGenerator):
@@ -141,7 +141,7 @@ class TaskMessage:
             placeholder: Streamlit container to render into
         """
         with placeholder.expander("⚙️ **Execution Steps**", expanded=True):
-            for step_id, step in self.runtime.steps.items():
+            for step_id, step in self.runtime.phases.items():
                 with st.container():
                     # Step header with agent name and status
                     col1, col2, col3 = st.columns([2, 1, 1])

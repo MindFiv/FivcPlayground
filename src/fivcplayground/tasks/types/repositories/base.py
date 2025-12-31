@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from fivcplayground.tasks.types.base import TaskRun, TaskRunStage
+from fivcplayground.tasks.types.base import TaskRun, TaskRunPhase
 
 
 class TaskRuntimeRepository(ABC):
@@ -44,16 +44,16 @@ class TaskRuntimeRepository(ABC):
     @abstractmethod
     def get_task_runtime_step(
         self, task_id: str, step_id: str
-    ) -> Optional[TaskRunStage]:
+    ) -> Optional[TaskRunPhase]:
         """Retrieve a specific step by task ID and step ID."""
         ...
 
     @abstractmethod
-    def update_task_runtime_step(self, task_id: str, step: TaskRunStage) -> None:
+    def update_task_runtime_step(self, task_id: str, step: TaskRunPhase) -> None:
         """Create or update an execution step."""
         ...
 
     @abstractmethod
-    def list_task_runtime_steps(self, task_id: str) -> List[TaskRunStage]:
+    def list_task_runtime_steps(self, task_id: str) -> List[TaskRunPhase]:
         """List all steps for a task."""
         ...

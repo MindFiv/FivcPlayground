@@ -3,7 +3,7 @@ __all__ = [
     "TaskRequirement",
     "TaskTeam",
     "TaskRunEvent",
-    "TaskRunStage",
+    "TaskRunPhase",
     "TaskRun",
     "TaskRuntimeRepository",
     "TaskRunStatus",
@@ -17,7 +17,7 @@ from .base import (
     TaskRunStatus,
     TaskRunEvent,
     TaskSimpleRunnable,
-    TaskRunStage,
+    TaskRunPhase,
     TaskRun,
 )
 from .repositories import TaskRuntimeRepository

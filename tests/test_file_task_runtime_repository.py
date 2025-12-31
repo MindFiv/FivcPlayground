@@ -6,7 +6,7 @@ Tests for FileTaskRuntimeRepository functionality.
 import tempfile
 from datetime import datetime
 
-from fivcplayground.tasks.types import TaskRun, TaskRunStage, TaskRunStatus
+from fivcplayground.tasks.types import TaskRun, TaskRunPhase, TaskRunStatus
 from fivcplayground.tasks.types.repositories.files import FileTaskRuntimeRepository
 from fivcplayground.utils import OutputDir
 
@@ -116,9 +116,9 @@ class TestFileTaskRuntimeRepository:
             repo.update_task_runtime(task)
 
             # Create a step
-            step = TaskRunStage(
+            step = TaskRunPhase(
                 id="step-1",
-                agent_name="TestAgent",
+                agent_id="test-agent",
                 status=TaskRunStatus.EXECUTING,
                 started_at=datetime(2024, 1, 1, 12, 0, 0),
             )
@@ -134,7 +134,7 @@ class TestFileTaskRuntimeRepository:
             retrieved_step = repo.get_task_runtime_step("test-task-789", "step-1")
             assert retrieved_step is not None
             assert retrieved_step.id == "step-1"
-            assert retrieved_step.agent_name == "TestAgent"
+            assert retrieved_step.agent_id == "test-agent"
             assert retrieved_step.status == TaskRunStatus.EXECUTING
 
     def test_get_nonexistent_step(self):
@@ -158,19 +158,19 @@ class TestFileTaskRuntimeRepository:
             repo.update_task_runtime(task)
 
             # Create multiple steps
-            step1 = TaskRunStage(
+            step1 = TaskRunPhase(
                 id="step-1",
-                agent_name="Agent1",
+                agent_id="agent-1",
                 status=TaskRunStatus.PENDING,
             )
-            step2 = TaskRunStage(
+            step2 = TaskRunPhase(
                 id="step-2",
-                agent_name="Agent2",
+                agent_id="agent-2",
                 status=TaskRunStatus.EXECUTING,
             )
-            step3 = TaskRunStage(
+            step3 = TaskRunPhase(
                 id="step-3",
-                agent_name="Agent3",
+                agent_id="agent-3",
                 status=TaskRunStatus.COMPLETED,
             )
 
@@ -231,9 +231,9 @@ class TestFileTaskRuntimeRepository:
             repo.update_task_runtime(task)
 
             # Create a step
-            step = TaskRunStage(
+            step = TaskRunPhase(
                 id="step-update",
-                agent_name="TestAgent",
+                agent_id="test-agent",
                 status=TaskRunStatus.EXECUTING,
             )
             repo.update_task_runtime_step("test-task-step-update", step)
@@ -260,8 +260,8 @@ class TestFileTaskRuntimeRepository:
             task = TaskRun(id="test-task-with-steps")
             repo.update_task_runtime(task)
 
-            step1 = TaskRunStage(id="step-1", agent_name="Agent1")
-            step2 = TaskRunStage(id="step-2", agent_name="Agent2")
+            step1 = TaskRunPhase(id="step-1", agent_id="agent-1")
+            step2 = TaskRunPhase(id="step-2", agent_id="agent-2")
             repo.update_task_runtime_step("test-task-with-steps", step1)
             repo.update_task_runtime_step("test-task-with-steps", step2)
 
@@ -286,7 +286,7 @@ class TestFileTaskRuntimeRepository:
             task = TaskRun(id="structure-test")
             repo.update_task_runtime(task)
 
-            step = TaskRunStage(id="step-1", agent_name="Agent1")
+            step = TaskRunPhase(id="step-1", agent_id="agent-1")
             repo.update_task_runtime_step("structure-test", step)
 
             # Verify directory structure

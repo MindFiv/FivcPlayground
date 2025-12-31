@@ -6,7 +6,7 @@ __all__ = [
     "TaskAssessment",
     "TaskRequirement",
     "TaskTeam",
-    "TaskRunStage",
+    "TaskRunPhase",
     "TaskRunStatus",
 ]
 
@@ -26,7 +26,7 @@ from fivcplayground.tasks.types import (
     TaskAssessment,
     TaskRequirement,
     TaskTeam,
-    TaskRunStage,
+    TaskRunPhase,
     TaskRunStatus,
     TaskSimpleRunnable,
 )

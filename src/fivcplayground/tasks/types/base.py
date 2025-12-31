@@ -5,7 +5,7 @@ __all__ = [
     "TaskRunContent",
     "TaskRunStatus",
     "TaskRunEvent",
-    "TaskRunStage",
+    "TaskRunPhase",
     "TaskRun",
     "TaskRunnable",
     "TaskSimpleRunnable",
@@ -72,19 +72,13 @@ class TaskTeam(BaseModel):
     )
 
 
-class TaskRunStage(BaseModel):
+class TaskRunPhase(BaseModel):
     """Single task execution step record."""
 
     model_config = {"arbitrary_types_allowed": True}
 
-    id: str = Field(default=None, description="Unique identifier for the step")
-
-    @computed_field
-    @property
-    def agent_id(self) -> str:  # same as id
-        return self.id
-
-    agent_name: str = Field(description="Name of the agent")
+    id: str = Field(default=None, description="Unique identifier for the phase")
+    agent_id: str = Field(description="ID of the agent executing this phase")
 
     status: TaskRunStatus = Field(
         default=TaskRunStatus.PENDING, description="Current execution status"
@@ -146,8 +140,8 @@ class TaskRun(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Task completion timestamp"
     )
-    steps: Dict[str, TaskRunStage] = Field(
-        default_factory=dict, description="Task execution steps"
+    phases: Dict[str, TaskRunPhase] = Field(
+        default_factory=dict, description="Task execution phases"
     )
 
     @computed_field
@@ -165,30 +159,36 @@ class TaskRun(BaseModel):
         return self.status in (TaskRunStatus.COMPLETED, TaskRunStatus.FAILED)
 
     def sync_status(self):
-        """Synchronize task status based on step statuses."""
-        if any(step.status == TaskRunStatus.EXECUTING for step in self.steps.values()):
+        """Synchronize task status based on phase statuses."""
+        if any(
+            phase.status == TaskRunStatus.EXECUTING for phase in self.phases.values()
+        ):
             self.status = TaskRunStatus.EXECUTING
-        elif any(step.status == TaskRunStatus.FAILED for step in self.steps.values()):
+        elif any(
+            phase.status == TaskRunStatus.FAILED for phase in self.phases.values()
+        ):
             self.status = TaskRunStatus.FAILED
         elif all(
-            step.status == TaskRunStatus.COMPLETED for step in self.steps.values()
+            phase.status == TaskRunStatus.COMPLETED for phase in self.phases.values()
         ):
             self.status = TaskRunStatus.COMPLETED
         else:
             self.status = TaskRunStatus.PENDING
 
     def sync_started_at(self):
-        """Synchronize task start timestamp based on step timestamps."""
-        if self.steps:
+        """Synchronize task start timestamp based on phase timestamps."""
+        if self.phases:
             self.started_at = min(
-                step.started_at for step in self.steps.values() if step.started_at
+                phase.started_at for phase in self.phases.values() if phase.started_at
             )
 
     def sync_completed_at(self):
-        """Synchronize task completion timestamp based on step timestamps."""
-        if self.steps:
+        """Synchronize task completion timestamp based on phase timestamps."""
+        if self.phases:
             self.completed_at = max(
-                step.completed_at for step in self.steps.values() if step.completed_at
+                phase.completed_at
+                for phase in self.phases.values()
+                if phase.completed_at
             )
 
     def sync(self) -> "TaskRun":
@@ -203,7 +203,7 @@ class TaskRun(BaseModel):
         self.status = TaskRunStatus.PENDING
         self.started_at = None
         self.completed_at = None
-        self.steps.clear()
+        self.phases.clear()
 
 
 class TaskSimpleRunnable(TaskRunnable):
