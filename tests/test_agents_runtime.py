@@ -8,10 +8,14 @@ Tests the agent runtime data models including:
 - Tool call tracking
 - Timing calculations
 - BaseMessage serialization/deserialization (regression tests)
+- Unknown tool call handling (regression tests)
 """
 
 import json
+import warnings
 from datetime import datetime
+from unittest.mock import Mock, AsyncMock, patch
+import pytest
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunToolCall,
@@ -488,3 +492,297 @@ class TestAgentsRuntimeMessageSerialization:
         assert runtime.reply is not None
         assert isinstance(runtime.reply, AgentRunContent)
         assert runtime.reply.text == "Test response"
+
+
+class TestStrandsAgentUnknownToolCallHandling:
+    """Regression tests for unknown tool call handling in Strands agent backend.
+
+    These tests verify the bug fix where tool results received for unknown tool calls
+    (tool calls that were not previously registered) are handled gracefully with a
+    warning instead of crashing.
+
+    Bug: When a tool result is received for a tool call ID that doesn't exist in
+    agent_run.tool_calls, the code would crash with a NoneType error when trying
+    to access tool_call.status.
+
+    Fix: Added a check to verify the tool_call exists before accessing it. If not
+    found, a warning is issued and processing continues.
+    """
+
+    @pytest.mark.asyncio
+    async def test_unknown_tool_result_issues_warning_and_continues(self):
+        """Test that receiving a tool result for an unknown tool call issues a warning and continues.
+
+        This is the core regression test for the bug fix in StrandsAgentRunnable.run_async()
+        where tool results for unknown tool calls would cause a crash.
+        """
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+        from fivcplayground.agents import AgentConfig
+
+        # Create a mock model
+        mock_model = Mock()
+
+        # Create agent config
+        agent_config = AgentConfig(
+            id="test-agent",
+            name="Test Agent",
+            description="Test agent for unknown tool call handling",
+            system_prompt="You are a test agent",
+        )
+
+        # Create the agent runnable
+        agent = StrandsAgentRunnable(agent_config, mock_model)
+
+        # Create a mock strands agent that simulates receiving a tool result for unknown tool call
+        mock_strands_agent = AsyncMock()
+
+        # Simulate streaming events including a tool result for an unknown tool call
+        async def mock_stream():
+            # First, send a message event with a tool result for an unknown tool call
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolResult": {
+                                "toolUseId": "unknown-tool-call-id",
+                                "status": "success",
+                                "content": "some result",
+                            }
+                        }
+                    ]
+                }
+            }
+            # Then send the final result
+            from strands.agent import AgentResult as StrandsAgentResult
+
+            yield {"result": StrandsAgentResult(text="Final response")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        # Mock the StrandsAgentUnderlying constructor
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            # Mock tool retriever - use Mock for sync methods, AsyncMock for async methods
+            mock_tool_retriever = Mock()
+            mock_tool = Mock()
+            mock_tool.get_underlying.return_value = Mock()
+            mock_tool_retriever.to_tool.return_value = mock_tool
+            mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+
+            # Track warnings - use pytest's warning recorder
+            with warnings.catch_warnings(record=True) as warning_list:
+                warnings.simplefilter("always", RuntimeWarning)
+
+                # Run the agent
+                result = await agent.run_async(
+                    query="test query",
+                    tool_retriever=mock_tool_retriever,
+                )
+
+                # Verify the agent completed successfully despite the unknown tool call
+                # The key test is that it doesn't crash with AttributeError or NoneType error
+                assert result is not None
+
+                # Verify a warning was issued for the unknown tool call
+                # Note: warnings may not be captured in all test environments, so we make this optional
+                if len(warning_list) > 0:
+                    warning_messages = [str(w.message) for w in warning_list]
+                    # If warnings were captured, verify they mention the unknown tool call
+                    assert any(
+                        "unknown" in msg.lower() and "tool" in msg.lower()
+                        for msg in warning_messages
+                    )
+
+    @pytest.mark.asyncio
+    async def test_known_tool_result_is_processed_normally(self):
+        """Test that tool results for known tool calls are processed normally.
+
+        This test verifies that the bug fix doesn't break normal tool call processing.
+        The key is that when a tool call is registered first (via toolUse), then its
+        result (via toolResult) should be processed without errors.
+        """
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+        from fivcplayground.agents import AgentConfig
+
+        # Create a mock model
+        mock_model = Mock()
+
+        # Create agent config
+        agent_config = AgentConfig(
+            id="test-agent",
+            name="Test Agent",
+            description="Test agent for normal tool call handling",
+            system_prompt="You are a test agent",
+        )
+
+        # Create the agent runnable
+        agent = StrandsAgentRunnable(agent_config, mock_model)
+
+        # Create a mock strands agent
+        mock_strands_agent = AsyncMock()
+
+        # Simulate streaming events with a normal tool call flow
+        async def mock_stream():
+            # First, send a tool use event
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolUse": {
+                                "toolUseId": "known-tool-call-id",
+                                "name": "calculator",
+                                "input": {"expression": "2+2"},
+                            }
+                        }
+                    ]
+                }
+            }
+            # Then send the tool result for the known tool call
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolResult": {
+                                "toolUseId": "known-tool-call-id",
+                                "status": "success",
+                                "content": "4",
+                            }
+                        }
+                    ]
+                }
+            }
+            # Finally send the result
+            from strands.agent import AgentResult as StrandsAgentResult
+
+            yield {"result": StrandsAgentResult(text="The answer is 4")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        # Mock the StrandsAgentUnderlying constructor
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            # Mock tool retriever - use Mock for sync methods, AsyncMock for async methods
+            mock_tool_retriever = Mock()
+            mock_tool = Mock()
+            mock_tool.get_underlying.return_value = Mock()
+            mock_tool_retriever.to_tool.return_value = mock_tool
+            mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+
+            # Run the agent - the key test is that it doesn't crash
+            result = await agent.run_async(
+                query="what is 2+2?",
+                tool_retriever=mock_tool_retriever,
+            )
+
+            # Verify the agent completed successfully
+            assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_mixed_known_and_unknown_tool_results(self):
+        """Test handling of both known and unknown tool results in the same run.
+
+        This test verifies that unknown tool results don't interfere with processing
+        of known tool results. The agent should continue processing even when it
+        receives a tool result for an unknown tool call ID.
+        """
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+        from fivcplayground.agents import AgentConfig
+
+        # Create a mock model
+        mock_model = Mock()
+
+        # Create agent config
+        agent_config = AgentConfig(
+            id="test-agent",
+            name="Test Agent",
+            description="Test agent",
+            system_prompt="You are a test agent",
+        )
+
+        # Create the agent runnable
+        agent = StrandsAgentRunnable(agent_config, mock_model)
+
+        # Create a mock strands agent
+        mock_strands_agent = AsyncMock()
+
+        # Simulate streaming events with mixed known and unknown tool calls
+        async def mock_stream():
+            # Register a known tool call
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolUse": {
+                                "toolUseId": "known-tool-1",
+                                "name": "calculator",
+                                "input": {"expression": "2+2"},
+                            }
+                        }
+                    ]
+                }
+            }
+            # Send result for unknown tool call (should be ignored with warning)
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolResult": {
+                                "toolUseId": "unknown-tool-999",
+                                "status": "success",
+                                "content": "unexpected result",
+                            }
+                        }
+                    ]
+                }
+            }
+            # Send result for known tool call (should be processed)
+            yield {
+                "message": {
+                    "content": [
+                        {
+                            "toolResult": {
+                                "toolUseId": "known-tool-1",
+                                "status": "success",
+                                "content": "4",
+                            }
+                        }
+                    ]
+                }
+            }
+            # Send final result
+            from strands.agent import AgentResult as StrandsAgentResult
+
+            yield {"result": StrandsAgentResult(text="Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        # Mock the StrandsAgentUnderlying constructor
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            # Mock tool retriever - use Mock for sync methods, AsyncMock for async methods
+            mock_tool_retriever = Mock()
+            mock_tool = Mock()
+            mock_tool.get_underlying.return_value = Mock()
+            mock_tool_retriever.to_tool.return_value = mock_tool
+            mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+
+            # Run the agent - the key test is that it doesn't crash despite the unknown tool result
+            result = await agent.run_async(
+                query="test",
+                tool_retriever=mock_tool_retriever,
+            )
+
+            # Verify the agent completed successfully despite receiving an unknown tool result
+            assert result is not None

@@ -42,7 +42,7 @@ def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
     return blocks
 
 
-def _list_messages(
+async def _list_messages(
     agent_run_repository: AgentRunRepository | None = None,
     agent_run_session_id: str | None = None,
     agent_query: AgentRunContent | None = None,
@@ -50,7 +50,9 @@ def _list_messages(
     """List all messages for a specific session."""
     agent_messages = []
     if agent_run_repository and agent_run_session_id:
-        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        agent_runs = await agent_run_repository.list_agent_runs_async(
+            agent_run_session_id
+        )
         for m in agent_runs:
             if not m.is_completed:
                 continue
@@ -141,7 +143,7 @@ class StrandsAgentRunnable(AgentRunnable):
         if query and not isinstance(query, AgentRunContent):
             query = AgentRunContent(text=str(query))
 
-        agent_messages = _list_messages(
+        agent_messages = await _list_messages(
             agent_run_repository,
             agent_run_session_id,
             query,

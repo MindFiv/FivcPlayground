@@ -31,14 +31,16 @@ from fivcplayground.models import Model
 from fivcplayground.tools import ToolRetriever
 
 
-def _list_messages(
+async def _list_messages(
     agent_run_repository: AgentRunRepository | None = None,
     agent_run_session_id: str | None = None,
     agent_query: AgentRunContent | None = None,
 ) -> List[BaseMessage]:
     agent_messages = []
     if agent_run_repository and agent_run_session_id:
-        agent_runs = agent_run_repository.list_agent_runs(agent_run_session_id)
+        agent_runs = await agent_run_repository.list_agent_runs_async(
+            agent_run_session_id
+        )
         for m in agent_runs:
             if not m.is_completed:
                 continue
@@ -116,7 +118,7 @@ class LangchainAgentRunnable(AgentRunnable):
         if query and not isinstance(query, AgentRunContent):
             query = AgentRunContent(text=str(query))
 
-        agent_messages = _list_messages(
+        agent_messages = await _list_messages(
             agent_run_repository,
             agent_run_session_id,
             query,
