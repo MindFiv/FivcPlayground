@@ -1,7 +1,27 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from fivcplayground.tasks.types.base import TaskRun
+from fivcplayground.tasks.types.base import TaskPlan, TaskRun
+
+
+class TaskPlanRepository(ABC):
+    """Abstract base class for task plan data repositories."""
+
+    @abstractmethod
+    async def update_task_plan_async(self, task_plan: TaskPlan) -> None:
+        """Create or update a task plan."""
+
+    @abstractmethod
+    async def get_task_plan_async(self, task_plan_id: str) -> Optional[TaskPlan]:
+        """Retrieve a task plan by ID."""
+
+    @abstractmethod
+    async def delete_task_plan_async(self, task_plan_id: str) -> None:
+        """Delete a task plan."""
+
+    @abstractmethod
+    async def list_task_plans_async(self) -> List[TaskPlan]:
+        """List all task plans in the repository."""
 
 
 class TaskRunRepository(ABC):

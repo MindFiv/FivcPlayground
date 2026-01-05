@@ -117,7 +117,7 @@ class TaskMessage:
                     # Step header with agent name and status
                     col1, col2, col3 = st.columns([2, 1, 1])
 
-                    col1.markdown(f"**Agent:** {step.agent_name}")
+                    col1.markdown(f"**Agent:** {step.agent_id}")
 
                     status_icon = self.STATUS_ICONS.get(step.status, "⚪")
                     col2.markdown(f"{status_icon} {step.status.value}")

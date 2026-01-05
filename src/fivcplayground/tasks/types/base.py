@@ -1,17 +1,20 @@
 __all__ = [
+    "TaskPlanOption",
+    "TaskPlanAgent",
+    "TaskPlan",
     "TaskRunContent",
     "TaskRunStatus",
     "TaskRunEvent",
     "TaskRunPhase",
     "TaskRun",
     "TaskRunnable",
-    "TaskSimpleRunnable",
+    "TaskBackend",
 ]
 
 from abc import abstractmethod, ABC
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict, Literal
+from typing import Optional, List, Dict, Literal, Type
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, computed_field
@@ -40,20 +43,20 @@ class TaskPlanOption(BaseModel):
 class TaskPlan(BaseModel):
     """Task plan."""
 
-    id: str = Field(..., description="Unique identifier for the task")
+    id: str = Field(..., description="Unique identifier for the task plan")
 
     @computed_field
     @property
     def name(self) -> str:
         return self.id  # id and name are the same for task
 
-    description: str = Field(..., description="Description of the task")
+    description: str = Field(..., description="Description of the task plan")
 
     agents: list[TaskPlanAgent] = Field(
-        description="List of agents needed for the task"
+        description="List of agents needed for the task plan"
     )
     options: TaskPlanOption | None = Field(
-        default=None, description="Options for the task"
+        default=None, description="Options for the task plan"
     )
 
 
@@ -197,45 +200,6 @@ class TaskRun(BaseModel):
         self.phases.clear()
 
 
-class TaskSimpleRunnable(TaskRunnable):
-    """
-    Simple task runnable for testing and development.
-
-    This class provides a basic implementation of the Runnable interface
-    for testing and development purposes. It does not perform any actual
-    task execution, but simply returns a predefined result.
-    """
-
-    def __init__(self, runnable: TaskRunnable, query: str = "", **kwargs):
-        self._query = query
-        self._kwargs = kwargs
-        self._runnable = runnable
-
-    @property
-    def id(self) -> str:
-        return self._runnable.id
-
-    @property
-    def name(self) -> str:
-        return self._runnable.name
-
-    @property
-    def description(self) -> str:
-        return self._runnable.description
-
-    def run(self, query: str = "", **kwargs) -> BaseModel:
-        kwargs.update(query=self._query.format(query=query))
-        for k, v in self._kwargs.items():
-            kwargs.setdefault(k, v)
-        return self._runnable.run(**kwargs)
-
-    async def run_async(self, query: str = "", **kwargs) -> BaseModel:
-        kwargs.update(query=self._query.format(query=query))
-        for k, v in self._kwargs.items():
-            kwargs.setdefault(k, v)
-        return await self._runnable.run_async(**kwargs)
-
-
 class TaskBackend(ABC):
     """Interface for task backends."""
 
@@ -247,7 +211,7 @@ class TaskBackend(ABC):
         agent_backend: AgentBackend,
         agent_config_repository: AgentConfigRepository,
         task_plan: TaskPlan,
-        task_response_model: BaseModel | None = None,
+        task_response_model: Type[BaseModel] | None = None,
         **kwargs,  # ignore additional kwargs
     ) -> TaskRunnable:
         """Create a task instance from a TaskPlan."""
