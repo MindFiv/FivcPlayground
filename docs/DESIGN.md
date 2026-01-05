@@ -35,14 +35,14 @@ FivcPlayground supports a **dual-backend architecture** allowing you to choose b
 1. **Strands Backend** (Default)
    - Uses `strands-agents` framework
    - Optimized for agent orchestration
-   - Set via: `__backend__ = "strands"` in `src/fivcplayground/__init__.py`
+   - Imported from: `fivcplayground.backends.strands`
 
 2. **LangChain Backend** (Alternative)
    - Uses `langchain-core` framework
    - Broader ecosystem integration
-   - Set via: `__backend__ = "langchain"` in `src/fivcplayground/__init__.py`
+   - Imported from: `fivcplayground.backends.langchain`
 
-See [Backend Selection Guide](BACKEND_SELECTION.md) for detailed instructions on switching backends.
+Backend selection is done explicitly when creating backend instances. See [Backend Selection Guide](BACKEND_SELECTION.md) for detailed instructions.
 
 ---
 

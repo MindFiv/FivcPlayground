@@ -91,34 +91,33 @@ pip install -e ".[dev]"
 
 ## 🔄 Backend Selection
 
-FivcPlayground supports two agent frameworks:
+FivcPlayground supports two agent frameworks, and both are installed by default:
 
 ### Strands Backend (Default)
 - Uses `strands-agents` framework
 - Optimized for agent orchestration
 - All dependencies included by default
-- **No action needed** - this is the default
 
 ### LangChain Backend (Alternative)
-To use LangChain instead of Strands:
+- Uses `langchain-core` framework
+- Broader ecosystem integration
+- All dependencies included by default
 
-1. Edit `src/fivcplayground/__init__.py`:
+### Using Different Backends
+
+Backend selection is done explicitly when creating backend instances:
+
 ```python
-# Change from:
-__backend__ = "strands"
+# Using Strands
+from fivcplayground.backends.strands import StrandsAgentBackend
+agent_backend = StrandsAgentBackend()
 
-# To:
-__backend__ = "langchain"
+# Using LangChain
+from fivcplayground.backends.langchain import LangchainAgentBackend
+agent_backend = LangchainAgentBackend()
 ```
 
-2. Ensure LangChain dependencies are installed:
-```bash
-uv sync  # or pip install -e .
-```
-
-3. Restart your application
-
-**Note**: Both backends are installed by default. You only need to change the `__backend__` variable to switch.
+**Note**: Both backends are installed by default. No additional installation or configuration needed.
 
 ## 🔧 Dependency Management
 

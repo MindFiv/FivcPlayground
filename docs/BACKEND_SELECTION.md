@@ -16,19 +16,37 @@ FivcPlayground supports two agent frameworks: **Strands** (default) and **LangCh
 
 ## 🚀 Switching Backends
 
-### Step 1: Edit Backend Configuration
+Backend selection is done explicitly when creating backend instances. Both backends are available and can be used simultaneously in different parts of your application.
 
-Open `src/fivcplayground/__init__.py` and change the `__backend__` variable:
+### Using Strands Backend (Default)
 
 ```python
-# Current (Strands - Default)
-__backend__ = "strands"
+from fivcplayground.backends.strands import (
+    StrandsAgentBackend,
+    StrandsModelBackend,
+    StrandsToolBackend,
+)
 
-# Change to (LangChain)
-__backend__ = "langchain"
+agent_backend = StrandsAgentBackend()
+model_backend = StrandsModelBackend()
+tool_backend = StrandsToolBackend()
 ```
 
-### Step 2: Verify Dependencies
+### Using LangChain Backend
+
+```python
+from fivcplayground.backends.langchain import (
+    LangchainAgentBackend,
+    LangchainModelBackend,
+    LangchainToolBackend,
+)
+
+agent_backend = LangchainAgentBackend()
+model_backend = LangchainModelBackend()
+tool_backend = LangchainToolBackend()
+```
+
+### Verify Dependencies
 
 Both backends are installed by default. Verify with:
 
@@ -38,18 +56,6 @@ python -c "import strands; print('Strands OK')"
 
 # Check LangChain
 python -c "import langchain_core; print('LangChain OK')"
-```
-
-### Step 3: Restart Application
-
-```bash
-# For CLI
-uv run fivcplayground run Generic --query "test"
-
-# For Web Interface
-make serve
-# or
-uv run fivcplayground web
 ```
 
 ## 📋 When to Use Each Backend
@@ -68,49 +74,54 @@ uv run fivcplayground web
 
 ## 🔧 Implementation Details
 
-### Backend-Specific Code
+### Backend Architecture
 
-The codebase uses conditional imports based on `__backend__`:
+Each backend is implemented as a separate module with consistent interfaces:
+
+- **Agents**: `src/fivcplayground/backends/langchain/agents.py` and `src/fivcplayground/backends/strands/agents.py`
+- **Models**: `src/fivcplayground/backends/langchain/models.py` and `src/fivcplayground/backends/strands/models.py`
+- **Tools**: `src/fivcplayground/backends/langchain/tools.py` and `src/fivcplayground/backends/strands/tools.py`
+
+### Using Multiple Backends
+
+You can use different backends for different components in the same application:
 
 ```python
-from fivcplayground import __backend__
+from fivcplayground.backends.strands import StrandsAgentBackend
+from fivcplayground.backends.langchain import LangchainModelBackend
 
-if __backend__ == "langchain":
-    from .langchain import AgentRunnable
-elif __backend__ == "strands":
-    from .strands import AgentRunnable
+# Use Strands for agents
+agent_backend = StrandsAgentBackend()
+
+# Use LangChain for models
+model_backend = LangchainModelBackend()
 ```
-
-### Affected Components
-
-- **Agents** (`src/fivcplayground/backends/langchain/agents.py` and `src/fivcplayground/backends/strands/agents.py`)
-- **Models** (`src/fivcplayground/backends/`)
-- **Tools** (`src/fivcplayground/backends/` - backend implementations; `src/fivcplayground/tools/types/backends/` - compatibility layer)
 
 ## ⚠️ Important Notes
 
 1. **Both backends are always installed** - No additional installation needed
-2. **Configuration is global** - Changing `__backend__` affects the entire application
-3. **Restart required** - Changes take effect after application restart
+2. **Explicit selection** - Backend is selected when creating backend instances
+3. **No restart required** - You can switch backends by creating new instances
 4. **Data compatibility** - Agent runs and configurations are compatible across backends
-5. **No data loss** - Switching backends doesn't affect stored data
+5. **No data loss** - Using different backends doesn't affect stored data
+6. **Flexible architecture** - Different components can use different backends simultaneously
 
 ## 🐛 Troubleshooting
-
-### Backend not switching
-- Verify you edited the correct file: `src/fivcplayground/__init__.py`
-- Restart the application completely
-- Check that `__backend__` is set correctly (no typos)
 
 ### Import errors
 - Run `uv sync` to ensure all dependencies are installed
 - Check Python version (3.10+)
 - Verify no conflicting installations
+- Ensure you're importing from the correct backend module
+
+### Backend not available
+- Verify the backend module exists: `from fivcplayground.backends.{backend_name} import ...`
+- Check that all dependencies are installed for the backend you're using
 
 ### Performance issues
 - Strands backend is optimized for agents
 - LangChain backend is general-purpose
-- Consider switching back to Strands if experiencing slowdowns
+- Consider using Strands for agent-heavy workloads
 
 ---
 

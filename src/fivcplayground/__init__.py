@@ -1,10 +1,12 @@
 __all__ = [
     "cli",
     "__version__",
-    "__backend__",
-    "__embedding_backend__",
+    "__author__",
+    "__email__",
+    "__license__",
 ]
-__version__ = "0.1.12"
 
-__backend__ = "strands"
-__embedding_backend__ = "chroma"
+__version__ = "0.1.13"
+__author__ = "Charlie Zhang"
+__email__ = "sunnypig2002@gmail.com"
+__license__ = "MIT"
