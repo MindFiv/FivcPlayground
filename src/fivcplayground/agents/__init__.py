@@ -91,8 +91,9 @@ async def create_agent_async(
             raise ValueError(f"Model not found: {agent_config.model_id}")
         return None
 
-    return agent_backend.create_agent(
-        agent_model,
+    return await agent_backend.create_agent_async(
+        model_backend,
+        model_config_repository,
         agent_config,
     )
 

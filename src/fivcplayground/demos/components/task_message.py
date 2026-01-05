@@ -1,11 +1,11 @@
 """
 Task Message Component
 
-Renders task execution details with team composition and runtime information.
+Renders task execution details with runtime information.
 
 This module provides the TaskMessage component for displaying task information
-in the FivcPlayground interface, including task metadata, team composition,
-execution steps, and real-time progress updates.
+in the FivcPlayground interface, including task metadata, execution steps,
+and real-time progress updates.
 """
 
 import streamlit as st
@@ -16,17 +16,15 @@ from fivcplayground.tasks.types import TaskRun, TaskRunStatus
 
 class TaskMessage:
     """
-    Component for rendering task execution details with team and runtime information.
+    Component for rendering task execution details with runtime information.
 
     This class handles the display of task information in the FivcPlayground interface, including:
     - Task metadata (query, status, timing)
-    - Task team composition (specialists and their tools)
     - Task execution steps with agent details
     - Real-time runtime changes and progress updates
     - Message history for each execution step
 
     Features:
-        - Displays task team with specialist agents and their capabilities
         - Shows execution steps with status indicators and timing
         - Renders messages exchanged during agent execution
         - Supports both completed and streaming task execution
@@ -66,7 +64,6 @@ class TaskMessage:
 
         Displays comprehensive task information including:
         - Task metadata (query, status, duration)
-        - Task team composition with specialist details
         - Execution steps with agent progress
         - Messages and results from each step
 
@@ -77,10 +74,6 @@ class TaskMessage:
 
         # Render task header with status
         self._render_task_header(placeholder)
-
-        # Render task team if available
-        if self.runtime.team:
-            self._render_task_team(placeholder)
 
         # Render execution phases
         if self.runtime.phases:
@@ -107,28 +100,6 @@ class TaskMessage:
             # Duration
             if self.runtime.duration:
                 col3.markdown(f"⏱️ **Duration:** {self.runtime.duration:.2f}s")
-
-    def _render_task_team(self, placeholder: DeltaGenerator):
-        """
-        Render task team composition with specialist details.
-
-        Displays each specialist agent with their name, backstory, and available tools.
-
-        Args:
-            placeholder: Streamlit container to render into
-        """
-        with placeholder.expander("👥 **Task Team**", expanded=True):
-            team = self.runtime.team
-            if team and team.specialists:
-                for i, specialist in enumerate(team.specialists, 1):
-                    with st.container():
-                        st.markdown(f"**Specialist {i}: {specialist.name}**")
-                        st.markdown(f"*{specialist.backstory}*")
-
-                        if specialist.tools:
-                            tools_str = ", ".join(specialist.tools)
-                            st.caption(f"🔧 Tools: {tools_str}")
-                        st.divider()
 
     def _render_execution_steps(self, placeholder: DeltaGenerator):
         """

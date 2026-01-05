@@ -12,7 +12,6 @@ from pydantic import ValidationError
 from fivcplayground.tasks.types import (
     TaskAssessment,
     TaskRequirement,
-    TaskTeam,
 )
 
 
@@ -100,81 +99,6 @@ class TestTaskRequirement:
 
         assert "properties" in schema
         assert "tools" in schema["properties"]
-
-
-class TestTaskTeam:
-    """Test the TaskTeam schema."""
-
-    def test_specialist_init(self):
-        """Test Specialist initialization."""
-        specialist = TaskTeam.Specialist(
-            name="Research Agent",
-            backstory="An expert researcher",
-            tools=["search", "summarize"],
-        )
-
-        assert specialist.name == "Research Agent"
-        assert specialist.backstory == "An expert researcher"
-        assert specialist.tools == ["search", "summarize"]
-
-    def test_task_team_init(self):
-        """Test TaskTeam initialization."""
-        specialist1 = TaskTeam.Specialist(
-            name="Agent1", backstory="Backstory1", tools=["tool1"]
-        )
-        specialist2 = TaskTeam.Specialist(
-            name="Agent2", backstory="Backstory2", tools=["tool2"]
-        )
-
-        team = TaskTeam(specialists=[specialist1, specialist2])
-
-        assert len(team.specialists) == 2
-        assert team.specialists[0].name == "Agent1"
-        assert team.specialists[1].name == "Agent2"
-
-    def test_task_team_empty(self):
-        """Test TaskTeam with empty specialists list."""
-        team = TaskTeam(specialists=[])
-
-        assert team.specialists == []
-
-    def test_validation_error(self):
-        """Test that missing required fields raises ValidationError."""
-        with pytest.raises(ValidationError):
-            TaskTeam()
-
-    def test_specialist_validation_error(self):
-        """Test that Specialist with missing fields raises ValidationError."""
-        with pytest.raises(ValidationError):
-            TaskTeam.Specialist(name="Agent1")
-
-    def test_dict_conversion(self):
-        """Test conversion to dictionary."""
-        specialist = TaskTeam.Specialist(
-            name="Agent", backstory="Story", tools=["tool"]
-        )
-        team = TaskTeam(specialists=[specialist])
-        data = team.model_dump()
-
-        assert "specialists" in data
-        assert len(data["specialists"]) == 1
-        assert data["specialists"][0]["name"] == "Agent"
-        assert data["specialists"][0]["backstory"] == "Story"
-        assert data["specialists"][0]["tools"] == ["tool"]
-
-    def test_json_schema(self):
-        """Test JSON schema generation."""
-        schema = TaskTeam.model_json_schema()
-
-        assert "properties" in schema
-        assert "specialists" in schema["properties"]
-
-    def test_nested_specialist_schema(self):
-        """Test that Specialist schema is properly nested."""
-        schema = TaskTeam.model_json_schema()
-
-        # Check that Specialist is defined in the schema
-        assert "$defs" in schema or "definitions" in schema
 
 
 if __name__ == "__main__":

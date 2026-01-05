@@ -27,7 +27,11 @@ from fivcplayground.agents import (
     AgentRunToolSpan,
     AgentBackend,
 )
-from fivcplayground.models import Model
+from fivcplayground.models import (
+    ModelBackend,
+    ModelConfigRepository,
+    create_model_async,
+)
 from fivcplayground.tools import ToolRetriever
 
 
@@ -248,12 +252,21 @@ class LangchainAgentRunnable(AgentRunnable):
 class LangchainAgentBackend(AgentBackend):
     """Langchain agent backend"""
 
-    def create_agent(
+    async def create_agent_async(
         self,
-        agent_model: Model,
+        model_backend: ModelBackend,
+        model_config_repository: ModelConfigRepository,
         agent_config: AgentConfig,
     ) -> AgentRunnable:
         """Create an agent instance from an AgentConfig."""
+        agent_model = await create_model_async(
+            model_backend=model_backend,
+            model_config_repository=model_config_repository,
+            model_config_id=agent_config.model_id,
+        )
+        if not agent_model:
+            raise RuntimeError(f"Model not found: {agent_config.model_id}")
+
         agent_model = agent_model.get_underlying()
         if not isinstance(agent_model, LangchainModelUnderlying):
             raise RuntimeError(

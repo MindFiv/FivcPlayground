@@ -5,7 +5,6 @@ __all__ = [
     "create_planning_task_async",
     "TaskAssessment",
     "TaskRequirement",
-    "TaskTeam",
     "TaskRunPhase",
     "TaskRunStatus",
 ]
@@ -25,7 +24,6 @@ from fivcplayground.models import (
 from fivcplayground.tasks.types import (
     TaskAssessment,
     TaskRequirement,
-    TaskTeam,
     TaskRunPhase,
     TaskRunStatus,
     TaskRunnable,
@@ -119,6 +117,11 @@ async def create_planning_task_async(
     tool_retriever: ToolRetriever | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> TaskRunnable:
+    """
+    Create a planning task to generate a plan for a query.
+
+    Returns a TaskRunnable that generates a plan with specialist agents needed for the task.
+    """
     agent_runnable = create_planning_agent(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
@@ -128,14 +131,8 @@ async def create_planning_task_async(
     return TaskSimpleRunnable(
         agent_runnable,
         query="Plan the following query and determine the best approach for handling it. "
-        "Provide your plan in JSON format with these exact fields:\n"
-        "- specialists (array): List of specialist agents needed for the task\n"
-        "  Each specialist should have:\n"
-        "  - name (string): Name of the agent\n"
-        "  - backstory (string): System prompt/backstory for the agent\n"
-        "  - tools (array): List of tool names the agent needs\n\n"
+        "Provide your plan in JSON format with specialist agents needed for the task.\n\n"
         "Query: {query}",
-        response_model=TaskTeam,
         tool_retriever=tool_retriever,
         tool_ids=["tool_retriever"],
     )

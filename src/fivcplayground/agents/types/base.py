@@ -11,7 +11,7 @@ from pydantic import (
 )
 
 from fivcplayground.tools import ToolRetriever
-from fivcplayground.models import Model
+from fivcplayground.models import ModelBackend, ModelConfigRepository
 
 
 class AgentConfig(BaseModel):
@@ -257,9 +257,10 @@ class AgentBackend(ABC):
     """Interface for agent backends."""
 
     @abstractmethod
-    def create_agent(
+    async def create_agent_async(
         self,
-        agent_model: Model,
+        model_backend: ModelBackend,
+        model_config_repository: ModelConfigRepository,
         agent_config: AgentConfig,
     ) -> AgentRunnable:
         """Create an agent instance from an AgentConfig."""

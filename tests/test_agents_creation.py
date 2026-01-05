@@ -44,7 +44,7 @@ class TestCreateAgent:
         mock_agent = Mock()
         mock_agent.id = "test-agent"
         mock_agent._model = mock_underlying_model
-        mock_agent_backend.create_agent.return_value = mock_agent
+        mock_agent_backend.create_agent_async = AsyncMock(return_value=mock_agent)
 
         # Create a mock model backend
         from fivcplayground.models import ModelBackend
@@ -127,7 +127,7 @@ class TestCreateAgent:
 
         mock_agent_backend = Mock(spec=AgentBackend)
         mock_agent = Mock()
-        mock_agent_backend.create_agent.return_value = mock_agent
+        mock_agent_backend.create_agent_async = AsyncMock(return_value=mock_agent)
 
         # Create a mock model backend
         from fivcplayground.models import ModelBackend

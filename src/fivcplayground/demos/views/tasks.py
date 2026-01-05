@@ -6,7 +6,6 @@ Provides a task management interface with task execution tracking and monitoring
 This module implements the main tasks view for the FivcPlayground web interface,
 allowing users to create, monitor, and manage multi-agent tasks. The view handles:
 - Displaying task list with status indicators
-- Showing task team composition and specialist agents
 - Rendering task execution steps with real-time updates
 - Tracking runtime changes and agent execution progress
 

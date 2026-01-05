@@ -1,7 +1,6 @@
 __all__ = [
     "TaskAssessment",
     "TaskRequirement",
-    "TaskTeam",
     "TaskRunStatus",
     "TaskRunEvent",
     "TaskRunPhase",
@@ -12,14 +11,15 @@ __all__ = [
 ]
 
 from .base import (
-    TaskAssessment,
-    TaskRequirement,
-    TaskTeam,
     TaskRunStatus,
     TaskRunEvent,
     TaskRunPhase,
     TaskRun,
     TaskRunnable,
     TaskSimpleRunnable,
+)
+from .responses import (
+    TaskAssessment,
+    TaskRequirement,
 )
 from .repositories import TaskRunRepository
