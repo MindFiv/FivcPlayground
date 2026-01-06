@@ -21,6 +21,11 @@ class ChatMessage(object):
     - LLM thinking content (<think>...</think>) in separate expanders
     - Streaming response rendering with real-time thinking updates
 
+    Note on streaming_text:
+        The streaming_text field in AgentRun contains delta messages (incremental text chunks),
+        not accumulated text. The render_streaming() method is called repeatedly with each new
+        delta chunk and processes them individually.
+
     Class Variables:
         LOADING_INDICATOR (str): CSS and HTML for animated loading dots
         COMPLETE_THINK_PATTERN (str): Regex pattern for complete <think>...</think> blocks
@@ -33,6 +38,7 @@ class ChatMessage(object):
         - Supports multiple thinking blocks with automatic numbering
         - Shows ongoing thinking in expanded expanders during streaming
         - Renders tool calls with status indicators and timing information
+        - Processes delta messages from streaming_text field
 
     Example:
         >>> runtime = AgentRun(...)
@@ -275,6 +281,14 @@ class ChatMessage(object):
         streaming: str,
         placeholder: DeltaGenerator,
     ):
+        """
+        Render streaming text delta chunk.
+
+        Args:
+            streaming: Delta message (incremental text chunk) from the agent, not accumulated text.
+                      This method is called repeatedly with each new delta chunk.
+            placeholder: Streamlit DeltaGenerator for rendering output.
+        """
         # Extract thinking content and clean text for streaming
         cleaned_text, thinking_contents, ongoing_thinking = (
             self.extract_thinking_content(streaming, is_streaming=True)

@@ -195,7 +195,8 @@ class StrandsAgentRunnable(AgentRunnable):
 
                     elif "data" in event_data:
                         event = AgentRunEvent.STREAM
-                        agent_run.streaming_text += event_data["data"]
+                        # streaming_text contains delta message (incremental chunk), not accumulated text
+                        agent_run.streaming_text = event_data["data"]
 
                     elif "message" in event_data:
                         event = AgentRunEvent.UPDATE

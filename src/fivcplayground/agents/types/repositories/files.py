@@ -391,7 +391,13 @@ class FileAgentRunRepository(AgentRunRepository):
     async def update_agent_run_async(
         self, session_id: str, agent_run: AgentRun
     ) -> None:
-        """Create or update an agent runtime."""
+        """Create or update an agent runtime.
+
+        Note:
+            streaming_text is excluded from serialization and will not be stored
+            in the file. It is only used for in-memory streaming during execution
+            and contains delta messages (incremental chunks), not accumulated text.
+        """
         session_dir = self._get_session_dir(session_id)
         session_dir.mkdir(parents=True, exist_ok=True)
 

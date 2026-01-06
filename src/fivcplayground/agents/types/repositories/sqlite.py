@@ -313,7 +313,8 @@ class SqliteAgentRunRepository(AgentRunRepository):
 
         Note:
             streaming_text is excluded from serialization and will not be stored
-            in the database. It is only used for in-memory streaming during execution.
+            in the database. It is only used for in-memory streaming during execution
+            and contains delta messages (incremental chunks), not accumulated text.
         """
         cursor = self.connection.cursor()
         runtime_data = agent_run.model_dump(mode="json", exclude={"tool_calls"})

@@ -161,7 +161,9 @@ class AgentRun(BaseModel):
     streaming_text: str = Field(
         default="",
         exclude=True,
-        description="Accumulated streaming text output from the agent",
+        description="Delta message (incremental text chunk) from the agent streaming output. "
+        "Contains only the new text chunk received in the current stream event, "
+        "not the accumulated message.",
     )
     error: Optional[str] = Field(
         default=None, description="Error message if execution failed"

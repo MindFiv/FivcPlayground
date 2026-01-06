@@ -81,7 +81,10 @@ class TestChatMessageClass:
         assert "sunny" in call_args
 
     def test_render_with_streaming_text(self):
-        """Test rendering runtime with streaming text."""
+        """Test rendering runtime with streaming text delta message.
+
+        streaming_text contains a delta message (incremental chunk), not accumulated text.
+        """
         mock_placeholder = Mock()
         mock_container = Mock()
         mock_user_msg = Mock()
@@ -98,7 +101,7 @@ class TestChatMessageClass:
         chat_msg = ChatMessage(runtime)
         chat_msg.render(mock_placeholder)
 
-        # Should render streaming text with loading indicator
+        # Should render streaming text delta with loading indicator
         mock_assistant_msg.markdown.assert_called_once()
         call_args = mock_assistant_msg.markdown.call_args[0][0]
         assert "Once upon a time" in call_args
@@ -185,16 +188,21 @@ class TestRenderMessageMethod:
 
 
 class TestRenderStreamingMethod:
-    """Test the render_streaming() method."""
+    """Test the render_streaming() method.
+
+    Tests verify that render_streaming() correctly handles delta messages
+    (incremental text chunks) from the streaming_text field.
+    """
 
     def test_render_stream_with_text(self):
-        """Test rendering streaming text."""
+        """Test rendering streaming text delta chunk."""
         mock_placeholder = Mock()
         runtime = AgentRun(
             agent_id="test-agent", streaming_text="Streaming response..."
         )
 
         chat_msg = ChatMessage(runtime)
+        # Pass a delta chunk (incremental text)
         chat_msg.render_streaming("Streaming response...", mock_placeholder)
 
         mock_placeholder.markdown.assert_called_once()
@@ -203,11 +211,12 @@ class TestRenderStreamingMethod:
         assert "loading-dots" in call_args
 
     def test_render_stream_with_empty_text(self):
-        """Test rendering with empty streaming text."""
+        """Test rendering with empty streaming text delta."""
         mock_placeholder = Mock()
         runtime = AgentRun(agent_id="test-agent", streaming_text="")
 
         chat_msg = ChatMessage(runtime)
+        # Pass an empty delta chunk
         chat_msg.render_streaming("", mock_placeholder)
 
         mock_placeholder.markdown.assert_called_once()
@@ -221,6 +230,7 @@ class TestRenderStreamingMethod:
         runtime = AgentRun(agent_id="test-agent", streaming_text="Test")
 
         chat_msg = ChatMessage(runtime)
+        # Pass a delta chunk
         chat_msg.render_streaming("Test", mock_placeholder)
 
         call_args = mock_placeholder.markdown.call_args[0][0]
@@ -307,7 +317,10 @@ class TestIntegration:
     """Integration tests for ChatMessage class."""
 
     def test_full_render_flow_with_streaming(self):
-        """Test complete render flow with streaming runtime."""
+        """Test complete render flow with streaming runtime.
+
+        Tests that streaming_text delta message is rendered correctly.
+        """
         mock_placeholder = Mock()
         mock_container = Mock()
         mock_user_msg = Mock()
@@ -318,7 +331,7 @@ class TestIntegration:
         runtime = AgentRun(
             agent_id="test-agent",
             query=AgentRunContent(text="Calculate 2+2"),
-            streaming_text="The answer is 4",
+            streaming_text="The answer is 4",  # Delta message (incremental chunk)
         )
 
         chat_msg = ChatMessage(runtime)

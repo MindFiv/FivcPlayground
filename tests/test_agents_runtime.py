@@ -225,14 +225,24 @@ class TestAgentsRuntime:
         assert runtime.failed_tool_calls == 1
 
     def test_runtime_with_streaming_text(self):
-        """Test runtime with streaming text."""
+        """Test runtime with streaming text delta messages.
+
+        streaming_text contains delta messages (incremental chunks), not accumulated text.
+        Each assignment represents a new delta chunk received from the stream.
+        """
         runtime = AgentRun(agent_id="agent-123")
 
+        # First delta chunk
         runtime.streaming_text = "Hello"
         assert runtime.streaming_text == "Hello"
 
-        runtime.streaming_text += " world"
-        assert runtime.streaming_text == "Hello world"
+        # Second delta chunk (replaces previous, not accumulated)
+        runtime.streaming_text = " world"
+        assert runtime.streaming_text == " world"
+
+        # Third delta chunk
+        runtime.streaming_text = "!"
+        assert runtime.streaming_text == "!"
 
     def test_runtime_with_error(self):
         """Test runtime with error."""

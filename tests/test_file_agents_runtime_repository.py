@@ -355,7 +355,11 @@ class TestFileAgentsRuntimeRepository:
 
     @pytest.mark.asyncio
     async def test_agent_with_streaming_text(self):
-        """Test agent runtime with streaming text - verify it's excluded from persistence"""
+        """Test agent runtime with streaming text delta - verify it's excluded from persistence.
+
+        streaming_text contains delta messages (incremental chunks) and is only used
+        for in-memory streaming during execution. It should not be persisted.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentRunRepository(output_dir=output_dir)
@@ -364,10 +368,10 @@ class TestFileAgentsRuntimeRepository:
             session = AgentRunSession(agent_id="streaming-agent")
             await repo.update_agent_run_session_async(session)
 
-            # Create an agent with streaming text
+            # Create an agent with streaming text delta
             agent = AgentRun(
                 agent_id="streaming-agent",
-                streaming_text="This is streaming text...",
+                streaming_text="This is a delta chunk...",  # Delta message, not accumulated
             )
             await repo.update_agent_run_async(session.id, agent)
 
