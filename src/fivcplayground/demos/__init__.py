@@ -17,6 +17,7 @@ from fivcplayground.backends.strands import (
     StrandsAgentBackend,
     StrandsModelBackend,
     StrandsToolBackend,
+    StrandsTaskBackend,
 )
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
@@ -49,6 +50,8 @@ embedding_config_repository = FileEmbeddingConfigRepository()
 tool_backend = StrandsToolBackend()
 tool_config_repository = FileToolConfigRepository()
 
+task_backend = StrandsTaskBackend()
+
 
 def main():
     """Main Streamlit application entry point with custom ViewNavigation"""
@@ -75,6 +78,7 @@ def main():
         agent_backend=agent_backend,
         agent_config_repository=agent_config_repository,
         agent_run_repository=agent_run_repository,
+        task_backend=task_backend,
         tool_retriever=tool_retriever,
     )
 

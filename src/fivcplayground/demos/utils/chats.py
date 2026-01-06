@@ -5,7 +5,7 @@ from typing import Optional, Callable, List
 
 from pydantic import BaseModel
 
-from fivcplayground.tasks import create_briefing_task_async
+from fivcplayground.tasks import create_briefing_task_async, TaskBackend
 from fivcplayground.agents import (
     create_companion_agent,
     AgentRunContent,
@@ -150,6 +150,7 @@ class ChatManager(object):
         agent_backend: AgentBackend | None = None,
         agent_config_repository: AgentConfigRepository | None = None,
         agent_run_repository: AgentRunRepository | None = None,
+        task_backend: TaskBackend | None = None,
         tool_retriever: ToolRetriever | None = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
@@ -163,6 +164,7 @@ class ChatManager(object):
 
         self._briefing_runnable = asyncio.run(
             create_briefing_task_async(
+                task_backend=task_backend,
                 model_backend=model_backend,
                 model_config_repository=model_config_repository,
                 agent_backend=agent_backend,
@@ -179,6 +181,9 @@ class ChatManager(object):
         self._tool_retriever = tool_retriever
 
     def list_chats(self) -> List[Chat]:
+        agent_run_session_list = asyncio.run(
+            self._agent_run_repository.list_agent_run_sessions_async()
+        )
         chats = [
             Chat(
                 agent_runnable=self._agent_runnable,
@@ -187,7 +192,7 @@ class ChatManager(object):
                 briefing_runnable=self._briefing_runnable,
                 tool_retriever=self._tool_retriever,
             )
-            for agent_run_session in self._agent_run_repository.list_agent_run_sessions()
+            for agent_run_session in agent_run_session_list
         ]
         # Sort by started_at, treating None as the earliest time (datetime.min)
         chats.sort(
