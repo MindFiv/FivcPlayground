@@ -134,7 +134,8 @@ class ToolRetriever(object):
             if src["score"] >= self.retrieve_min_score
         )
 
-        return [await self.get_tool_async(name) for name in tool_names]
+        tools = [await self.get_tool_async(name) for name in tool_names]
+        return [t for t in tools if t is not None]
 
     async def __call__(self, *args, **kwargs) -> list[dict]:
         tools = await self.retrieve_tools_async(*args, **kwargs)

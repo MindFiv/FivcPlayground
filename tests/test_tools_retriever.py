@@ -478,6 +478,176 @@ class TestToolRetriever:
             # We don't invoke it here as the actual invocation depends on the backend
             # The important thing is that to_tool() doesn't cause recursion errors
 
+    @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
+    @pytest.mark.asyncio
+    async def test_retrieve_tools_async_filters_none_values(
+        self, mock_embedding_config_repository, backend_name, get_backend
+    ):
+        """Regression test: retrieve_tools_async should filter out None values.
+
+        Bug: When get_tool_async returns None (tool config not found), those None
+        values were included in the returned list, causing AttributeError when
+        accessing tool.name or tool.description.
+
+        Fix: Filter out None values before returning from retrieve_tools_async.
+        """
+        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+            mock_db = Mock()
+            mock_embedding_table = Mock()
+            mock_embedding_table.cleanup = Mock()
+            mock_embedding_table.search = Mock(
+                return_value=[
+                    {
+                        "text": "Tool 1",
+                        "metadata": {"__tool__": "tool1"},
+                        "score": 0.9,
+                    },
+                    {
+                        "text": "Tool 2",
+                        "metadata": {"__tool__": "tool2"},
+                        "score": 0.85,
+                    },
+                    {
+                        "text": "Tool 3",
+                        "metadata": {"__tool__": "tool3"},
+                        "score": 0.8,
+                    },
+                ]
+            )
+            mock_db.tools = mock_embedding_table
+            mock_create_db.return_value = mock_db
+
+            # Create only tool1 and tool3, tool2 will not be found
+            tool1 = create_mock_tool("tool1", "Tool 1")
+            tool3 = create_mock_tool("tool3", "Tool 3")
+
+            # Mock repository to return None for tool2
+            mock_embedding_config_repository.get_tool_config_async = AsyncMock(
+                side_effect=lambda name: None if name == "tool2" else None
+            )
+
+            retriever = ToolRetriever(
+                tool_backend=get_backend(),
+                tool_list=[tool1, tool3],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
+
+            # Retrieve tools - should only return tool1 and tool3, not None for tool2
+            results = await retriever.retrieve_tools_async("test query")
+
+            # Verify no None values in results
+            assert all(t is not None for t in results)
+            # Verify only valid tools are returned
+            assert len(results) == 2
+            assert tool1 in results
+            assert tool3 in results
+
+    @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
+    @pytest.mark.asyncio
+    async def test_call_with_missing_tool_configs(
+        self, mock_embedding_config_repository, backend_name, get_backend
+    ):
+        """Regression test: __call__ should handle missing tool configs gracefully.
+
+        When some tools in search results don't have configs, __call__ should
+        only return metadata for tools that were successfully loaded.
+        """
+        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+            mock_db = Mock()
+            mock_embedding_table = Mock()
+            mock_embedding_table.cleanup = Mock()
+            mock_embedding_table.search = Mock(
+                return_value=[
+                    {
+                        "text": "Calculator",
+                        "metadata": {"__tool__": "calculator"},
+                        "score": 0.95,
+                    },
+                    {
+                        "text": "Missing Tool",
+                        "metadata": {"__tool__": "missing_tool"},
+                        "score": 0.9,
+                    },
+                ]
+            )
+            mock_db.tools = mock_embedding_table
+            mock_create_db.return_value = mock_db
+
+            # Only create calculator tool, missing_tool will not be found
+            calculator = create_mock_tool("calculator", "Calculate math")
+
+            # Mock repository to return None for missing_tool
+            mock_embedding_config_repository.get_tool_config_async = AsyncMock(
+                return_value=None
+            )
+
+            retriever = ToolRetriever(
+                tool_backend=get_backend(),
+                tool_list=[calculator],
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
+
+            # Call retriever - should only return calculator metadata
+            results = await retriever("math calculation")
+
+            # Verify results are valid JSON-serializable dicts
+            assert isinstance(results, list)
+            assert len(results) == 1
+            assert results[0]["name"] == "calculator"
+            assert results[0]["description"] == "Calculate math"
+
+    @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
+    @pytest.mark.asyncio
+    async def test_retrieve_tools_async_all_tools_missing(
+        self, mock_embedding_config_repository, backend_name, get_backend
+    ):
+        """Regression test: retrieve_tools_async should return empty list when all tools are missing.
+
+        Edge case: If all tools in search results don't have configs, should
+        return an empty list instead of a list of None values.
+        """
+        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+            mock_db = Mock()
+            mock_embedding_table = Mock()
+            mock_embedding_table.cleanup = Mock()
+            mock_embedding_table.search = Mock(
+                return_value=[
+                    {
+                        "text": "Missing Tool 1",
+                        "metadata": {"__tool__": "missing1"},
+                        "score": 0.9,
+                    },
+                    {
+                        "text": "Missing Tool 2",
+                        "metadata": {"__tool__": "missing2"},
+                        "score": 0.85,
+                    },
+                ]
+            )
+            mock_db.tools = mock_embedding_table
+            mock_create_db.return_value = mock_db
+
+            # Don't create any tools - all will be missing
+            mock_embedding_config_repository.get_tool_config_async = AsyncMock(
+                return_value=None
+            )
+
+            retriever = ToolRetriever(
+                tool_backend=get_backend(),
+                tool_list=None,
+                tool_config_repository=mock_embedding_config_repository,
+                embedding_db=mock_db,
+            )
+
+            # Retrieve tools - should return empty list, not [None, None]
+            results = await retriever.retrieve_tools_async("test query")
+
+            # Verify empty list is returned
+            assert results == []
+            assert all(t is not None for t in results)
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
