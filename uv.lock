@@ -863,11 +863,23 @@ wheels = [
 
 [[package]]
 name = "fivcplayground"
-version = "0.1.8"
+version = "0.1.15"
 source = { editable = "." }
 dependencies = [
-    { name = "chromadb" },
     { name = "httpx" },
+    { name = "nest-asyncio" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "streamlit" },
+    { name = "typer" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "chromadb" },
     { name = "langchain" },
     { name = "langchain-community" },
     { name = "langchain-core" },
@@ -876,18 +888,12 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "langchain-text-splitters" },
     { name = "langgraph" },
-    { name = "nest-asyncio" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "rich" },
     { name = "strands-agents" },
-    { name = "streamlit" },
-    { name = "typer" },
 ]
-
-[package.optional-dependencies]
+chroma = [
+    { name = "chromadb" },
+    { name = "langchain-text-splitters" },
+]
 dev = [
     { name = "build" },
     { name = "pytest" },
@@ -896,6 +902,19 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "twine" },
+]
+langchain = [
+    { name = "langchain" },
+    { name = "langchain-community" },
+    { name = "langchain-core" },
+    { name = "langchain-mcp-adapters" },
+    { name = "langchain-ollama" },
+    { name = "langchain-openai" },
+    { name = "langchain-text-splitters" },
+    { name = "langgraph" },
+]
+strands = [
+    { name = "strands-agents" },
 ]
 
 [package.dev-dependencies]
@@ -906,16 +925,26 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "chromadb", specifier = ">=1.1.0" },
+    { name = "chromadb", marker = "extra == 'all'", specifier = ">=1.1.0" },
+    { name = "chromadb", marker = "extra == 'chroma'", specifier = ">=1.1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langchain", specifier = ">=1.2.0" },
-    { name = "langchain-community", specifier = ">=0.4.1" },
-    { name = "langchain-core", specifier = ">=1.2.0" },
-    { name = "langchain-mcp-adapters", specifier = ">=0.2.1" },
-    { name = "langchain-ollama", specifier = ">=1.0.0" },
-    { name = "langchain-openai", specifier = ">=1.0.0" },
-    { name = "langchain-text-splitters", specifier = ">=0.3.11" },
-    { name = "langgraph", specifier = ">=1.0.5" },
+    { name = "langchain", marker = "extra == 'all'", specifier = ">=1.2.0" },
+    { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2.0" },
+    { name = "langchain-community", marker = "extra == 'all'", specifier = ">=0.4.1" },
+    { name = "langchain-community", marker = "extra == 'langchain'", specifier = ">=0.4.1" },
+    { name = "langchain-core", marker = "extra == 'all'", specifier = ">=1.2.0" },
+    { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=1.2.0" },
+    { name = "langchain-mcp-adapters", marker = "extra == 'all'", specifier = ">=0.2.1" },
+    { name = "langchain-mcp-adapters", marker = "extra == 'langchain'", specifier = ">=0.2.1" },
+    { name = "langchain-ollama", marker = "extra == 'all'", specifier = ">=1.0.0" },
+    { name = "langchain-ollama", marker = "extra == 'langchain'", specifier = ">=1.0.0" },
+    { name = "langchain-openai", marker = "extra == 'all'", specifier = ">=1.0.0" },
+    { name = "langchain-openai", marker = "extra == 'langchain'", specifier = ">=1.0.0" },
+    { name = "langchain-text-splitters", marker = "extra == 'all'", specifier = ">=0.3.11" },
+    { name = "langchain-text-splitters", marker = "extra == 'chroma'", specifier = ">=0.3.11" },
+    { name = "langchain-text-splitters", marker = "extra == 'langchain'", specifier = ">=0.3.11" },
+    { name = "langgraph", marker = "extra == 'all'", specifier = ">=1.0.5" },
+    { name = "langgraph", marker = "extra == 'langchain'", specifier = ">=1.0.5" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "openai", specifier = ">=1.109.1" },
     { name = "pydantic", specifier = ">=2.7.0" },
@@ -927,7 +956,8 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "rich", specifier = ">=13.7.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0,<0.6" },
-    { name = "strands-agents", specifier = ">=1.20.0" },
+    { name = "strands-agents", marker = "extra == 'all'", specifier = ">=1.20.0" },
+    { name = "strands-agents", marker = "extra == 'strands'", specifier = ">=1.20.0" },
     { name = "streamlit", specifier = ">=1.49.1" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "typer", specifier = ">=0.12.3" },

@@ -13,14 +13,28 @@ authors = [
     { name = "Charlie ZHANG", email = "sunnypig2002@gmail.com" }
 ]
 dependencies = [
+    # Core dependencies
     "typer>=0.12.3",
     "rich>=13.7.1",
     "PyYAML>=6.0.1",
     "python-dotenv>=1.0.1",
     "pydantic>=2.7.0",
     "streamlit>=1.49.1",
+    "openai>=1.109.1",
+    "nest-asyncio>=1.6.0",
+    # Transitive dependencies (required by other packages)
+    "httpx>=0.28.1", # Required by: langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
+]
+
+[project.optional-dependencies]
+# ChromaDB embedding backend
+chroma = [
     "chromadb>=1.1.0",
-    # LangChain 1.0 migration dependencies
+    "langchain-text-splitters>=0.3.11",
+]
+
+# LangChain agent backend
+langchain = [
     "langchain>=1.2.0",
     "langchain-core>=1.2.0",
     "langchain-community>=0.4.1",
@@ -28,17 +42,29 @@ dependencies = [
     "langgraph>=1.0.5",
     "langchain-mcp-adapters>=0.2.1",
     "langchain-ollama>=1.0.0",
-    "nest-asyncio>=1.6.0",
-    # Strands framework dependencies (optional)
-    "strands-agents>=1.20.0",
-    # Text splitters for document loading
     "langchain-text-splitters>=0.3.11",
-    # Transitive dependencies (required by other packages)
-    "httpx>=0.28.1", # Required by: chromadb, langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
-    "openai>=1.109.1", # Required by: langchain-openai
 ]
 
-[project.optional-dependencies]
+# Strands agent backend
+strands = [
+    "strands-agents>=1.20.0",
+]
+
+# All backends and embedding support
+all = [
+    "chromadb>=1.1.0",
+    "langchain-text-splitters>=0.3.11",
+    "langchain>=1.2.0",
+    "langchain-core>=1.2.0",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.0.0",
+    "langgraph>=1.0.5",
+    "langchain-mcp-adapters>=0.2.1",
+    "langchain-ollama>=1.0.0",
+    "strands-agents>=1.20.0",
+]
+
+# Development dependencies
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.21.0",

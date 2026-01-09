@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "FivcAdvisor - Available Make Commands"
+	@echo "FivcPlayground - Available Make Commands"
 	@echo "===================================="
 	@echo ""
 	@echo "Setup & Installation:"
@@ -28,8 +28,8 @@ help:
 
 # Installation targets
 install:
-	@echo "Installing FivcPlayground with development dependencies..."
-	uv sync --extra dev
+	@echo "Installing FivcPlayground with all dependencies..."
+	uv sync --extra all --extra dev
 
 install-min:
 	@echo "Installing FivcPlayground with minimal dependencies..."
@@ -48,7 +48,7 @@ format: dev
 	@echo "Formatting code..."
 	uv run ruff format src tests
 
-test: dev
+test: install
 	@echo "Running tests..."
 	uv run python -m pytest -q
 

@@ -18,8 +18,20 @@ For the best experience with fast dependency resolution:
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Basic installation
+# Minimal installation (core only, no backends)
 uv sync
+
+# With ChromaDB embedding backend
+uv sync --extra chroma
+
+# With LangChain agent backend
+uv sync --extra langchain
+
+# With Strands agent backend
+uv sync --extra strands
+
+# With everything (all backends + embeddings)
+uv sync --extra all
 
 # With development dependencies
 uv sync --extra dev
@@ -29,7 +41,7 @@ uv sync --extra dev
 We provide convenient Make targets:
 
 ```bash
-# Basic installation
+# Basic installation (core only)
 make install
 
 # Minimal installation (runtime only)
@@ -43,16 +55,31 @@ make dev
 If you prefer using pip:
 
 ```bash
-# Basic installation
+# Minimal installation (core only)
 pip install -e .
+
+# With ChromaDB embedding backend
+pip install -e ".[chroma]"
+
+# With LangChain agent backend
+pip install -e ".[langchain]"
+
+# With Strands agent backend
+pip install -e ".[strands]"
+
+# With everything (all backends + embeddings)
+pip install -e ".[all]"
 
 # With development dependencies
 pip install -e ".[dev]"
+
+# Combined installation (e.g., LangChain + ChromaDB + dev)
+pip install -e ".[langchain,chroma,dev]"
 ```
 
 ## 📦 Dependency Categories
 
-### Core Runtime Dependencies
+### Core Runtime Dependencies (Always Installed)
 | Package | Version | Purpose |
 |---------|---------|---------|
 | typer | >=0.12.3 | CLI framework |
@@ -61,63 +88,109 @@ pip install -e ".[dev]"
 | pydantic | >=2.7.0 | Data validation |
 | PyYAML | >=6.0.1 | Configuration files |
 | python-dotenv | >=1.0.1 | Environment variables |
-| httpx | >=0.28.1 | HTTP client |
-| chromadb | >=1.1.0 | Vector database |
-| audioread | >=3.0.1 | Audio file support |
-
-### Agent Framework Dependencies (Strands - Default)
-| Package | Version | Purpose |
-|---------|---------|---------|
-| strands-agents | >=1.9.1 | AI agent framework (default backend) |
-| strands-agents-tools | >=0.2.8 | Agent tools library |
-
-### LLM Provider Dependencies
-| Package | Version | Purpose |
-|---------|---------|---------|
 | openai | >=1.109.1 | OpenAI API client |
-| langchain-core | >=0.3.0 | LangChain core (alternative backend) |
-| langchain-openai | >=0.2.0 | LangChain OpenAI integration |
-| langchain-ollama | >=0.2.0 | LangChain Ollama integration |
-| langchain-mcp-adapters | >=0.1.0 | MCP tool integration for LangChain |
+| nest-asyncio | >=1.6.0 | Async event loop support |
+| httpx | >=0.28.1 | HTTP client |
+
+### ChromaDB Embedding Backend (`[chroma]`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| chromadb | >=1.1.0 | Vector database for embeddings |
+| langchain-text-splitters | >=0.3.11 | Text chunking for embeddings |
+
+### LangChain Agent Backend (`[langchain]`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| langchain | >=1.2.0 | LangChain framework |
+| langchain-core | >=1.2.0 | LangChain core abstractions |
+| langchain-community | >=0.4.1 | LangChain community integrations |
+| langchain-openai | >=1.0.0 | LangChain OpenAI integration |
+| langgraph | >=1.0.5 | LangChain graph framework |
+| langchain-mcp-adapters | >=0.2.1 | MCP tool integration for LangChain |
+| langchain-ollama | >=1.0.0 | LangChain Ollama integration |
 | langchain-text-splitters | >=0.3.11 | Text processing utilities |
 
-### Development Dependencies
+### Strands Agent Backend (`[strands]`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| strands-agents | >=1.20.0 | Strands AI agent framework |
+
+### Convenience Groups
+| Group | Contents | Purpose |
+|-------|----------|---------|
+| `[all]` | All optional dependencies | Complete installation with everything |
+| `[dev]` | Testing and development tools | Development and testing |
+
+### Development Dependencies (`[dev]`)
 | Package | Version | Purpose |
 |---------|---------|---------|
 | pytest | >=8.2.0 | Testing framework |
 | pytest-asyncio | >=0.21.0 | Async testing support |
 | pytest-cov | >=4.1.0 | Test coverage reporting |
+| pytest-benchmark | >=5.1.0 | Performance benchmarking |
 | ruff | >=0.4.0,<0.6 | Linting and formatting |
+| build | >=1.0.0 | Build system |
+| twine | >=4.0.0 | Package publishing |
 
 ## 🔄 Backend Selection
 
-FivcPlayground supports two agent frameworks, and both are installed by default:
+FivcPlayground supports two agent frameworks and multiple embedding backends. Install only what you need:
 
-### Strands Backend (Default)
+### Agent Backends
+
+#### Strands Backend
 - Uses `strands-agents` framework
 - Optimized for agent orchestration
-- All dependencies included by default
+- Install with: `pip install ".[strands]"`
 
-### LangChain Backend (Alternative)
+#### LangChain Backend
 - Uses `langchain-core` framework
 - Broader ecosystem integration
-- All dependencies included by default
+- Install with: `pip install ".[langchain]"`
+
+### Embedding Backends
+
+#### ChromaDB Backend
+- Vector database for semantic search
+- Used by ToolRetriever for tool selection
+- Install with: `pip install ".[chroma]"`
 
 ### Using Different Backends
 
 Backend selection is done explicitly when creating backend instances:
 
 ```python
-# Using Strands
+# Using Strands agent backend
 from fivcplayground.backends.strands import StrandsAgentBackend
 agent_backend = StrandsAgentBackend()
 
-# Using LangChain
+# Using LangChain agent backend
 from fivcplayground.backends.langchain import LangchainAgentBackend
 agent_backend = LangchainAgentBackend()
+
+# Using ChromaDB embedding backend
+from fivcplayground.backends.chroma import ChromaEmbeddingBackend
+embedding_backend = ChromaEmbeddingBackend()
 ```
 
-**Note**: Both backends are installed by default. No additional installation or configuration needed.
+### Installation Examples
+
+```bash
+# Minimal installation (core only, no backends)
+pip install -e .
+
+# Strands agent + ChromaDB embeddings
+pip install -e ".[strands,chroma]"
+
+# LangChain agent + ChromaDB embeddings
+pip install -e ".[langchain,chroma]"
+
+# Everything (all backends + embeddings)
+pip install -e ".[all]"
+
+# Development setup with all backends
+pip install -e ".[all,dev]"
+```
 
 ## 🔧 Dependency Management
 
