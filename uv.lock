@@ -863,7 +863,7 @@ wheels = [
 
 [[package]]
 name = "fivcplayground"
-version = "0.1.15"
+version = "0.1.16"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -892,7 +892,6 @@ all = [
 ]
 chroma = [
     { name = "chromadb" },
-    { name = "langchain-text-splitters" },
 ]
 dev = [
     { name = "build" },
@@ -941,7 +940,6 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'all'", specifier = ">=1.0.0" },
     { name = "langchain-openai", marker = "extra == 'langchain'", specifier = ">=1.0.0" },
     { name = "langchain-text-splitters", marker = "extra == 'all'", specifier = ">=0.3.11" },
-    { name = "langchain-text-splitters", marker = "extra == 'chroma'", specifier = ">=0.3.11" },
     { name = "langchain-text-splitters", marker = "extra == 'langchain'", specifier = ">=0.3.11" },
     { name = "langgraph", marker = "extra == 'all'", specifier = ">=1.0.5" },
     { name = "langgraph", marker = "extra == 'langchain'", specifier = ">=1.0.5" },

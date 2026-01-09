@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
-from fivcplayground.backends.chroma import (
+from fivcplayground.backends.chroma.embeddings import (
     ChromaEmbeddingDB as EmbeddingDB,
     ChromaEmbeddingTable as EmbeddingTable,
     _create_embedding_function,
@@ -33,7 +33,7 @@ class TestCreateEmbeddingFunction:
         )
 
         with patch(
-            "fivcplayground.backends.chroma.OpenAIEmbeddingFunction"
+            "fivcplayground.backends.chroma.embeddings.OpenAIEmbeddingFunction"
         ) as mock_openai:
             mock_func = Mock()
             mock_openai.return_value = mock_func
@@ -57,7 +57,7 @@ class TestCreateEmbeddingFunction:
         )
 
         with patch(
-            "fivcplayground.backends.chroma.OllamaEmbeddingFunction"
+            "fivcplayground.backends.chroma.embeddings.OllamaEmbeddingFunction"
         ) as mock_ollama:
             mock_func = Mock()
             mock_ollama.return_value = mock_func
@@ -94,9 +94,9 @@ class TestEmbeddingDB:
             api_key="sk-test",
         )
 
-        with patch("fivcplayground.backends.chroma.PersistentClient"):
+        with patch("fivcplayground.backends.chroma.embeddings.PersistentClient"):
             with patch(
-                "fivcplayground.backends.chroma._create_embedding_function"
+                "fivcplayground.backends.chroma.embeddings._create_embedding_function"
             ) as mock_create_func:
                 mock_func = Mock()
                 mock_create_func.return_value = mock_func
@@ -116,9 +116,11 @@ class TestEmbeddingDB:
         )
 
         with patch(
-            "fivcplayground.backends.chroma.PersistentClient"
+            "fivcplayground.backends.chroma.embeddings.PersistentClient"
         ) as mock_persistent_client:
-            with patch("fivcplayground.backends.chroma._create_embedding_function"):
+            with patch(
+                "fivcplayground.backends.chroma.embeddings._create_embedding_function"
+            ):
                 mock_client = Mock()
                 mock_collection = Mock()
                 mock_client.get_or_create_collection.return_value = mock_collection

@@ -30,7 +30,6 @@ dependencies = [
 # ChromaDB embedding backend
 chroma = [
     "chromadb>=1.1.0",
-    "langchain-text-splitters>=0.3.11",
 ]
 
 # LangChain agent backend
@@ -53,7 +52,6 @@ strands = [
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
-    "langchain-text-splitters>=0.3.11",
     "langchain>=1.2.0",
     "langchain-core>=1.2.0",
     "langchain-community>=0.4.1",
@@ -61,6 +59,7 @@ all = [
     "langgraph>=1.0.5",
     "langchain-mcp-adapters>=0.2.1",
     "langchain-ollama>=1.0.0",
+    "langchain-text-splitters>=0.3.11",
     "strands-agents>=1.20.0",
 ]
 

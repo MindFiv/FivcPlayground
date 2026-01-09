@@ -14,8 +14,6 @@ from chromadb.utils.embedding_functions import (
     OllamaEmbeddingFunction,
 )
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 from fivcplayground.embeddings.types import (
     EmbeddingConfig,
     EmbeddingDB,
@@ -23,6 +21,7 @@ from fivcplayground.embeddings.types import (
     EmbeddingBackend,
 )
 from fivcplayground.utils import OutputDir
+from .splitters import ChromaTextSplitter
 
 
 def _create_embedding_function(
@@ -51,9 +50,7 @@ class ChromaEmbeddingTable(EmbeddingTable):
     """
 
     def __init__(self, collection: Collection):
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=2000, chunk_overlap=100
-        )
+        self.text_splitter = ChromaTextSplitter(chunk_size=2000, chunk_overlap=100)
         self.collection = collection
 
     def add(self, text: str, metadata: Dict[str, Any] | None = None):
