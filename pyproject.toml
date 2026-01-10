@@ -47,6 +47,8 @@ langchain = [
 # Strands agent backend
 strands = [
     "strands-agents>=1.20.0",
+    "strands-agents[openai]>=1.20.0",
+    "strands-agents[ollama]>=1.20.0"
 ]
 
 # All backends and embedding support
