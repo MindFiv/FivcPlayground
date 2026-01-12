@@ -863,11 +863,12 @@ wheels = [
 
 [[package]]
 name = "fivcplayground"
-version = "0.1.16"
+version = "0.1.18"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "nest-asyncio" },
+    { name = "ollama" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -888,7 +889,7 @@ all = [
     { name = "langchain-openai" },
     { name = "langchain-text-splitters" },
     { name = "langgraph" },
-    { name = "strands-agents" },
+    { name = "strands-agents", extra = ["ollama", "openai"] },
 ]
 chroma = [
     { name = "chromadb" },
@@ -913,7 +914,7 @@ langchain = [
     { name = "langgraph" },
 ]
 strands = [
-    { name = "strands-agents" },
+    { name = "strands-agents", extra = ["ollama", "openai"] },
 ]
 
 [package.dev-dependencies]
@@ -944,6 +945,7 @@ requires-dist = [
     { name = "langgraph", marker = "extra == 'all'", specifier = ">=1.0.5" },
     { name = "langgraph", marker = "extra == 'langchain'", specifier = ">=1.0.5" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
+    { name = "ollama", specifier = ">=0.6.0" },
     { name = "openai", specifier = ">=1.109.1" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2.0" },
@@ -956,6 +958,10 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0,<0.6" },
     { name = "strands-agents", marker = "extra == 'all'", specifier = ">=1.20.0" },
     { name = "strands-agents", marker = "extra == 'strands'", specifier = ">=1.20.0" },
+    { name = "strands-agents", extras = ["ollama"], marker = "extra == 'all'", specifier = ">=1.20.0" },
+    { name = "strands-agents", extras = ["ollama"], marker = "extra == 'strands'", specifier = ">=1.20.0" },
+    { name = "strands-agents", extras = ["openai"], marker = "extra == 'all'", specifier = ">=1.20.0" },
+    { name = "strands-agents", extras = ["openai"], marker = "extra == 'strands'", specifier = ">=1.20.0" },
     { name = "streamlit", specifier = ">=1.49.1" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "typer", specifier = ">=0.12.3" },
@@ -2612,7 +2618,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "2.7.2"
+version = "1.109.1"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2624,9 +2630,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/71/e3/cec27fa28ef36c4ccea71e9e8c20be9b8539618732989a82027575aab9d4/openai-2.7.2.tar.gz", hash = "sha256:082ef61163074d8efad0035dd08934cf5e3afd37254f70fc9165dd6a8c67dcbd", size = 595732 }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/c6/a1/a303104dc55fc546a3f6914c842d3da471c64eec92043aef8f652eb6c524/openai-1.109.1.tar.gz", hash = "sha256:d173ed8dbca665892a6db099b4a2dfac624f94d20a93f46eb0b56aae940ed869", size = 564133 }
 wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/25/66/22cfe4b695b5fd042931b32c67d685e867bfd169ebf46036b95b57314c33/openai-2.7.2-py3-none-any.whl", hash = "sha256:116f522f4427f8a0a59b51655a356da85ce092f3ed6abeca65f03c8be6e073d9", size = 1008375 },
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/1d/2a/7dd3d207ec669cacc1f186fd856a0f61dbc255d24f6fdc1a6715d6051b0f/openai-1.109.1-py3-none-any.whl", hash = "sha256:6bcaf57086cf59159b8e27447e4e7dd019db5d29a438072fbd49c290c7e65315", size = 948627 },
 ]
 
 [[package]]
@@ -4364,6 +4370,14 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/26/84/0e165337971a9d7ea1ad850fc976f47b96c20535a4624b055d207c7fe519/strands_agents-1.20.0.tar.gz", hash = "sha256:3b2a2bbb01f65f32d3ce3520b4875d32bb69b1e1879e4e3af41f3019500028a4", size = 613629 }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/8a/9c/c23d87d1305e671a4281500d846b6b3e49649ec27d0dec2831bcdb58d704/strands_agents-1.20.0-py3-none-any.whl", hash = "sha256:f8d0c868867191e6a1eadf3c9b060b3719c79323b4a02dfd127e4b2c67e6fc63", size = 319068 },
+]
+
+[package.optional-dependencies]
+ollama = [
+    { name = "ollama" },
+]
+openai = [
+    { name = "openai" },
 ]
 
 [[package]]

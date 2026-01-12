@@ -20,10 +20,11 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "pydantic>=2.7.0",
     "streamlit>=1.49.1",
-    "openai>=1.109.1",
     "nest-asyncio>=1.6.0",
     # Transitive dependencies (required by other packages)
     "httpx>=0.28.1", # Required by: langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
+    "openai>=1.109.1",
+    "ollama>=0.6.0",
 ]
 
 [project.optional-dependencies]
@@ -63,6 +64,8 @@ all = [
     "langchain-ollama>=1.0.0",
     "langchain-text-splitters>=0.3.11",
     "strands-agents>=1.20.0",
+    "strands-agents[openai]>=1.20.0",
+    "strands-agents[ollama]>=1.20.0"
 ]
 
 # Development dependencies
