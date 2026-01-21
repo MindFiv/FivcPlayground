@@ -11,7 +11,7 @@ import asyncio
 import dotenv
 
 from fivcplayground.utils import OutputDir
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.clock import clock
 from fivcplayground.tools.calculator import calculator
 from fivcplayground.backends.strands.tools import StrandsToolBackend
@@ -31,7 +31,7 @@ async def main():
     with OutputDir():
         # Create a retriever instance with builtin tools
         # Tools are passed during initialization
-        retriever = create_tool_retriever(
+        retriever = await create_tool_retriever_async(
             tool_backend=StrandsToolBackend(),
             load_builtin_tools=True,
         )
@@ -44,7 +44,7 @@ async def main():
         print(f"\nQuery: {query}")
         print("\nRetrieving relevant tools...")
 
-        result = retriever.retrieve_tools(query)
+        result = await retriever.retrieve_tools_async(query)
 
         print(f'\nFound {len(result)} relevant tools:')
         for i, tool in enumerate(result, 1):

@@ -71,7 +71,7 @@ src/fivcplayground/
 ├── backends/        # Backend implementations (langchain, strands)
 │   ├── langchain/   # LangChain backend
 │   └── strands/     # Strands backend
-├── demos/           # Streamlit web interface
+├── plays/           # Streamlit web interface
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
 ├── models/          # LLM model factories and providers
@@ -122,7 +122,6 @@ fivcplayground info
 
 - **Generic** - Standard agent for general task execution
 - **Companion** - Friendly chat agent for conversations
-- **Tooling** - Specialized in finding the right tools
 - **Consultant** - Assesses tasks and recommends approaches
 - **Planner** - Creates execution plans and teams
 - **Researcher** - Analyzes patterns and workflows

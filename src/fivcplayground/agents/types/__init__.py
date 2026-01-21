@@ -2,6 +2,7 @@ __all__ = [
     "AgentConfig",
     "AgentRunSession",
     "AgentRun",
+    "AgentRunToolSet",
     "AgentRunToolCall",
     "AgentRunStatus",
     "AgentRunEvent",
@@ -10,6 +11,10 @@ __all__ = [
     "AgentBackend",
     "AgentConfigRepository",
     "AgentRunRepository",
+    "AgentRunSessionSpan",
+    "AgentRunToolSpan",
+    "BoundedAgentRunnable",
+    "ParameterizedAgentRunnable",
 ]
 
 from .base import (
@@ -18,10 +23,19 @@ from .base import (
     AgentRunEvent,
     AgentRunContent,
     AgentRunSession,
+    AgentRunToolSet,
     AgentRunToolCall,
     AgentRun,
     AgentRunnable,
     AgentBackend,
+)
+from .runnables import (
+    BoundedAgentRunnable,
+    ParameterizedAgentRunnable,
+)
+from .spans import (
+    AgentRunSessionSpan,
+    AgentRunToolSpan,
 )
 from .repositories.base import (
     AgentConfigRepository,

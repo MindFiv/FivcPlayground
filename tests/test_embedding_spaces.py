@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.backends.chroma.embeddings import ChromaEmbeddingDB as EmbeddingDB
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 
@@ -150,7 +150,8 @@ class TestToolRetrieverSpaceIsolation:
 
             # Verify retriever was created successfully
             assert retriever is not None
-            assert len(retriever.tools) == 0
+            assert len(retriever.tools) == 1  # tool_retriever is added automatically
+            assert "tool_retriever" in retriever.tools
 
     def test_tool_retriever_custom_space(self, mock_embedding_config_repository):
         """Test ToolRetriever with custom space."""
@@ -171,10 +172,12 @@ class TestToolRetrieverSpaceIsolation:
 
             # Verify retriever was created successfully
             assert retriever is not None
-            assert len(retriever.tools) == 0
+            assert len(retriever.tools) == 1  # tool_retriever is added automatically
+            assert "tool_retriever" in retriever.tools
 
-    def test_create_tool_retriever_default_space(self):
-        """Test create_tool_retriever with default space."""
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_default_space(self):
+        """Test create_tool_retriever_async with default space."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
 
@@ -189,7 +192,7 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -205,8 +208,9 @@ class TestToolRetrieverSpaceIsolation:
                 # Verify ToolRetriever was instantiated
                 mock_retriever_class.assert_called_once()
 
-    def test_create_tool_retriever_custom_space(self):
-        """Test create_tool_retriever with custom space."""
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_custom_space(self):
+        """Test create_tool_retriever_async with custom space."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
 
@@ -221,7 +225,7 @@ class TestToolRetrieverSpaceIsolation:
                 mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -241,7 +245,8 @@ class TestToolRetrieverSpaceIsolation:
 class TestSpaceIsolationIntegration:
     """Integration tests for space isolation."""
 
-    def test_space_id_propagation(self):
+    @pytest.mark.asyncio
+    async def test_space_id_propagation(self):
         """Test that space_id is properly propagated through the component hierarchy."""
         # Test with custom space_id
         mock_embedding_repo = Mock()
@@ -257,9 +262,7 @@ class TestSpaceIsolationIntegration:
                 mock_retriever = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                from fivcplayground.tools import create_tool_retriever
-
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,

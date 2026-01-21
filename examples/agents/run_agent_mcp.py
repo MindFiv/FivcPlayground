@@ -3,7 +3,7 @@ Agent Example - MCP Tools Integration
 
 This example demonstrates how to use FivcPlayground agents with MCP (Model Context Protocol) tools.
 It shows:
-1. Loading tools from configured servers using create_tool_retriever()
+1. Loading tools from configured servers using create_tool_retriever_async()
 2. Creating an agent with tools
 3. Invoking the agent with a query that requires tool usage
 4. Handling agent responses with tool calls
@@ -25,14 +25,14 @@ Expected Output:
     - Agent attempts to use tools to complete the task
 
 Note:
-    This example uses create_tool_retriever() for framework-agnostic
+    This example uses create_tool_retriever_async() for framework-agnostic
     tool loading, ensuring compatibility with both Strands and LangChain frameworks.
 """
 
 import asyncio
 import dotenv
 
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground import agents
 
@@ -57,13 +57,13 @@ async def main():
     try:
         # Create a ToolRetriever
         # This retriever is framework-agnostic and works with both Strands and LangChain
-        tool_retriever = create_tool_retriever(
+        tool_retriever = await create_tool_retriever_async(
             tool_backend=StrandsToolBackend()
         )
 
         # Get all loaded tools from the retriever
         # These tools are now available for use by the agent
-        all_tools = tool_retriever.list_tools()
+        all_tools = await tool_retriever.list_tools_async()
 
         print(f"✓ Successfully loaded {len(all_tools)} tools total")
 
@@ -86,7 +86,7 @@ async def main():
 
         # Create a companion agent with all loaded MCP tools
         # The agent will use these tools to fulfill user requests
-        agent = agents.create_companion_agent()
+        agent = agents.create_agent(agent_config_id="companion")
         print(f"✓ Agent created successfully")
         print(f"  Agent ID: {agent.id}")
         print(f"  Agent Name: {agent.name}")
@@ -137,7 +137,7 @@ async def main():
         print("\n" + "=" * 70)
         print("Example completed!")
         print("\nKey Takeaways:")
-        print("1. Tools were successfully loaded using create_tool_retriever()")
+        print("1. Tools were successfully loaded using create_tool_retriever_async()")
         print("2. Tool retriever provides framework-agnostic tool loading (Strands & LangChain)")
         print("3. Agent was created with access to these tools")
         print("4. Agent attempted to use the tools to fulfill the user's request")

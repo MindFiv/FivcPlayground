@@ -15,7 +15,7 @@
 │  │     └─ FileModelConfigRepository                             │  │
 │  │                                                              │  │
 │  │  2. Create tool retriever                                    │  │
-│  │     └─ create_tool_retriever()                               │  │
+│  │     └─ create_tool_retriever_async()                         │  │
 │  │                                                              │  │
 │  │  3. Build UI and run navigation                              │  │
 │  └──────────────────────────────────────────────────────────────┘  │
@@ -97,7 +97,7 @@ App Start
   │  ├─ FileToolConfigRepository
   │  └─ FileModelConfigRepository
   │
-  ├─ create_tool_retriever()
+  ├─ create_tool_retriever_async()
   │  ├─ Load built-in tools (clock, calculator)
   │  ├─ Load tool configs from repository
   │  ├─ Create ToolBundle for each config
@@ -175,11 +175,11 @@ App Start
 ```
 Before (with ToolLoader):
   create_tool_retriever() → create_tool_loader() → loader.load()
-  (3 steps, deprecated methods)
+  (3 steps, deprecated synchronous methods)
 
 After (without ToolLoader):
-  create_tool_retriever()
-  (1 step, cleaner API)
+  await create_tool_retriever_async()
+  (1 step, cleaner async API)
 ```
 
 ### Benefits

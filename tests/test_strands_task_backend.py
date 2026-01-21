@@ -6,12 +6,12 @@ Tests the Strands implementation of the TaskBackend interface.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from pydantic import BaseModel
 
 from fivcplayground.backends.strands.tasks import StrandsTaskBackend
 from fivcplayground.tasks.types import TaskPlan, TaskPlanAgent
-from fivcplayground.agents import AgentBackend, AgentConfigRepository, AgentRunnable
+from fivcplayground.agents import AgentBackend, AgentConfigRepository
 from fivcplayground.models import ModelBackend, ModelConfigRepository
 
 
@@ -30,8 +30,30 @@ class TestStrandsTaskBackend:
         assert backend is not None
 
     @pytest.mark.asyncio
+    async def test_create_task_async_no_plan(self):
+        """Test create_planned_task_async with no plan raises ValueError."""
+        backend = StrandsTaskBackend()
+
+        with pytest.raises(ValueError, match="Task plan is required"):
+            await backend.create_planned_task_async(
+                task_plan=None,
+                raise_exception=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_create_task_async_no_plan_no_exception(self):
+        """Test create_planned_task_async with no plan returns None."""
+        backend = StrandsTaskBackend()
+
+        result = await backend.create_planned_task_async(
+            task_plan=None,
+            raise_exception=False,
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_create_task_async_no_agents(self):
-        """Test create_task_async raises error when no agents specified."""
+        """Test create_planned_task_async raises NotImplementedError."""
         backend = StrandsTaskBackend()
 
         task_plan = TaskPlan(
@@ -45,18 +67,20 @@ class TestStrandsTaskBackend:
         mock_agent_backend = Mock(spec=AgentBackend)
         mock_agent_config_repo = Mock(spec=AgentConfigRepository)
 
-        with pytest.raises(RuntimeError, match="No agents specified for task"):
-            await backend.create_task_async(
-                model_backend=mock_model_backend,
-                model_config_repository=mock_model_config_repo,
+        with pytest.raises(
+            NotImplementedError, match="Multi-agent tasks not implemented"
+        ):
+            await backend.create_planned_task_async(
+                task_plan=task_plan,
                 agent_backend=mock_agent_backend,
                 agent_config_repository=mock_agent_config_repo,
-                task_plan=task_plan,
+                model_backend=mock_model_backend,
+                model_config_repository=mock_model_config_repo,
             )
 
     @pytest.mark.asyncio
     async def test_create_task_async_single_agent(self):
-        """Test create_task_async with single agent."""
+        """Test create_planned_task_async raises NotImplementedError for single agent."""
         backend = StrandsTaskBackend()
 
         agent_config = TaskPlanAgent(
@@ -73,38 +97,25 @@ class TestStrandsTaskBackend:
             agents=[agent_config],
         )
 
-        # Mock the agent runnable
-        mock_agent_runnable = Mock(spec=AgentRunnable)
-        mock_agent_runnable.id = "test-agent"
-        mock_agent_runnable.name = "test-agent"
-        mock_agent_runnable.description = "Test agent"
-
-        mock_agent_backend = AsyncMock(spec=AgentBackend)
-        mock_agent_backend.create_agent_async = AsyncMock(
-            return_value=mock_agent_runnable
-        )
-
         mock_model_backend = Mock(spec=ModelBackend)
         mock_model_config_repo = Mock(spec=ModelConfigRepository)
+        mock_agent_backend = Mock(spec=AgentBackend)
         mock_agent_config_repo = Mock(spec=AgentConfigRepository)
 
-        result = await backend.create_task_async(
-            model_backend=mock_model_backend,
-            model_config_repository=mock_model_config_repo,
-            agent_backend=mock_agent_backend,
-            agent_config_repository=mock_agent_config_repo,
-            task_plan=task_plan,
-            task_query_template="Test: {query}",
-            task_response_model=MockResponse,
-        )
-
-        assert result is not None
-        assert result.id == "test-agent"
-        mock_agent_backend.create_agent_async.assert_called_once()
+        with pytest.raises(
+            NotImplementedError, match="Multi-agent tasks not implemented"
+        ):
+            await backend.create_planned_task_async(
+                task_plan=task_plan,
+                agent_backend=mock_agent_backend,
+                agent_config_repository=mock_agent_config_repo,
+                model_backend=mock_model_backend,
+                model_config_repository=mock_model_config_repo,
+            )
 
     @pytest.mark.asyncio
     async def test_create_task_async_multiple_agents(self):
-        """Test create_task_async raises NotImplementedError for multiple agents."""
+        """Test create_planned_task_async raises NotImplementedError for multiple agents."""
         backend = StrandsTaskBackend()
 
         agent_config1 = TaskPlanAgent(
@@ -132,17 +143,17 @@ class TestStrandsTaskBackend:
         with pytest.raises(
             NotImplementedError, match="Multi-agent tasks not implemented"
         ):
-            await backend.create_task_async(
-                model_backend=mock_model_backend,
-                model_config_repository=mock_model_config_repo,
+            await backend.create_planned_task_async(
+                task_plan=task_plan,
                 agent_backend=mock_agent_backend,
                 agent_config_repository=mock_agent_config_repo,
-                task_plan=task_plan,
+                model_backend=mock_model_backend,
+                model_config_repository=mock_model_config_repo,
             )
 
     @pytest.mark.asyncio
     async def test_create_task_async_with_response_model(self):
-        """Test create_task_async passes response_model to SimpleTaskRunnable."""
+        """Test create_planned_task_async raises NotImplementedError with response_model."""
         backend = StrandsTaskBackend()
 
         agent_config = TaskPlanAgent(
@@ -157,29 +168,18 @@ class TestStrandsTaskBackend:
             agents=[agent_config],
         )
 
-        mock_agent_runnable = Mock(spec=AgentRunnable)
-        mock_agent_runnable.id = "test-agent"
-
-        mock_agent_backend = AsyncMock(spec=AgentBackend)
-        mock_agent_backend.create_agent_async = AsyncMock(
-            return_value=mock_agent_runnable
-        )
-
         mock_model_backend = Mock(spec=ModelBackend)
         mock_model_config_repo = Mock(spec=ModelConfigRepository)
+        mock_agent_backend = Mock(spec=AgentBackend)
         mock_agent_config_repo = Mock(spec=AgentConfigRepository)
 
-        result = await backend.create_task_async(
-            model_backend=mock_model_backend,
-            model_config_repository=mock_model_config_repo,
-            agent_backend=mock_agent_backend,
-            agent_config_repository=mock_agent_config_repo,
-            task_plan=task_plan,
-            task_response_model=MockResponse,
-            task_query_template="Query: {query}",
-        )
-
-        assert result is not None
-        # Verify the response model was passed through kwargs
-        assert hasattr(result, "_kwargs")
-        assert result._kwargs.get("response_model") == MockResponse
+        with pytest.raises(
+            NotImplementedError, match="Multi-agent tasks not implemented"
+        ):
+            await backend.create_planned_task_async(
+                task_plan=task_plan,
+                agent_backend=mock_agent_backend,
+                agent_config_repository=mock_agent_config_repo,
+                model_backend=mock_model_backend,
+                model_config_repository=mock_model_config_repo,
+            )

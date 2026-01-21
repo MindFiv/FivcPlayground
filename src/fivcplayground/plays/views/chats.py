@@ -15,15 +15,13 @@ The chat uses the Chat utility for state management and the AgentRun
 system for tracking execution state and persistence.
 """
 
-import os
-
 import streamlit as st
 
-from fivcplayground.demos.utils import (
+from fivcplayground.plays.utils import (
     Chat,
     # default_running_config,
 )
-from fivcplayground.demos.components import ChatMessage
+from fivcplayground.plays.components import ChatMessage
 from fivcplayground.agents.types import AgentRun, AgentRunContent
 
 # from fivcplayground.tasks import create_assessing_task_async
@@ -129,10 +127,11 @@ class ChatView(ViewBase):
         logo_placeholder = st.empty()
         if not runtimes:
             # Page title
-            logo_path = os.path.dirname(os.path.dirname(__file__))
-            logo_path = os.path.join(logo_path, "assets", "FivcPlayground.png")
-            _, logo_col, _ = logo_placeholder.columns(3)
-            logo_col.image(logo_path, caption="💬 FivcPlayground At Your Service!")
+            # logo_path = os.path.dirname(os.path.dirname(__file__))
+            # logo_path = os.path.join(logo_path, "assets", "FivcPlayground.png")
+            # _, logo_col, _ = logo_placeholder.columns(3)
+            # logo_col.image(logo_path, caption="💬 FivcPlayground At Your Service!")
+            logo_placeholder.title("💬 Anything You Want?")
 
         # Create placeholder for streaming response
         msg_new_placeholder = st.empty()
@@ -173,3 +172,71 @@ class ChatView(ViewBase):
             if is_new_chat:
                 # Set the page_id and rerun to navigate to the new chat
                 nav.navigate_to(self.chat.id)
+
+        # Display delete button at the bottom for existing chats
+        if self.chat.id:
+            st.markdown(
+                """
+                <style>
+                .delete-button-container {
+                    display: flex;
+                    justify-content: center;
+                    margin-top: 2rem;
+                    padding-top: 1.5rem;
+                    border-top: 1px solid rgba(49, 51, 63, 0.1);
+                }
+
+                .delete-button-wrapper {
+                    width: 100%;
+                    max-width: 300px;
+                }
+                </style>
+                <div class="delete-button-container"></div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Create a container for the delete button with custom styling
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button(
+                    "🗑️  Delete Chat",
+                    key=f"delete_chat_{self.chat.id}",
+                    help="Delete this chat and all its messages",
+                    use_container_width=True,
+                ):
+                    st.session_state[f"delete_confirm_{self.chat.id}"] = True
+
+            # Show confirmation dialog if needed
+            if st.session_state.get(f"delete_confirm_{self.chat.id}"):
+                st.markdown("---")
+                st.warning(
+                    "⚠️ **Are you sure?** This will permanently delete this chat and all its messages. This action cannot be undone."
+                )
+
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col1:
+                    if st.button(
+                        "🗑️  Confirm Delete",
+                        key=f"confirm_delete_{self.chat.id}",
+                        use_container_width=True,
+                    ):
+                        try:
+                            self.chat.cleanup()
+                            st.success("✅ Chat deleted successfully!")
+                            # Clear the confirmation state
+                            st.session_state[f"delete_confirm_{self.chat.id}"] = False
+                            # Navigate to new chat
+                            nav.navigate_to(None)
+                        except Exception as e:
+                            st.error(f"❌ Error deleting chat: {str(e)}")
+                            st.session_state[f"delete_confirm_{self.chat.id}"] = False
+
+                with col3:
+                    if st.button(
+                        "✕  Cancel",
+                        key=f"cancel_delete_{self.chat.id}",
+                        use_container_width=True,
+                    ):
+                        st.session_state[f"delete_confirm_{self.chat.id}"] = False
+                        st.rerun()

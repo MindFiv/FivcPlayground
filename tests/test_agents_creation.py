@@ -3,9 +3,6 @@ Tests for agent creation functions in fivcplayground.agents module.
 
 Tests verify:
 - create_agent with various agent config IDs
-- create_companion_agent, create_tooling_agent, create_consultant_agent
-- create_planning_agent, create_research_agent, create_engineering_agent
-- create_evaluating_agent
 - Error handling for missing configs
 - Model resolution
 """

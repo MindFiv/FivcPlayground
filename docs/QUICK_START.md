@@ -48,7 +48,7 @@ uv run fivcplayground web
 make serve
 
 # Or directly with streamlit
-streamlit run src/fivcplayground/demos/__init__.py
+streamlit run src/fivcplayground/plays/__init__.py
 ```
 
 ### Expected Behavior
@@ -112,12 +112,12 @@ App Shutdown
 ### Key Components
 
 1. **ToolRetriever** - Manages tool retrieval and MCP connections
-   - `create_tool_retriever()` - Create tool retriever
-   - `retrieve_tools(query)` - Semantic search for tools
-   - `list_tools()` - List all available tools
+   - `create_tool_retriever_async()` - Create tool retriever
+   - `retrieve_tools_async(query)` - Semantic search for tools
+   - `list_tools_async()` - List all available tools
 
 2. **Streamlit Integration** - Lifecycle management
-   - `create_tool_retriever()` - Initialize tool retriever
+   - `create_tool_retriever_async()` - Initialize tool retriever
    - `nest_asyncio.apply()` - Asyncio patching
    - Automatic resource cleanup
 
@@ -146,7 +146,7 @@ cat mcp.yml
 ps aux | grep mcp
 
 # Check logs
-streamlit run src/fivcplayground/demos/__init__.py --logger.level=debug
+streamlit run src/fivcplayground/plays/__init__.py --logger.level=debug
 ```
 
 ### Issue: Tools not loading
@@ -159,7 +159,18 @@ streamlit run src/fivcplayground/demos/__init__.py --logger.level=debug
 **Solution**:
 ```bash
 # Test tool retriever
-python -c "from fivcplayground.tools import create_tool_retriever; retriever = create_tool_retriever(); print(f'Loaded {len(retriever.list_tools())} tools')"
+python -c "
+import asyncio
+from fivcplayground.tools import create_tool_retriever_async
+from fivcplayground.backends.strands.tools import StrandsToolBackend
+
+async def test():
+    retriever = await create_tool_retriever_async(tool_backend=StrandsToolBackend())
+    tools = await retriever.list_tools_async()
+    print(f'Loaded {len(tools)} tools')
+
+asyncio.run(test())
+"
 
 # Check logs for errors
 # Look for "Error loading tools from" messages
@@ -224,7 +235,7 @@ export PYTHONPATH=/path/to/project
 python -c "
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from fivcplayground.demos import main
+from fivcplayground.plays import main
 main()
 "
 ```
@@ -245,44 +256,52 @@ main()
 ### Create Tool Retriever
 
 ```python
-from fivcplayground.tools import create_tool_retriever
+import asyncio
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever with explicit backend selection
-retriever = create_tool_retriever(
-    tool_backend=StrandsToolBackend()
-)
+async def main():
+    # Create a tool retriever with explicit backend selection
+    retriever = await create_tool_retriever_async(
+        tool_backend=StrandsToolBackend()
+    )
 
-# List all tools (including bundles)
-tools = retriever.list_tools()
-for tool in tools:
-    print(f"- {tool.name}: {tool.description}")
+    # List all tools (including bundles)
+    tools = await retriever.list_tools_async()
+    for tool in tools:
+        print(f"- {tool.name}: {tool.description}")
 
-# Search for tools using semantic search
-relevant_tools = retriever.retrieve_tools("calculate math")
+    # Search for tools using semantic search
+    relevant_tools = await retriever.retrieve_tools_async("calculate math")
 
-# Get a specific tool by name
-calculator = retriever.get_tool("calculator")
+    # Get a specific tool by name
+    calculator = await retriever.get_tool_async("calculator")
+
+asyncio.run(main())
 ```
 
 ### Search for Tools
 
 ```python
-from fivcplayground.tools import create_tool_retriever
+import asyncio
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever with explicit backend selection
-retriever = create_tool_retriever(
-    tool_backend=StrandsToolBackend()
-)
+async def main():
+    # Create a tool retriever with explicit backend selection
+    retriever = await create_tool_retriever_async(
+        tool_backend=StrandsToolBackend()
+    )
 
-# Semantic search for relevant tools
-query = "I need to perform a calculation"
-relevant_tools = retriever.retrieve_tools(query)
+    # Semantic search for relevant tools
+    query = "I need to perform a calculation"
+    relevant_tools = await retriever.retrieve_tools_async(query)
 
-print(f"Found {len(relevant_tools)} relevant tools:")
-for tool in relevant_tools:
-    print(f"  - {tool.name}")
+    print(f"Found {len(relevant_tools)} relevant tools:")
+    for tool in relevant_tools:
+        print(f"  - {tool.name}")
+
+asyncio.run(main())
 ```
 
 ---

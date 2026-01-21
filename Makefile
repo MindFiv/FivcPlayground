@@ -37,7 +37,7 @@ install-min:
 
 dev:
 	@echo "Installing development dependencies..."
-	uv sync --extra dev
+	uv sync --extra all --extra dev
 
 # Development targets
 lint: dev

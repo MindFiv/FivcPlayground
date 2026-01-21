@@ -36,6 +36,9 @@ class AgentConfig(BaseModel):
     system_prompt: str | None = Field(
         default=None, description="System prompt/instructions for the agent"
     )
+    # response_model: Type[BaseModel] | None = Field(
+    #     default=None, description="Response model for the agent"
+    # )
 
 
 class AgentRunContent(BaseModel):
@@ -66,6 +69,12 @@ class AgentRunEvent(str, Enum):
     UPDATE = "update"
     STREAM = "stream"
     TOOL = "tool"  # tool call
+
+
+class AgentRunToolSet(BaseModel):
+    """Agent toolbox."""
+
+    tool_ids: List[str] = Field(description="List of tool IDs to use with the agent")
 
 
 class AgentRunToolCall(BaseModel):

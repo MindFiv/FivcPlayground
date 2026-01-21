@@ -45,13 +45,19 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
 **Structure**:
 ```python
-def create_tool_retriever(
+async def create_tool_retriever_async(
+    tool_backend: ToolBackend | None = None,
+    tool_config_repository: ToolConfigRepository | None = None,
+    embedding_backend: EmbeddingBackend | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
-) -> ToolRetriever:
+) -> ToolRetriever | None:
+    # Complex initialization logic
+    embedding_db = await create_embedding_db_async(...)
     retriever = ToolRetriever(
-        embedding_config_repository=embedding_config_repository,
-        embedding_config_id=embedding_config_id,
+        tool_backend=tool_backend,
+        tool_config_repository=tool_config_repository,
+        embedding_db=embedding_db,
     )
     return retriever
 ```

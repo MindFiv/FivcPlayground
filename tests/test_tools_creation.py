@@ -2,7 +2,7 @@
 Tests for tool creation functions in fivcplayground.tools module.
 
 Tests verify:
-- create_tool_retriever with various configurations
+- create_tool_retriever_async with various configurations
 - Error handling for missing dependencies
 """
 
@@ -10,25 +10,27 @@ from unittest.mock import Mock, patch
 import pytest
 
 from fivcplayground.tools import (
-    create_tool_retriever,
+    create_tool_retriever_async,
 )
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 
 
 class TestCreateToolRetriever:
-    """Test create_tool_retriever function."""
+    """Test create_tool_retriever_async function."""
 
-    def test_create_tool_retriever_requires_backend(self):
-        """Test that create_tool_retriever requires tool_backend parameter."""
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_requires_backend(self):
+        """Test that create_tool_retriever_async requires tool_backend parameter."""
         with pytest.raises(RuntimeError, match="tool_backend is required"):
-            create_tool_retriever(
+            await create_tool_retriever_async(
                 tool_backend=None,
                 embedding_config_repository=None,
                 load_builtin_tools=False,
             )
 
-    def test_create_tool_retriever_default(self):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_default(self):
         """Test creating tool retriever with default settings."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -43,7 +45,7 @@ class TestCreateToolRetriever:
                 mock_retriever.tools = []
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -53,7 +55,8 @@ class TestCreateToolRetriever:
                 assert retriever == mock_retriever
                 mock_retriever_class.assert_called_once()
 
-    def test_create_tool_retriever_with_builtin_tools(self):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_with_builtin_tools(self):
         """Test creating tool retriever with builtin tools."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -69,7 +72,7 @@ class TestCreateToolRetriever:
                 mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=LangchainToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -81,7 +84,8 @@ class TestCreateToolRetriever:
                 # So we just verify the retriever was created
                 mock_retriever_class.assert_called_once()
 
-    def test_create_tool_retriever_custom_embedding_config(self):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_custom_embedding_config(self):
         """Test creating tool retriever with custom embedding config."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -96,7 +100,7 @@ class TestCreateToolRetriever:
                 mock_retriever.tools = []
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -111,7 +115,8 @@ class TestCreateToolRetriever:
                 assert call_kwargs["embedding_config_repository"] == mock_embedding_repo
                 assert call_kwargs["embedding_config_id"] == "custom"
 
-    def test_create_tool_retriever_adds_self(self):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_adds_self(self):
         """Test that tool retriever is created successfully."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -127,7 +132,7 @@ class TestCreateToolRetriever:
                 mock_retriever.to_tool = Mock(return_value=Mock(name="tool_retriever"))
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=LangchainToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
@@ -138,7 +143,8 @@ class TestCreateToolRetriever:
                 assert retriever == mock_retriever
                 mock_retriever_class.assert_called_once()
 
-    def test_create_tool_retriever_builtin_tools_loaded(self):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_builtin_tools_loaded(self):
         """Test that builtin tools are loaded when requested."""
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -153,7 +159,7 @@ class TestCreateToolRetriever:
                 mock_retriever.tools = []
                 mock_retriever_class.return_value = mock_retriever
 
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,

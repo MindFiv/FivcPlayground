@@ -99,7 +99,7 @@ class LangchainToolBundle(ToolBundle):
             """get description of tool bundle"""
             return self.description
 
-        return tool(_func)
+        return tool(self.name, description=self.description)(_func)
 
     def setup(self) -> ToolBundleContext:
         return LangchainToolContext(self._tool_config)

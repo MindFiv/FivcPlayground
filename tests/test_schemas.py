@@ -11,7 +11,6 @@ from pydantic import ValidationError
 
 from fivcplayground.tasks.types import (
     TaskAssessment,
-    TaskRequirement,
 )
 
 
@@ -62,43 +61,6 @@ class TestTaskAssessment:
         # Check for alias names in schema (Pydantic uses aliases in JSON schema)
         assert "requires_planning_agent" in schema["properties"]
         assert "reasoning" in schema["properties"]
-
-
-class TestTaskRequirement:
-    """Test the TaskRequirement schema."""
-
-    def test_init_basic(self):
-        """Test basic TaskRequirement initialization."""
-        requirement = TaskRequirement(
-            tools=["calculator", "python_repl", "current_time"]
-        )
-
-        assert requirement.tools == ["calculator", "python_repl", "current_time"]
-
-    def test_init_empty_tools(self):
-        """Test TaskRequirement with empty tools list."""
-        requirement = TaskRequirement(tools=[])
-
-        assert requirement.tools == []
-
-    def test_validation_error(self):
-        """Test that missing required fields raises ValidationError."""
-        with pytest.raises(ValidationError):
-            TaskRequirement()
-
-    def test_dict_conversion(self):
-        """Test conversion to dictionary."""
-        requirement = TaskRequirement(tools=["tool1", "tool2"])
-        data = requirement.model_dump()
-
-        assert data["tools"] == ["tool1", "tool2"]
-
-    def test_json_schema(self):
-        """Test JSON schema generation."""
-        schema = TaskRequirement.model_json_schema()
-
-        assert "properties" in schema
-        assert "tools" in schema["properties"]
 
 
 if __name__ == "__main__":

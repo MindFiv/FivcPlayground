@@ -85,7 +85,7 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 | **Tools** | Tool management and retrieval system | `src/fivcplayground/tools/` |
 | **Models** | LLM model factories and providers | `src/fivcplayground/models/` |
 | **Tasks** | Task execution and orchestration | `src/fivcplayground/tasks/` |
-| **Demos** | Streamlit web interface | `src/fivcplayground/demos/` |
+| **Plays** | Streamlit web interface | `src/fivcplayground/plays/` |
 | **Embeddings** | Vector database for semantic search | `src/fivcplayground/embeddings/` |
 | **Settings** | Configuration management | `src/fivcplayground/settings/` |
 | **Utils** | Utility functions and helpers | `src/fivcplayground/utils/` |
@@ -191,7 +191,7 @@ FivcPlayground provides a flexible agent system with specialized agents for diff
 
 ### Agent Creation
 
-Agents are created using factory functions:
+Agents are created using the `create_agent()` function with different `agent_config_id` values:
 
 ```python
 from fivcplayground import agents
@@ -199,20 +199,22 @@ from fivcplayground import agents
 # Create a generic agent
 agent = agents.create_agent()
 
-# Create a specialized agent
-consultant = agents.create_consultant_agent()
-tooling = agents.create_tooling_agent()
-planner = agents.create_planning_agent()
+# Create specialized agents by specifying agent_config_id
+companion = agents.create_agent(agent_config_id="companion")
+consultant = agents.create_agent(agent_config_id="consultant")
+planner = agents.create_agent(agent_config_id="planner")
+researcher = agents.create_agent(agent_config_id="researcher")
+engineer = agents.create_agent(agent_config_id="engineer")
+evaluator = agents.create_agent(agent_config_id="evaluator")
 
-# Available agent creators:
-# - create_agent() - Generic agent
-# - create_companion_agent() - Friendly chat agent
-# - create_tooling_agent() - Tool specialist
-# - create_consultant_agent() - Task assessment
-# - create_planning_agent() - Planning and orchestration
-# - create_research_agent() - Pattern analysis
-# - create_engineering_agent() - Tool development
-# - create_evaluating_agent() - Performance evaluation
+# Available agent config IDs:
+# - "default" - Generic agent for general task execution
+# - "companion" - Friendly chat agent for conversations
+# - "consultant" - Assesses tasks and recommends approaches
+# - "planner" - Creates execution plans and teams
+# - "researcher" - Analyzes patterns and workflows
+# - "engineer" - Develops and optimizes tools
+# - "evaluator" - Assesses performance and quality
 ```
 
 ---
@@ -316,26 +318,27 @@ Supported configuration formats:
 The `ToolRetriever` provides semantic search over available tools:
 
 ```python
-from fivcplayground.tools import create_tool_retriever
+import asyncio
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-# Create a tool retriever with explicit backend selection
-retriever = create_tool_retriever(
-    tool_backend=StrandsToolBackend()
-)
+async def main():
+    # Create a tool retriever with explicit backend selection
+    retriever = await create_tool_retriever_async(
+        tool_backend=StrandsToolBackend()
+    )
 
-# Get all tools
-all_tools = retriever.list_tools()
+    # Get all tools
+    all_tools = await retriever.list_tools_async()
 
-# Get specific tools by name
-calculator = retriever.get_tool("calculator")
-clock = retriever.get_tool("clock")
+    # Get specific tools by name
+    calculator = await retriever.get_tool_async("calculator")
+    clock = await retriever.get_tool_async("clock")
 
-# Search for relevant tools using semantic search
-relevant_tools = retriever.retrieve_tools("I need to calculate something")
+    # Search for relevant tools using semantic search
+    relevant_tools = await retriever.retrieve_tools_async("I need to calculate something")
 
-# Search and expand bundles into individual tools
-expanded_tools = retriever.retrieve_tools("I need to calculate something", expand=True)
+asyncio.run(main())
 ```
 
 #### Tool Bundles

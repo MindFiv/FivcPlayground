@@ -19,7 +19,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from fivcplayground.agents import create_agent
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.utils import OutputDir
 
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
@@ -47,7 +47,7 @@ console = Console()
 
 
 @app.command()
-def run(
+async def run(
     agent_name: str = typer.Argument("default", help="Type of agent to run"),
     query: Optional[str] = typer.Option(
         None,
@@ -80,7 +80,7 @@ def run(
     agent_backend = StrandsAgentBackend()
     agent_config_repository = FileAgentConfigRepository()
 
-    tool_retriever = create_tool_retriever(
+    tool_retriever = await create_tool_retriever_async(
         tool_backend=tool_backend,
         tool_config_repository=tool_config_repository,
         embedding_backend=embedding_backend,
@@ -177,8 +177,8 @@ def web(
         console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
         console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
 
-        # Get the path to the demos module
-        app_path = os.path.join(os.path.dirname(__file__), "demos", "__init__.py")
+        # Get the path to the plays module
+        app_path = os.path.join(os.path.dirname(__file__), "plays", "__init__.py")
 
         # Build streamlit command
         cmd = [
@@ -246,7 +246,7 @@ def info():
 
 
 @app.command()
-def setup(
+async def setup(
     force: bool = typer.Option(
         False,
         "--force",
@@ -361,7 +361,7 @@ def setup(
         tool_backend = StrandsToolBackend()
         tool_config_repository = FileToolConfigRepository()
 
-        tool_retriever = create_tool_retriever(
+        tool_retriever = await create_tool_retriever_async(
             tool_backend=tool_backend,
             tool_config_repository=tool_config_repository,
             embedding_backend=embedding_backend,
@@ -370,7 +370,7 @@ def setup(
             raise_exception=False,
         )
         if tool_retriever:
-            tool_retriever.index_tools()
+            await tool_retriever.index_tools_async()
 
     except typer.Exit:
         raise

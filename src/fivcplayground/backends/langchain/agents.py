@@ -113,6 +113,7 @@ class LangchainAgentRunnable(AgentRunnable):
         query: str | AgentRunContent = "",
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
+        tool_verifier: AgentRunnable | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
@@ -130,9 +131,10 @@ class LangchainAgentRunnable(AgentRunnable):
 
         async with (
             AgentRunToolSpan(
-                tool_retriever,
-                tool_ids or self._agent_config.tool_ids,
-                query,
+                tool_verifier=tool_verifier,
+                tool_retriever=tool_retriever,
+                tool_ids=tool_ids or self._agent_config.tool_ids,
+                tool_query=query,
             ) as tools_expanded,
             AgentRunSessionSpan(
                 agent_run_repository,

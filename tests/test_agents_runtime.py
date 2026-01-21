@@ -582,6 +582,7 @@ class TestStrandsAgentUnknownToolCallHandling:
             mock_tool_retriever.to_tool.return_value = mock_tool
             mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
             mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.get_tool_async = AsyncMock(return_value=None)
 
             # Track warnings - use pytest's warning recorder
             with warnings.catch_warnings(record=True) as warning_list:
@@ -685,6 +686,7 @@ class TestStrandsAgentUnknownToolCallHandling:
             mock_tool_retriever.to_tool.return_value = mock_tool
             mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
             mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.get_tool_async = AsyncMock(return_value=None)
 
             # Run the agent - the key test is that it doesn't crash
             result = await agent.run_async(
@@ -787,6 +789,7 @@ class TestStrandsAgentUnknownToolCallHandling:
             mock_tool_retriever.to_tool.return_value = mock_tool
             mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
             mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.get_tool_async = AsyncMock(return_value=None)
 
             # Run the agent - the key test is that it doesn't crash despite the unknown tool result
             result = await agent.run_async(

@@ -1,4 +1,5 @@
 __all__ = [
+    "TaskAssessment",
     "TaskPlanOption",
     "TaskPlanAgent",
     "TaskPlan",
@@ -14,7 +15,7 @@ __all__ = [
 from abc import abstractmethod, ABC
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict, Literal, Type
+from typing import Optional, List, Dict, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, computed_field
@@ -31,13 +32,32 @@ from fivcplayground.models import (
     ModelBackend,
     ModelConfigRepository,
 )
+from fivcplayground.tools import (
+    ToolRetriever,
+)
+
+
+class TaskAssessment(BaseModel):
+    """Assessment result for task complexity."""
+
+    model_config = {"populate_by_name": True}
+
+    require_planning: bool = Field(
+        description="Whether a planning agent is required to break down the task",
+        alias="requires_planning_agent",
+    )
+    reasoning: str = Field(default="", description="Reasoning for the assessment")
 
 
 class TaskPlanOption(BaseModel):
     """Task plan option."""
 
-    name: Literal["sequential", "swarm"] = Field(..., description="Name of the option")
-    content: dict = Field(default={}, description="Content of the option")
+    type: Literal["sequential", "python", "bash"] = Field(
+        ..., description="Type of the option"
+    )
+    instruction: str | None = Field(
+        default=None, description="Instruction for the option"
+    )
 
 
 class TaskPlan(BaseModel):
@@ -204,14 +224,15 @@ class TaskBackend(ABC):
     """Interface for task backends."""
 
     @abstractmethod
-    async def create_task_async(
+    async def create_planned_task_async(
         self,
-        model_backend: ModelBackend,
-        model_config_repository: ModelConfigRepository,
-        agent_backend: AgentBackend,
-        agent_config_repository: AgentConfigRepository,
-        task_plan: TaskPlan,
-        task_response_model: Type[BaseModel] | None = None,
+        task_plan: TaskPlan | None = None,
+        agent_backend: AgentBackend | None = None,
+        agent_config_repository: AgentConfigRepository | None = None,
+        model_backend: ModelBackend | None = None,
+        model_config_repository: ModelConfigRepository | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        raise_exception: bool = True,
         **kwargs,  # ignore additional kwargs
-    ) -> TaskRunnable:
+    ) -> TaskRunnable | None:
         """Create a task instance from a TaskPlan."""

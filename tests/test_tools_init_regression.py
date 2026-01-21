@@ -13,7 +13,7 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
@@ -46,11 +46,12 @@ class TestToolsInitRegression:
     """Regression tests for tools module initialization."""
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_create_tool_retriever_uses_correct_tool_attribute(
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_uses_correct_tool_attribute(
         self, backend_name, get_backend
     ):
         """
-        Regression test: Ensure create_tool_retriever uses correct tool attributes.
+        Regression test: Ensure create_tool_retriever_async uses correct tool attributes.
 
         This test prevents the AttributeError that occurred when trying to access
         tool attributes. The correct attributes depend on the backend:
@@ -72,7 +73,7 @@ class TestToolsInitRegression:
             mock_create_db.return_value = mock_db
 
             # This should not raise AttributeError
-            result = create_tool_retriever(
+            result = await create_tool_retriever_async(
                 tool_backend=get_backend(),
                 embedding_config_repository=mock_embedding_repo,
                 tool_config_repository=mock_tool_repo,
@@ -82,8 +83,8 @@ class TestToolsInitRegression:
             # Verify the retriever was returned
             assert isinstance(result, ToolRetriever)
 
-            # Verify list_tools returns tools
-            all_tools = result.list_tools()
+            # Verify list_tools_async returns tools
+            all_tools = await result.list_tools_async()
             assert len(all_tools) >= 0  # May have builtin tools
 
     def test_list_tools_returns_tools_with_name_attribute(self):
@@ -130,15 +131,19 @@ class TestToolsInitRegression:
                 all_tools = retriever.list_tools()
 
                 # Verify all tools can be accessed with .name property
-                assert len(all_tools) == 2
+                assert len(all_tools) == 3  # tool1, tool2, and tool_retriever
                 tool_names = [tool.name for tool in all_tools]
                 assert "tool1" in tool_names
                 assert "tool2" in tool_names
+                assert "tool_retriever" in tool_names
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_create_tool_retriever_with_builtin_tools(self, backend_name, get_backend):
+    @pytest.mark.asyncio
+    async def test_create_tool_retriever_with_builtin_tools(
+        self, backend_name, get_backend
+    ):
         """
-        Test that create_tool_retriever correctly loads builtin tools.
+        Test that create_tool_retriever_async correctly loads builtin tools.
 
         This test verifies that when load_builtin_tools=True, the retriever
         includes the builtin tools (clock and calculator).
@@ -158,7 +163,7 @@ class TestToolsInitRegression:
             mock_create_db.return_value = mock_db
 
             # Create retriever with builtin tools
-            retriever = create_tool_retriever(
+            retriever = await create_tool_retriever_async(
                 tool_backend=get_backend(),
                 embedding_config_repository=mock_embedding_repo,
                 tool_config_repository=mock_tool_repo,
@@ -166,7 +171,7 @@ class TestToolsInitRegression:
             )
 
             # Get all tools
-            all_tools = retriever.list_tools()
+            all_tools = await retriever.list_tools_async()
 
             # Verify builtin tools are loaded
             tool_names = [tool.name for tool in all_tools]
@@ -218,10 +223,11 @@ class TestToolsInitRegression:
         all_tools = retriever_with_tools.list_tools()
 
         # Verify tools have 'name' attribute (Tool interface standard)
-        assert len(all_tools) == 2
+        assert len(all_tools) == 3  # calculator, search, and tool_retriever
         tool_names = [t.name for t in all_tools]
         assert "calculator" in tool_names
         assert "search" in tool_names
+        assert "tool_retriever" in tool_names
 
         # Verify we can access the name attribute without AttributeError
         for tool in all_tools:

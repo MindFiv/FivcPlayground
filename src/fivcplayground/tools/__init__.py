@@ -1,5 +1,4 @@
 __all__ = [
-    "create_tool_retriever",
     "create_tool_retriever_async",
     "Tool",
     "ToolBundle",
@@ -9,8 +8,6 @@ __all__ = [
     "ToolConfigRepository",
     "ToolRetriever",
 ]
-
-from typing_extensions import deprecated
 
 from fivcplayground.embeddings import (
     EmbeddingBackend,
@@ -28,55 +25,6 @@ from fivcplayground.tools.types import (
 from fivcplayground.tools.types.repositories.base import (
     ToolConfigRepository,
 )
-
-
-@deprecated("Use create_tool_retriever_async instead")
-def create_tool_retriever(
-    tool_backend: ToolBackend | None = None,
-    tool_config_repository: ToolConfigRepository | None = None,
-    embedding_backend: EmbeddingBackend | None = None,
-    embedding_config_repository: EmbeddingConfigRepository | None = None,
-    embedding_config_id: str = "default",
-    space_id: str | None = None,
-    raise_exception: bool = True,
-    load_builtin_tools: bool = True,
-    **kwargs,  # ignore additional kwargs
-) -> ToolRetriever | None:
-    """Create a tool retriever.
-
-    Args:
-        tool_backend: The tool backend to use (required). Must be an instance of ToolBackend
-                     (e.g., StrandsToolBackend or LangchainToolBackend).
-        tool_config_repository: Repository for tool configurations. If None, uses FileToolConfigRepository.
-        embedding_backend: The embedding backend to use (required). Must be an instance of EmbeddingBackend
-        embedding_config_repository: Repository for embedding configurations. If None, uses FileEmbeddingConfigRepository.
-        embedding_config_id: ID of the embedding configuration to use. Defaults to "default".
-        space_id: Optional space ID for multi-tenancy support.
-        raise_exception: Whether to raise exception if config not found. Defaults to True.
-        load_builtin_tools: Whether to load built-in tools (clock, calculator). Defaults to True.
-        **kwargs: Additional keyword arguments (ignored).
-
-    Returns:
-        ToolRetriever: A configured tool retriever instance.
-
-    Raises:
-        TypeError: If tool_backend is not provided or is not a ToolBackend instance.
-    """
-    import asyncio
-
-    return asyncio.run(
-        create_tool_retriever_async(
-            tool_backend=tool_backend,
-            tool_config_repository=tool_config_repository,
-            embedding_backend=embedding_backend,
-            embedding_config_repository=embedding_config_repository,
-            embedding_config_id=embedding_config_id,
-            space_id=space_id,
-            raise_exception=raise_exception,
-            load_builtin_tools=load_builtin_tools,
-            **kwargs,
-        )
-    )
 
 
 async def create_tool_retriever_async(

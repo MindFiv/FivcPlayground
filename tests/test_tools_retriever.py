@@ -78,10 +78,11 @@ class TestToolRetriever:
                 embedding_db=mock_db,
             )
 
-            assert retriever.max_num == 10
-            assert retriever.min_score == 0.0
+            assert retriever.max_num == 5
+            assert retriever.min_sim == 0.3
             assert isinstance(retriever.tools, dict)
-            assert len(retriever.tools) == 0
+            assert len(retriever.tools) == 1  # tool_retriever is added automatically
+            assert "tool_retriever" in retriever.tools
             assert retriever.tool_indices == mock_db.tools
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
@@ -101,7 +102,9 @@ class TestToolRetriever:
                 embedding_db=mock_db,
             )
 
-            assert str(retriever) == "ToolRetriever(num_tools=0)"
+            assert (
+                str(retriever) == "ToolRetriever(num_tools=1)"
+            )  # tool_retriever is added automatically
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_index_tools(
@@ -135,8 +138,8 @@ class TestToolRetriever:
 
             # Verify cleanup was called
             mock_embedding_table.cleanup.assert_called_once()
-            # Verify add was called for each tool
-            assert mock_embedding_table.add.call_count == 2
+            # Verify add was called for each tool (tool1, tool2, and tool_retriever)
+            assert mock_embedding_table.add.call_count == 3
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_get_tool(
@@ -218,7 +221,7 @@ class TestToolRetriever:
 
             results = retriever.list_tools()
 
-            assert len(results) == 2
+            assert len(results) == 3  # tool1, tool2, and tool_retriever
             assert tool1 in results
             assert tool2 in results
 
@@ -226,7 +229,7 @@ class TestToolRetriever:
     def test_retrieve_min_score_property(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
-        """Test retrieve_min_score property."""
+        """Test retrieve_min_sim property."""
         with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -241,12 +244,12 @@ class TestToolRetriever:
                 embedding_db=mock_db,
             )
 
-            assert retriever.retrieve_min_score == 0.0
+            assert retriever.retrieve_min_sim == 0.3
 
-            retriever.retrieve_min_score = 0.5
+            retriever.retrieve_min_sim = 0.1
 
-            assert retriever.retrieve_min_score == 0.5
-            assert retriever.min_score == 0.5
+            assert retriever.retrieve_min_sim == 0.1
+            assert retriever.min_sim == 0.1
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_retrieve_max_num_property(
@@ -267,7 +270,7 @@ class TestToolRetriever:
                 embedding_db=mock_db,
             )
 
-            assert retriever.retrieve_max_num == 10
+            assert retriever.retrieve_max_num == 5
 
             retriever.retrieve_max_num = 20
 
@@ -289,12 +292,12 @@ class TestToolRetriever:
                     {
                         "text": "Calculate math",
                         "metadata": {"__tool__": "calculator"},
-                        "score": 0.9,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                     {
                         "text": "Search the web",
                         "metadata": {"__tool__": "search"},
-                        "score": 0.7,
+                        "score": 1.2,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )
@@ -333,12 +336,12 @@ class TestToolRetriever:
                     {
                         "text": "Calculate math",
                         "metadata": {"__tool__": "calculator"},
-                        "score": 0.9,
+                        "score": 0.3,  # score <= 0.4 gives sim >= 0.8
                     },
                     {
                         "text": "Search the web",
                         "metadata": {"__tool__": "search"},
-                        "score": 0.7,
+                        "score": 0.6,  # score > 0.4 gives sim < 0.8
                     },
                 ]
             )
@@ -355,11 +358,11 @@ class TestToolRetriever:
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
-            retriever.retrieve_min_score = 0.8
+            retriever.retrieve_min_sim = 0.8
 
             results = retriever.retrieve_tools("math calculation")
 
-            # Only calculator should be returned (score >= 0.8)
+            # Only calculator should be returned (sim >= 0.8)
             assert len(results) == 1
             assert tool1 in results
             assert tool2 not in results
@@ -380,7 +383,7 @@ class TestToolRetriever:
                     {
                         "text": "Calculate math",
                         "metadata": {"__tool__": "calculator"},
-                        "score": 0.9,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )
@@ -447,7 +450,7 @@ class TestToolRetriever:
                     {
                         "text": "Tool 1",
                         "metadata": {"__tool__": "tool1"},
-                        "score": 0.9,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )
@@ -500,17 +503,17 @@ class TestToolRetriever:
                     {
                         "text": "Tool 1",
                         "metadata": {"__tool__": "tool1"},
-                        "score": 0.9,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                     {
                         "text": "Tool 2",
                         "metadata": {"__tool__": "tool2"},
-                        "score": 0.85,
+                        "score": 1.25,  # score <= 1.4 gives sim >= 0.3
                     },
                     {
                         "text": "Tool 3",
                         "metadata": {"__tool__": "tool3"},
-                        "score": 0.8,
+                        "score": 1.2,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )
@@ -562,12 +565,12 @@ class TestToolRetriever:
                     {
                         "text": "Calculator",
                         "metadata": {"__tool__": "calculator"},
-                        "score": 0.95,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                     {
                         "text": "Missing Tool",
                         "metadata": {"__tool__": "missing_tool"},
-                        "score": 0.9,
+                        "score": 1.2,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )
@@ -617,12 +620,12 @@ class TestToolRetriever:
                     {
                         "text": "Missing Tool 1",
                         "metadata": {"__tool__": "missing1"},
-                        "score": 0.9,
+                        "score": 1.3,  # score <= 1.4 gives sim >= 0.3
                     },
                     {
                         "text": "Missing Tool 2",
                         "metadata": {"__tool__": "missing2"},
-                        "score": 0.85,
+                        "score": 1.2,  # score <= 1.4 gives sim >= 0.3
                     },
                 ]
             )

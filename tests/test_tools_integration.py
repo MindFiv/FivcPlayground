@@ -2,7 +2,7 @@
 """
 End-to-end integration tests for the tools module.
 
-Tests the complete flow: FileToolConfigRepository → create_tool_retriever() → ToolRetriever
+Tests the complete flow: FileToolConfigRepository → create_tool_retriever_async() → ToolRetriever
 """
 
 import tempfile
@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
-from fivcplayground.tools import create_tool_retriever
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.utils import OutputDir
@@ -77,7 +77,7 @@ class TestToolsIntegration:
                 mock_create_db.return_value = mock_embedding_db
 
                 # Create retriever
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=repo,
@@ -142,7 +142,7 @@ class TestToolsIntegration:
                 mock_create_db.return_value = mock_embedding_db
 
                 # Create retriever
-                retriever = create_tool_retriever(
+                retriever = await create_tool_retriever_async(
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=repo,

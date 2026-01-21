@@ -378,7 +378,7 @@ class ViewNavigation(object):
 
             # App title - compact
             st.markdown(
-                '<div class="nav-title">🤖 FivcPlayground</div>', unsafe_allow_html=True
+                '<div class="nav-title">🐣 Playground</div>', unsafe_allow_html=True
             )
 
             clicked_page = None

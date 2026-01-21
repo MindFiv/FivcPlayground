@@ -5,9 +5,12 @@ from typing import Optional, Callable, List
 
 from pydantic import BaseModel
 
-from fivcplayground.tasks import create_briefing_task_async, TaskBackend
+from fivcplayground.tasks import (
+    # create_tooling_task_async,
+    create_briefing_task_async,
+)
 from fivcplayground.agents import (
-    create_companion_agent,
+    create_agent_async,
     AgentRunContent,
     AgentRunSession,
     AgentRun,
@@ -31,6 +34,7 @@ class Chat(object):
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
         briefing_runnable: AgentRunnable | None = None,
+        tooling_runnable: AgentRunnable | None = None,
         tool_retriever: Optional[ToolRetriever] = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
@@ -42,6 +46,7 @@ class Chat(object):
         self._agent_run_repository = agent_run_repository
         self._tool_retriever = tool_retriever
         self._briefing_runnable = briefing_runnable
+        self._tooling_runnable = tooling_runnable
         self._runnable = agent_runnable
         self._running = False
 
@@ -100,6 +105,7 @@ class Chat(object):
                 query=query,
                 agent_run_repository=self._agent_run_repository,
                 agent_run_session_id=agent_session_id,
+                tool_verifier=self._tooling_runnable,
                 tool_retriever=self._tool_retriever,
                 event_callback=lambda _, r: on_event(r),
             )
@@ -111,7 +117,7 @@ class Chat(object):
                     tool_retriever=self._tool_retriever,
                 )
                 assert isinstance(agent_desc, AgentRunContent)
-                self._agent_run_repository.update_agent_run_session(
+                await self._agent_run_repository.update_agent_run_session_async(
                     AgentRunSession(
                         id=agent_session_id,
                         agent_id=self._runnable.id,
@@ -150,7 +156,6 @@ class ChatManager(object):
         agent_backend: AgentBackend | None = None,
         agent_config_repository: AgentConfigRepository | None = None,
         agent_run_repository: AgentRunRepository | None = None,
-        task_backend: TaskBackend | None = None,
         tool_retriever: ToolRetriever | None = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
@@ -162,20 +167,31 @@ class ChatManager(object):
         ), "agent_config_repository is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
 
+        # self._tooling_runnable = asyncio.run(
+        #     create_tooling_task_async(
+        #         model_backend=model_backend,
+        #         model_config_repository=model_config_repository,
+        #         agent_backend=agent_backend,
+        #         agent_config_repository=agent_config_repository,
+        #         tool_retriever=tool_retriever,
+        #     )
+        # )
         self._briefing_runnable = asyncio.run(
             create_briefing_task_async(
-                task_backend=task_backend,
                 model_backend=model_backend,
                 model_config_repository=model_config_repository,
                 agent_backend=agent_backend,
                 agent_config_repository=agent_config_repository,
             )
         )
-        self._agent_runnable = create_companion_agent(
-            model_backend=model_backend,
-            model_config_repository=model_config_repository,
-            agent_backend=agent_backend,
-            agent_config_repository=agent_config_repository,
+        self._agent_runnable = asyncio.run(
+            create_agent_async(
+                model_backend=model_backend,
+                model_config_repository=model_config_repository,
+                agent_backend=agent_backend,
+                agent_config_repository=agent_config_repository,
+                agent_config_id="companion",
+            )
         )
         self._agent_run_repository = agent_run_repository
         self._tool_retriever = tool_retriever

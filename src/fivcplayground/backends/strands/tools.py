@@ -90,7 +90,7 @@ class StrandsToolBundle(ToolBundle):
             """get description of tool bundle"""
             return self.description
 
-        return tool(_func)
+        return tool(name=self.name, description=self.description)(_func)
 
     def setup(self) -> ToolBundleContext:
         return StrandsToolContext(self._tool_config)

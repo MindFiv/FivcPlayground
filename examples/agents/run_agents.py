@@ -28,9 +28,12 @@ async def main():
 
     # Create a companion agent
     from fivcplayground import tools
+    from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-    agent = agents.create_companion_agent()
-    tool_retriever = tools.create_tool_retriever()
+    agent = agents.create_agent(agent_config_id="companion")
+    tool_retriever = await tools.create_tool_retriever_async(
+        tool_backend=StrandsToolBackend()
+    )
 
     print(f"Agent ID: {agent.id}")
     print(f"Agent Name: {agent.name}")

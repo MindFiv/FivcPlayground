@@ -1,3 +1,4 @@
+from asyncio import run as asyncio_run
 from abc import ABC, abstractmethod
 from typing import List
 from typing_extensions import deprecated
@@ -16,18 +17,22 @@ class ToolConfigRepository(ABC):
     @deprecated("Use update_tool_config_async instead")
     def update_tool_config(self, tool_config: ToolConfig) -> None:
         """Create or update a tool configuration."""
+        return asyncio_run(self.update_tool_config_async(tool_config))
 
     @deprecated("Use get_tool_config_async instead")
     def get_tool_config(self, tool_id: str) -> ToolConfig | None:
         """Retrieve a tool by ID."""
+        return asyncio_run(self.get_tool_config_async(tool_id))
 
     @deprecated("Use list_tool_configs_async instead")
     def list_tool_configs(self, **kwargs) -> List[ToolConfig]:
         """List all tools in the repository."""
+        return asyncio_run(self.list_tool_configs_async(**kwargs))
 
     @deprecated("Use delete_tool_config_async instead")
     def delete_tool_config(self, tool_id: str) -> None:
         """Delete a tool configuration."""
+        return asyncio_run(self.delete_tool_config_async(tool_id))
 
     @abstractmethod
     async def update_tool_config_async(self, tool_config: ToolConfig) -> None:
