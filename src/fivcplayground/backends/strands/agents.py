@@ -12,6 +12,7 @@ from strands.agent import (
 from strands.models import Model as StrandsModelUnderlying
 from strands.types.content import Message, ContentBlock
 from strands.types.tools import ToolUse, ToolResult
+# from strands.types.streaming import
 
 from fivcplayground.agents import (
     AgentConfig,
@@ -194,12 +195,12 @@ class StrandsAgentRunnable(AgentRunnable):
 
                     elif "data" in event_data:
                         event = AgentRunEvent.STREAM
-                        # streaming_text contains delta message (incremental chunk), not accumulated text
-                        agent_run.streaming_text = event_data["data"]
+                        # delta contains delta message (incremental chunk), not accumulated text
+                        agent_run.delta = AgentRunContent(text=event_data["data"])
 
                     elif "message" in event_data:
                         event = AgentRunEvent.UPDATE
-                        agent_run.streaming_text = ""
+                        agent_run.delta = None
 
                         message = event_data["message"]
                         for block in message.get("content", []):

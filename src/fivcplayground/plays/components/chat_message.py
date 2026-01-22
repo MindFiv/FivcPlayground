@@ -21,8 +21,8 @@ class ChatMessage(object):
     - LLM thinking content (<think>...</think>) in separate expanders
     - Streaming response rendering with real-time thinking updates
 
-    Note on streaming_text:
-        The streaming_text field in AgentRun contains delta messages (incremental text chunks),
+    Note on delta:
+        The delta field in AgentRun contains delta messages (incremental content chunks),
         not accumulated text. The render_streaming() method is called repeatedly with each new
         delta chunk and processes them individually.
 
@@ -38,7 +38,7 @@ class ChatMessage(object):
         - Supports multiple thinking blocks with automatic numbering
         - Shows ongoing thinking in expanded expanders during streaming
         - Renders tool calls with status indicators and timing information
-        - Processes delta messages from streaming_text field
+        - Processes delta messages from delta field
 
     Example:
         >>> runtime = AgentRun(...)
@@ -183,7 +183,11 @@ class ChatMessage(object):
         if self.runtime.completed_at is not None:
             self.render_message(self.runtime.reply, chat_ai)
         else:
-            self.render_streaming(self.runtime.streaming_text, chat_ai)
+            # Extract text from delta if present
+            delta_text = ""
+            if self.runtime.delta and self.runtime.delta.text:
+                delta_text = self.runtime.delta.text
+            self.render_streaming(delta_text, chat_ai)
 
     @staticmethod
     def render_message(
@@ -321,8 +325,8 @@ class ChatMessage(object):
 
         # Render the main streaming content (without thinking tags)
         if cleaned_text:
-            streaming_text = f"{cleaned_text}{ChatMessage.LOADING_INDICATOR}"
-            placeholder.markdown(streaming_text, unsafe_allow_html=True)
+            rendered_text = f"{cleaned_text}{ChatMessage.LOADING_INDICATOR}"
+            placeholder.markdown(rendered_text, unsafe_allow_html=True)
         elif not ongoing_thinking:
             # If no cleaned text and no ongoing thinking, show just the loading indicator
             placeholder.markdown(ChatMessage.LOADING_INDICATOR, unsafe_allow_html=True)

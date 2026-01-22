@@ -22,7 +22,6 @@ Database Schema:
         - completed_at (TIMESTAMP)
         - query (TEXT)
         - reply (TEXT)
-        - streaming_text (TEXT)
         - error (TEXT)
         - created_at (TIMESTAMP)
 
@@ -133,7 +132,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 completed_at TIMESTAMP,
                 query TEXT,
                 reply TEXT,
-                streaming_text TEXT,
                 error TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (session_id) REFERENCES agents(session_id) ON DELETE CASCADE
@@ -312,9 +310,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
         """Create or update an agent runtime with embedded tool calls.
 
         Note:
-            streaming_text is excluded from serialization and will not be stored
+            delta is excluded from serialization and will not be stored
             in the database. It is only used for in-memory streaming during execution
-            and contains delta messages (incremental chunks), not accumulated text.
+            and contains delta messages (incremental chunks), not accumulated content.
         """
         cursor = self.connection.cursor()
         runtime_data = agent_run.model_dump(mode="json", exclude={"tool_calls"})
@@ -338,8 +336,8 @@ class SqliteAgentRunRepository(AgentRunRepository):
             """
             INSERT OR REPLACE INTO agent_runtimes
             (agent_run_id, session_id, agent_id, status, started_at, completed_at,
-             query, reply, streaming_text, error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             query, reply, error)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 runtime_data.get("id"),
@@ -354,7 +352,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 json.dumps(runtime_data.get("reply"))
                 if runtime_data.get("reply")
                 else None,
-                runtime_data.get("streaming_text"),
                 runtime_data.get("error"),
             ),
         )
@@ -393,7 +390,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
         """Retrieve an agent runtime by session ID and run ID with embedded tool calls.
 
         Note:
-            streaming_text is excluded from serialization and will be empty string
+            delta is excluded from serialization and will be None
             when loaded from the database. It is only used for in-memory streaming.
         """
         cursor = self.connection.cursor()
@@ -454,7 +451,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
                     "completed_at": row["completed_at"],
                     "query": query,
                     "reply": reply,
-                    "streaming_text": row["streaming_text"] or "",
                     "error": row["error"],
                     "tool_calls": tool_calls,
                 }
@@ -533,7 +529,6 @@ class SqliteAgentRunRepository(AgentRunRepository):
                         "completed_at": row["completed_at"],
                         "query": query,
                         "reply": reply,
-                        "streaming_text": row["streaming_text"] or "",
                         "error": row["error"],
                         "tool_calls": tool_calls,
                     }

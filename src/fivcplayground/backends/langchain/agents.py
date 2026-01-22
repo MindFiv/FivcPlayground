@@ -172,15 +172,15 @@ class LangchainAgentRunnable(AgentRunnable):
 
                     elif mode == "updates":
                         event = AgentRunEvent.UPDATE
-                        agent_run.streaming_text = ""
+                        agent_run.delta = None
 
                     elif mode == "messages":
                         msg, _ = event_data
 
                         if isinstance(msg, AIMessageChunk):
                             event = AgentRunEvent.STREAM
-                            # streaming_text contains delta message (incremental chunk), not accumulated text
-                            agent_run.streaming_text = msg.content
+                            # delta contains delta message (incremental chunk), not accumulated text
+                            agent_run.delta = AgentRunContent(text=msg.content)
 
                         elif isinstance(msg, ToolMessage):
                             event = AgentRunEvent.TOOL

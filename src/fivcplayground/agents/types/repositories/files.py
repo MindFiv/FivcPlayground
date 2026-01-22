@@ -394,9 +394,9 @@ class FileAgentRunRepository(AgentRunRepository):
         """Create or update an agent runtime.
 
         Note:
-            streaming_text is excluded from serialization and will not be stored
+            delta is excluded from serialization and will not be stored
             in the file. It is only used for in-memory streaming during execution
-            and contains delta messages (incremental chunks), not accumulated text.
+            and contains delta messages (incremental chunks), not accumulated content.
         """
         session_dir = self._get_session_dir(session_id)
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -404,7 +404,7 @@ class FileAgentRunRepository(AgentRunRepository):
         run_file = self._get_run_file(session_id, str(agent_run.id))
 
         # Serialize agent to JSON (include tool_calls as they're now embedded)
-        # Note: streaming_text is excluded from serialization by Pydantic configuration
+        # Note: delta is excluded from serialization by Pydantic configuration
         agent_data = agent_run.model_dump(mode="json")
 
         with open(run_file, "w", encoding="utf-8") as f:
@@ -424,7 +424,7 @@ class FileAgentRunRepository(AgentRunRepository):
                 agent_data = json.load(f)
 
             # Reconstruct AgentRun from JSON (includes embedded tool_calls)
-            # streaming_text will be set to default value (empty string) since it's excluded
+            # delta will be set to None since it's excluded from serialization
             return AgentRun.model_validate(agent_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted

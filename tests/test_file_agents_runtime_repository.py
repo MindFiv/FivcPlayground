@@ -12,6 +12,7 @@ from fivcplayground.agents.types import (
     AgentRunSession,
     AgentRunToolCall,
     AgentRunStatus,
+    AgentRunContent,
 )
 from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
 from fivcplayground.utils import OutputDir
@@ -355,9 +356,9 @@ class TestFileAgentsRuntimeRepository:
 
     @pytest.mark.asyncio
     async def test_agent_with_streaming_text(self):
-        """Test agent runtime with streaming text delta - verify it's excluded from persistence.
+        """Test agent runtime with delta - verify it's excluded from persistence.
 
-        streaming_text contains delta messages (incremental chunks) and is only used
+        delta contains delta messages (incremental chunks) and is only used
         for in-memory streaming during execution. It should not be persisted.
         """
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -368,17 +369,19 @@ class TestFileAgentsRuntimeRepository:
             session = AgentRunSession(agent_id="streaming-agent")
             await repo.update_agent_run_session_async(session)
 
-            # Create an agent with streaming text delta
+            # Create an agent with delta
             agent = AgentRun(
                 agent_id="streaming-agent",
-                streaming_text="This is a delta chunk...",  # Delta message, not accumulated
+                delta=AgentRunContent(
+                    text="This is a delta chunk..."
+                ),  # Delta message, not accumulated
             )
             await repo.update_agent_run_async(session.id, agent)
 
             # Retrieve and verify
-            # streaming_text is excluded from serialization, so it should be empty string (default)
+            # delta is excluded from serialization, so it should be None (default)
             retrieved_agent = await repo.get_agent_run_async(session.id, agent.id)
-            assert retrieved_agent.streaming_text == ""
+            assert retrieved_agent.delta is None
 
     @pytest.mark.asyncio
     async def test_agent_with_error(self):

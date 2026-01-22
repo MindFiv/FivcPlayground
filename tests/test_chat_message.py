@@ -35,7 +35,6 @@ class TestChatMessageClass:
         runtime = AgentRun(
             agent_id="test-agent",
             query=AgentRunContent(text="What is the weather?"),
-            streaming_text="",
         )
 
         chat_msg = ChatMessage(runtime)
@@ -81,9 +80,9 @@ class TestChatMessageClass:
         assert "sunny" in call_args
 
     def test_render_with_streaming_text(self):
-        """Test rendering runtime with streaming text delta message.
+        """Test rendering runtime with delta message.
 
-        streaming_text contains a delta message (incremental chunk), not accumulated text.
+        delta contains a delta message (incremental chunk), not accumulated text.
         """
         mock_placeholder = Mock()
         mock_container = Mock()
@@ -95,7 +94,7 @@ class TestChatMessageClass:
         runtime = AgentRun(
             agent_id="test-agent",
             query=AgentRunContent(text="Tell me a story"),
-            streaming_text="Once upon a time...",
+            delta=AgentRunContent(text="Once upon a time..."),
         )
 
         chat_msg = ChatMessage(runtime)
@@ -117,7 +116,7 @@ class TestChatMessageClass:
 
         runtime = AgentRun(
             agent_id="test-agent",
-            streaming_text="Thinking...",
+            delta=AgentRunContent(text="Thinking..."),
         )
 
         chat_msg = ChatMessage(runtime)
@@ -191,14 +190,14 @@ class TestRenderStreamingMethod:
     """Test the render_streaming() method.
 
     Tests verify that render_streaming() correctly handles delta messages
-    (incremental text chunks) from the streaming_text field.
+    (incremental text chunks) from the delta field.
     """
 
     def test_render_stream_with_text(self):
         """Test rendering streaming text delta chunk."""
         mock_placeholder = Mock()
         runtime = AgentRun(
-            agent_id="test-agent", streaming_text="Streaming response..."
+            agent_id="test-agent", delta=AgentRunContent(text="Streaming response...")
         )
 
         chat_msg = ChatMessage(runtime)
@@ -211,9 +210,9 @@ class TestRenderStreamingMethod:
         assert "loading-dots" in call_args
 
     def test_render_stream_with_empty_text(self):
-        """Test rendering with empty streaming text delta."""
+        """Test rendering with empty delta."""
         mock_placeholder = Mock()
-        runtime = AgentRun(agent_id="test-agent", streaming_text="")
+        runtime = AgentRun(agent_id="test-agent", delta=AgentRunContent(text=""))
 
         chat_msg = ChatMessage(runtime)
         # Pass an empty delta chunk
@@ -227,7 +226,7 @@ class TestRenderStreamingMethod:
     def test_render_stream_includes_css_animations(self):
         """Test rendering includes CSS for loading animations."""
         mock_placeholder = Mock()
-        runtime = AgentRun(agent_id="test-agent", streaming_text="Test")
+        runtime = AgentRun(agent_id="test-agent", delta=AgentRunContent(text="Test"))
 
         chat_msg = ChatMessage(runtime)
         # Pass a delta chunk
@@ -319,7 +318,7 @@ class TestIntegration:
     def test_full_render_flow_with_streaming(self):
         """Test complete render flow with streaming runtime.
 
-        Tests that streaming_text delta message is rendered correctly.
+        Tests that delta message is rendered correctly.
         """
         mock_placeholder = Mock()
         mock_container = Mock()
@@ -331,7 +330,9 @@ class TestIntegration:
         runtime = AgentRun(
             agent_id="test-agent",
             query=AgentRunContent(text="Calculate 2+2"),
-            streaming_text="The answer is 4",  # Delta message (incremental chunk)
+            delta=AgentRunContent(
+                text="The answer is 4"
+            ),  # Delta message (incremental chunk)
         )
 
         chat_msg = ChatMessage(runtime)

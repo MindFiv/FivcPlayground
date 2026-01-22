@@ -20,6 +20,7 @@ from fivcplayground.agents.types import (
     AgentRun,
     AgentRunToolCall,
     AgentRunStatus,
+    AgentRunContent,
 )
 
 
@@ -121,7 +122,7 @@ class TestAgentsRuntime:
         assert runtime.status == AgentRunStatus.PENDING
         assert runtime.reply is None
         assert runtime.tool_calls == {}
-        assert runtime.streaming_text == ""
+        assert runtime.delta is None
         assert runtime.error is None
 
     def test_runtime_id_field(self):
@@ -225,24 +226,24 @@ class TestAgentsRuntime:
         assert runtime.failed_tool_calls == 1
 
     def test_runtime_with_streaming_text(self):
-        """Test runtime with streaming text delta messages.
+        """Test runtime with delta messages.
 
-        streaming_text contains delta messages (incremental chunks), not accumulated text.
+        delta contains delta messages (incremental chunks), not accumulated text.
         Each assignment represents a new delta chunk received from the stream.
         """
         runtime = AgentRun(agent_id="agent-123")
 
         # First delta chunk
-        runtime.streaming_text = "Hello"
-        assert runtime.streaming_text == "Hello"
+        runtime.delta = AgentRunContent(text="Hello")
+        assert runtime.delta.text == "Hello"
 
         # Second delta chunk (replaces previous, not accumulated)
-        runtime.streaming_text = " world"
-        assert runtime.streaming_text == " world"
+        runtime.delta = AgentRunContent(text=" world")
+        assert runtime.delta.text == " world"
 
         # Third delta chunk
-        runtime.streaming_text = "!"
-        assert runtime.streaming_text == "!"
+        runtime.delta = AgentRunContent(text="!")
+        assert runtime.delta.text == "!"
 
     def test_runtime_with_error(self):
         """Test runtime with error."""
@@ -275,8 +276,8 @@ class TestAgentsRuntime:
         assert "tool_call_count" in data
         assert "successful_tool_calls" in data
         assert "failed_tool_calls" in data
-        # streaming_text should be excluded from serialization
-        assert "streaming_text" not in data
+        # delta should be excluded from serialization
+        assert "delta" not in data
 
     def test_tool_call_serialization(self):
         """Test tool call can be serialized to dict."""

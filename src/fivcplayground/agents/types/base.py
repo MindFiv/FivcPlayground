@@ -167,12 +167,12 @@ class AgentRun(BaseModel):
     reply: Optional[AgentRunContent] = Field(
         default=None, description="Final agent reply message"
     )
-    streaming_text: str = Field(
-        default="",
+    delta: Optional[AgentRunContent] = Field(
+        default=None,
         exclude=True,
-        description="Delta message (incremental text chunk) from the agent streaming output. "
-        "Contains only the new text chunk received in the current stream event, "
-        "not the accumulated message.",
+        description="Delta message from the agent streaming output. "
+        "Contains only the new content chunk received in the current stream event, "
+        "not the accumulated message. Can contain text, images, or files.",
     )
     error: Optional[str] = Field(
         default=None, description="Error message if execution failed"
