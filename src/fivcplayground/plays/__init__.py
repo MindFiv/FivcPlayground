@@ -23,7 +23,7 @@ from fivcplayground.backends.strands import (
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
-from fivcplayground.tools import create_tool_retriever_async
+from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
 from fivcplayground.agents.types.repositories import (
     FileAgentConfigRepository,
     FileAgentRunRepository,
@@ -57,8 +57,14 @@ tool_config_repository = FileToolConfigRepository()
 def main():
     """Main Streamlit application entry point with custom ViewNavigation"""
     # Initialize repositories and tool retriever
+    tools = asyncio.run(
+        create_builtin_tools_async(
+            tool_backend=tool_backend,
+        )
+    )
     tool_retriever = asyncio.run(
         create_tool_retriever_async(
+            tools=tools,
             tool_backend=tool_backend,
             tool_config_repository=tool_config_repository,
             embedding_backend=embedding_backend,

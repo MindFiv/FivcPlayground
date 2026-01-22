@@ -26,7 +26,6 @@ class TestCreateToolRetriever:
             await create_tool_retriever_async(
                 tool_backend=None,
                 embedding_config_repository=None,
-                load_builtin_tools=False,
             )
 
     @pytest.mark.asyncio
@@ -49,7 +48,6 @@ class TestCreateToolRetriever:
                     tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
-                    load_builtin_tools=False,
                 )
 
                 assert retriever == mock_retriever
@@ -57,7 +55,9 @@ class TestCreateToolRetriever:
 
     @pytest.mark.asyncio
     async def test_create_tool_retriever_with_builtin_tools(self):
-        """Test creating tool retriever with builtin tools."""
+        """Test creating tool retriever with builtin tools passed explicitly."""
+        from fivcplayground.tools import create_builtin_tools_async
+
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
 
@@ -69,20 +69,27 @@ class TestCreateToolRetriever:
 
                 mock_retriever = Mock()
                 mock_retriever.tools = []
-                mock_retriever.add_tool = Mock()
                 mock_retriever_class.return_value = mock_retriever
 
+                # Create builtin tools explicitly
+                backend = LangchainToolBackend()
+                builtin_tools = await create_builtin_tools_async(
+                    tool_backend=backend,
+                    raise_exception=False,
+                )
+
                 retriever = await create_tool_retriever_async(
-                    tool_backend=LangchainToolBackend(),
+                    tool_backend=backend,
+                    tools=builtin_tools,
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
-                    load_builtin_tools=True,
                 )
 
                 assert retriever == mock_retriever
-                # Builtin tools are now passed during initialization, not added via add_tool
-                # So we just verify the retriever was created
-                mock_retriever_class.assert_called_once()
+                # Verify ToolRetriever was called with tools
+                call_kwargs = mock_retriever_class.call_args[1]
+                assert "tools" in call_kwargs
+                assert len(call_kwargs["tools"]) >= 2  # clock and calculator
 
     @pytest.mark.asyncio
     async def test_create_tool_retriever_custom_embedding_config(self):
@@ -105,7 +112,6 @@ class TestCreateToolRetriever:
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
                     embedding_config_id="custom",
-                    load_builtin_tools=False,
                 )
 
                 assert retriever == mock_retriever
@@ -136,7 +142,6 @@ class TestCreateToolRetriever:
                     tool_backend=LangchainToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
-                    load_builtin_tools=False,
                 )
 
                 # Verify ToolRetriever was created
@@ -145,7 +150,9 @@ class TestCreateToolRetriever:
 
     @pytest.mark.asyncio
     async def test_create_tool_retriever_builtin_tools_loaded(self):
-        """Test that builtin tools are loaded when requested."""
+        """Test that builtin tools can be passed to create_tool_retriever_async."""
+        from fivcplayground.tools import create_builtin_tools_async
+
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
 
@@ -159,16 +166,23 @@ class TestCreateToolRetriever:
                 mock_retriever.tools = []
                 mock_retriever_class.return_value = mock_retriever
 
+                # Create builtin tools explicitly
+                backend = StrandsToolBackend()
+                builtin_tools = await create_builtin_tools_async(
+                    tool_backend=backend,
+                    raise_exception=False,
+                )
+
                 retriever = await create_tool_retriever_async(
-                    tool_backend=StrandsToolBackend(),
+                    tool_backend=backend,
+                    tools=builtin_tools,
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
-                    load_builtin_tools=True,
                 )
 
                 # Verify ToolRetriever was created with builtin tools
                 assert retriever == mock_retriever
-                # Verify ToolRetriever was called with tool_list containing builtin tools
+                # Verify ToolRetriever was called with tools containing builtin tools
                 call_kwargs = mock_retriever_class.call_args[1]
-                assert "tool_list" in call_kwargs
-                assert len(call_kwargs["tool_list"]) >= 2  # clock and calculator
+                assert "tools" in call_kwargs
+                assert len(call_kwargs["tools"]) >= 2  # clock and calculator

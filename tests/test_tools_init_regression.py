@@ -13,7 +13,7 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from fivcplayground.tools import create_tool_retriever_async
+from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
@@ -87,11 +87,12 @@ class TestToolsInitRegression:
             all_tools = await result.list_tools_async()
             assert len(all_tools) >= 0  # May have builtin tools
 
-    def test_list_tools_returns_tools_with_name_attribute(self):
+    @pytest.mark.asyncio
+    async def test_list_tools_returns_tools_with_name_attribute(self):
         """
-        Test that ToolRetriever.list_tools() returns tools with correct attributes.
+        Test that ToolRetriever.list_tools_async() returns tools with correct attributes.
 
-        This ensures that tools returned from list_tools() have the correct
+        This ensures that tools returned from list_tools_async() have the correct
         attributes for the current backend (name for LangChain, tool_name for Strands).
         """
         from fivcplayground.tools.types.retrievers import ToolRetriever
@@ -110,7 +111,7 @@ class TestToolsInitRegression:
             tool2 = create_mock_tool("tool2", "Tool 2 description")
 
             # Mock the tool config repository to return no tool configs
-            # This ensures list_tools() only returns the tools we explicitly added
+            # This ensures list_tools_async() only returns the tools we explicitly added
             with patch(
                 "fivcplayground.tools.types.repositories.files.FileToolConfigRepository"
             ) as mock_repo_class:
@@ -122,13 +123,13 @@ class TestToolsInitRegression:
 
                 retriever = ToolRetriever(
                     tool_backend=LangchainToolBackend(),  # Use LangChain for this test
-                    tool_list=[tool1, tool2],
+                    tools=[tool1, tool2],
                     embedding_db=mock_db,
                     tool_config_repository=mock_repo,
                 )
 
-                # Get all tools
-                all_tools = retriever.list_tools()
+                # Get all tools using async version
+                all_tools = await retriever.list_tools_async()
 
                 # Verify all tools can be accessed with .name property
                 assert len(all_tools) == 3  # tool1, tool2, and tool_retriever
@@ -143,10 +144,10 @@ class TestToolsInitRegression:
         self, backend_name, get_backend
     ):
         """
-        Test that create_tool_retriever_async correctly loads builtin tools.
+        Test that create_tool_retriever_async correctly handles builtin tools.
 
-        This test verifies that when load_builtin_tools=True, the retriever
-        includes the builtin tools (clock and calculator).
+        This test verifies that when builtin tools are passed to create_tool_retriever_async,
+        the retriever includes them.
         """
         mock_embedding_repo = Mock()
         mock_tool_repo = Mock()
@@ -162,12 +163,19 @@ class TestToolsInitRegression:
             mock_db.tools = mock_embedding_table
             mock_create_db.return_value = mock_db
 
+            # Create builtin tools
+            backend = get_backend()
+            builtin_tools = await create_builtin_tools_async(
+                tool_backend=backend,
+                raise_exception=False,
+            )
+
             # Create retriever with builtin tools
             retriever = await create_tool_retriever_async(
-                tool_backend=get_backend(),
+                tool_backend=backend,
+                tools=builtin_tools,
                 embedding_config_repository=mock_embedding_repo,
                 tool_config_repository=mock_tool_repo,
-                load_builtin_tools=True,
             )
 
             # Get all tools
@@ -175,12 +183,13 @@ class TestToolsInitRegression:
 
             # Verify builtin tools are loaded
             tool_names = [tool.name for tool in all_tools]
-            assert "clock" in tool_names
-            assert "calculator" in tool_names
+            assert "auxiliary" in tool_names
+            assert "filesystem" in tool_names
 
-    def test_tools_retriever_list_tools_with_langchain_tools(self):
+    @pytest.mark.asyncio
+    async def test_tools_retriever_list_tools_with_langchain_tools(self):
         """
-        Test that ToolRetriever.list_tools() works with LangChain backend.
+        Test that ToolRetriever.list_tools_async() works with LangChain backend.
 
         This test verifies that tools wrapped by LangChain backend have correct attributes.
         """
@@ -214,13 +223,13 @@ class TestToolsInitRegression:
         # Create a retriever with the tools
         retriever_with_tools = ToolRetriever(
             tool_backend=backend,
-            tool_list=[wrapped_calculator, wrapped_search],
+            tools=[wrapped_calculator, wrapped_search],
             embedding_db=mock_db,
             tool_config_repository=mock_repo,
         )
 
-        # Get all tools
-        all_tools = retriever_with_tools.list_tools()
+        # Get all tools using async version
+        all_tools = await retriever_with_tools.list_tools_async()
 
         # Verify tools have 'name' attribute (Tool interface standard)
         assert len(all_tools) == 3  # calculator, search, and tool_retriever

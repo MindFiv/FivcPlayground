@@ -82,9 +82,17 @@ class ToolBackend(ABC):
     """Interface for tool backends."""
 
     @abstractmethod
-    def create_tool(self, tool_func: Callable) -> Tool:
+    def create_tool(
+        self,
+        tool_func: Callable,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Tool:
         """Create a tool instance from a ToolConfig."""
 
     @abstractmethod
-    def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
+    def create_tool_bundle(
+        self,
+        tool_config: ToolConfig,
+    ) -> ToolBundle:
         """Create a tool bundle from a ToolConfig."""

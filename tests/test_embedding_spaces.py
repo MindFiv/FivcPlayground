@@ -143,7 +143,7 @@ class TestToolRetrieverSpaceIsolation:
 
             retriever = ToolRetriever(
                 tool_backend=StrandsToolBackend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -165,7 +165,7 @@ class TestToolRetrieverSpaceIsolation:
 
             retriever = ToolRetriever(
                 tool_backend=StrandsToolBackend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )

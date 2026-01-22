@@ -95,54 +95,23 @@ class StrandsToolBundle(ToolBundle):
     def setup(self) -> ToolBundleContext:
         return StrandsToolContext(self._tool_config)
 
-    # @contextmanager
-    # def load(self) -> Generator[List[Tool], None]:
-    #     if self._tool_config.transport == "stdio":
-    #         c = stdio_client(
-    #             StdioServerParameters(
-    #                 command=self._tool_config.command,
-    #                 args=self._tool_config.args,
-    #                 env=self._tool_config.env,
-    #             )
-    #         )
-    #     elif self._tool_config.transport == "sse":
-    #         c = sse_client(url=self._tool_config.url)
-    #     elif self._tool_config.transport == "streamable_http":
-    #         c = streamablehttp_client(url=self._tool_config.url)
-    #     else:
-    #         raise ValueError(f"Unsupported transport: {self._tool_config.transport}")
-    #
-    #     with MCPClient(lambda: c) as client:
-    #         tools = client.list_tools_sync()
-    #         yield list(StrandsTool(tool(t)) for t in tools)
-    #
-    # @asynccontextmanager
-    # async def load_async(self) -> AsyncGenerator[List[Tool], None]:
-    #     if self._tool_config.transport == "stdio":
-    #         c = stdio_client(
-    #             StdioServerParameters(
-    #                 command=self._tool_config.command,
-    #                 args=self._tool_config.args,
-    #                 env=self._tool_config.env,
-    #             )
-    #         )
-    #     elif self._tool_config.transport == "sse":
-    #         c = sse_client(url=self._tool_config.url)
-    #     elif self._tool_config.transport == "streamable_http":
-    #         c = streamablehttp_client(url=self._tool_config.url)
-    #     else:
-    #         raise ValueError(f"Unsupported transport: {self._tool_config.transport}")
-    #
-    #     with MCPClient(lambda: c) as client:
-    #         tools = client.list_tools_sync()
-    #         yield list(StrandsTool(t) for t in tools)
-
 
 class StrandsToolBackend(ToolBackend):
     """Tool backend for strands"""
 
-    def create_tool(self, tool_func: Callable) -> Tool:
-        return StrandsTool(tool(tool_func))
+    def create_tool(
+        self,
+        tool_func: Callable,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Tool:
+        if tool_name and tool_description:
+            tool_underlying = tool(name=tool_name, description=tool_description)(
+                tool_func
+            )
+        else:
+            tool_underlying = tool(tool_func)
+        return StrandsTool(tool_underlying)
 
     def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
         return StrandsToolBundle(tool_config)

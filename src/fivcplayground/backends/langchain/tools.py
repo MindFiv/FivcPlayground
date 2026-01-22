@@ -2,6 +2,7 @@ from typing import (
     Any,
     Callable,
     List,
+    cast,
 )
 
 from langchain_core.tools import tool
@@ -108,8 +109,21 @@ class LangchainToolBundle(ToolBundle):
 class LangchainToolBackend(ToolBackend):
     """Tool backend for langchain"""
 
-    def create_tool(self, tool_func: Callable) -> Tool:
-        return LangchainTool(tool(tool_func))
+    def create_tool(
+        self,
+        tool_func: Callable,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+    ) -> Tool:
+        if tool_name and tool_description:
+            tool_name = tool_name or tool_func.__name__
+            tool_underlying = tool(
+                cast(str, tool_name),
+                description=tool_description,
+            )(tool_func)
+        else:
+            tool_underlying = tool(tool_func)
+        return LangchainTool(tool_underlying)
 
     def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
         return LangchainToolBundle(tool_config)

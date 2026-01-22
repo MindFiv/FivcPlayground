@@ -1,4 +1,5 @@
 __all__ = [
+    "create_builtin_tools_async",
     "create_tool_retriever_async",
     "Tool",
     "ToolBundle",
@@ -14,28 +15,72 @@ from fivcplayground.embeddings import (
     EmbeddingConfigRepository,
     create_embedding_db_async,
 )
-from fivcplayground.tools.types import (
+from .types import (
     ToolRetriever,
     ToolConfig,
     Tool,
     ToolBundle,
     ToolBundleContext,
     ToolBackend,
+    FunctionToolBundle,
 )
-from fivcplayground.tools.types.repositories.base import (
+from .types.repositories.base import (
     ToolConfigRepository,
 )
 
 
+async def create_builtin_tools_async(
+    tool_backend: ToolBackend | None = None,
+    raise_exception: bool = True,
+) -> list[Tool]:
+    """Async version of create_tools."""
+    if tool_backend is None:
+        if raise_exception:
+            raise RuntimeError("tool_backend is required")
+
+        return []
+
+    from fivcplayground.tools.clock import clock
+    from fivcplayground.tools.calculator import calculator
+
+    from fivcplayground.tools.filesystem import (
+        file_read,
+        file_write,
+        file_search,
+    )
+
+    from fivcplayground.tools.shell import shell
+
+    return [
+        FunctionToolBundle(
+            name="auxiliary",
+            description="Auxiliary tools like clock and calculator",
+            tool_backend=tool_backend,
+            tool_funcs=[clock, calculator],
+        ),
+        FunctionToolBundle(
+            name="filesystem",
+            description="Tools for interacting with the filesystem",
+            tool_backend=tool_backend,
+            tool_funcs=[
+                file_read,
+                file_write,
+                file_search,
+            ],
+        ),
+        tool_backend.create_tool(shell),
+    ]
+
+
 async def create_tool_retriever_async(
     tool_backend: ToolBackend | None = None,
+    tools: list[Tool] | None = None,  # for builtin tools
     tool_config_repository: ToolConfigRepository | None = None,
     embedding_backend: EmbeddingBackend | None = None,
     embedding_config_repository: EmbeddingConfigRepository | None = None,
     embedding_config_id: str = "default",
     space_id: str | None = None,
     raise_exception: bool = True,
-    load_builtin_tools: bool = True,
     **kwargs,  # ignore additional kwargs
 ) -> ToolRetriever | None:
     """Async version of create_tool_retriever."""
@@ -71,17 +116,11 @@ async def create_tool_retriever_async(
             raise RuntimeError(f"Embedding not found {embedding_config_id}")
         return None
 
-    tool_list = []
-    if load_builtin_tools:
-        from fivcplayground.tools.clock import clock
-        from fivcplayground.tools.calculator import calculator
-
-        tool_list.append(tool_backend.create_tool(clock))
-        tool_list.append(tool_backend.create_tool(calculator))
+    tools = tools or []
 
     return ToolRetriever(
         tool_backend=tool_backend,
-        tool_list=tool_list,
+        tools=tools,
         tool_config_repository=tool_config_repository,
         embedding_db=embedding_db,
     )

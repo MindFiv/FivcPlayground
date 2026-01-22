@@ -73,7 +73,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -97,7 +97,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -107,7 +107,8 @@ class TestToolRetriever:
             )  # tool_retriever is added automatically
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_index_tools(
+    @pytest.mark.asyncio
+    async def test_index_tools(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test indexing tools in the retriever."""
@@ -123,18 +124,20 @@ class TestToolRetriever:
             tool2 = create_mock_tool("tool2", "Tool 2 description")
 
             # Mock the repository to return empty list of tool configs
-            mock_embedding_config_repository.list_tool_configs.return_value = []
+            mock_embedding_config_repository.list_tool_configs_async = AsyncMock(
+                return_value=[]
+            )
 
             # Pass tools during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool2],
+                tools=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            # Index the tools
-            retriever.index_tools()
+            # Index the tools using async version
+            await retriever.index_tools_async()
 
             # Verify cleanup was called
             mock_embedding_table.cleanup.assert_called_once()
@@ -142,7 +145,8 @@ class TestToolRetriever:
             assert mock_embedding_table.add.call_count == 3
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_get_tool(
+    @pytest.mark.asyncio
+    async def test_get_tool(
         self, mock_embedding_config_repository, mock_tool, backend_name, get_backend
     ):
         """Test getting a tool by name."""
@@ -157,17 +161,18 @@ class TestToolRetriever:
             # Pass tool during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[mock_tool],
+                tools=[mock_tool],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            result = retriever.get_tool("test_tool")
+            result = await retriever.get_tool_async("test_tool")
 
             assert result == mock_tool
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_get_nonexistent_tool(
+    @pytest.mark.asyncio
+    async def test_get_nonexistent_tool(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test getting a nonexistent tool returns None."""
@@ -179,21 +184,24 @@ class TestToolRetriever:
             mock_create_db.return_value = mock_db
 
             # Mock the repository to return None for nonexistent tools
-            mock_embedding_config_repository.get_tool_config.return_value = None
+            mock_embedding_config_repository.get_tool_config_async = AsyncMock(
+                return_value=None
+            )
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            result = retriever.get_tool("nonexistent")
+            result = await retriever.get_tool_async("nonexistent")
 
             assert result is None
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_list_tools(
+    @pytest.mark.asyncio
+    async def test_list_tools(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test listing all tools."""
@@ -209,17 +217,19 @@ class TestToolRetriever:
             tool2 = create_mock_tool("tool2", "Tool 2")
 
             # Mock the repository to return empty list of tool configs
-            mock_embedding_config_repository.list_tool_configs.return_value = []
+            mock_embedding_config_repository.list_tool_configs_async = AsyncMock(
+                return_value=[]
+            )
 
             # Pass tools during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool2],
+                tools=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            results = retriever.list_tools()
+            results = await retriever.list_tools_async()
 
             assert len(results) == 3  # tool1, tool2, and tool_retriever
             assert tool1 in results
@@ -239,7 +249,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -265,7 +275,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -278,7 +288,8 @@ class TestToolRetriever:
             assert retriever.max_num == 20
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_retrieve_tools(
+    @pytest.mark.asyncio
+    async def test_retrieve_tools(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieving tools by query."""
@@ -310,19 +321,20 @@ class TestToolRetriever:
             # Pass tools during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool2],
+                tools=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
 
-            results = retriever.retrieve_tools("math calculation")
+            results = await retriever.retrieve_tools_async("math calculation")
 
             assert len(results) == 2
             assert tool1 in results
             assert tool2 in results
 
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
-    def test_retrieve_tools_with_min_score(
+    @pytest.mark.asyncio
+    async def test_retrieve_tools_with_min_score(
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieving tools with minimum score filter."""
@@ -354,13 +366,13 @@ class TestToolRetriever:
             # Pass tools during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool2],
+                tools=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
             retriever.retrieve_min_sim = 0.8
 
-            results = retriever.retrieve_tools("math calculation")
+            results = await retriever.retrieve_tools_async("math calculation")
 
             # Only calculator should be returned (sim >= 0.8)
             assert len(results) == 1
@@ -395,7 +407,7 @@ class TestToolRetriever:
             # Pass tool during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1],
+                tools=[tool1],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -418,7 +430,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -464,7 +476,7 @@ class TestToolRetriever:
             # Pass tools during initialization
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool2],
+                tools=[tool1, tool2],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -531,7 +543,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[tool1, tool3],
+                tools=[tool1, tool3],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -587,7 +599,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=[calculator],
+                tools=[calculator],
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )
@@ -639,7 +651,7 @@ class TestToolRetriever:
 
             retriever = ToolRetriever(
                 tool_backend=get_backend(),
-                tool_list=None,
+                tools=None,
                 tool_config_repository=mock_embedding_config_repository,
                 embedding_db=mock_db,
             )

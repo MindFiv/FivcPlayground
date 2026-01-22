@@ -18,7 +18,7 @@ class ToolRetriever(object):
     def __init__(
         self,
         tool_backend: ToolBackend | None = None,
-        tool_list: list[Tool] | None = None,  # for builtin tools
+        tools: list[Tool] | None = None,  # for builtin tools
         tool_config_repository: ToolConfigRepository | None = None,
         embedding_db: embeddings.EmbeddingDB | None = None,
         **kwargs,  # ignore additional kwargs
@@ -28,13 +28,6 @@ class ToolRetriever(object):
         assert tool_config_repository
         assert embedding_db
 
-        # if tool_config_repository is None:
-        #     from fivcplayground.tools.types.repositories.files import (
-        #         FileToolConfigRepository,
-        #     )
-        #
-        #     tool_config_repository = FileToolConfigRepository()
-
         self.max_num = 5  # top k
         self.min_sim = 0.3  # min similarity
 
@@ -42,9 +35,7 @@ class ToolRetriever(object):
         self.tool_backend = tool_backend
         self.tool_indices = embedding_db.tools
 
-        self.tools: dict[str, Tool] = (
-            {t.name: t for t in tool_list} if tool_list else {}
-        )
+        self.tools: dict[str, Tool] = {t.name: t for t in tools} if tools else {}
         # add self to tools
         self.tools.update(tool_retriever=self.to_tool())
 

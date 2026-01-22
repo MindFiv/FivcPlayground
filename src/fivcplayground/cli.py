@@ -5,6 +5,7 @@ FivcPlayground CLI
 Command-line interface for runtime FivcPlayground agents and tools.
 """
 
+import asyncio
 import subprocess
 import sys
 import os
@@ -19,7 +20,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from fivcplayground.agents import create_agent
-from fivcplayground.tools import create_tool_retriever_async
+from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
 from fivcplayground.utils import OutputDir
 
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
@@ -81,6 +82,7 @@ async def run(
     agent_config_repository = FileAgentConfigRepository()
 
     tool_retriever = await create_tool_retriever_async(
+        tools=await create_builtin_tools_async(tool_backend=tool_backend),
         tool_backend=tool_backend,
         tool_config_repository=tool_config_repository,
         embedding_backend=embedding_backend,
@@ -246,7 +248,7 @@ def info():
 
 
 @app.command()
-async def setup(
+def setup(
     force: bool = typer.Option(
         False,
         "--force",
@@ -361,16 +363,20 @@ async def setup(
         tool_backend = StrandsToolBackend()
         tool_config_repository = FileToolConfigRepository()
 
-        tool_retriever = await create_tool_retriever_async(
-            tool_backend=tool_backend,
-            tool_config_repository=tool_config_repository,
-            embedding_backend=embedding_backend,
-            embedding_config_repository=embedding_config_repository,
-            embedding_config_id="default",
-            raise_exception=False,
+        tools = asyncio.run(create_builtin_tools_async(tool_backend=tool_backend))
+        tool_retriever = asyncio.run(
+            create_tool_retriever_async(
+                tools=tools,
+                tool_backend=tool_backend,
+                tool_config_repository=tool_config_repository,
+                embedding_backend=embedding_backend,
+                embedding_config_repository=embedding_config_repository,
+                embedding_config_id="default",
+                raise_exception=False,
+            )
         )
         if tool_retriever:
-            await tool_retriever.index_tools_async()
+            asyncio.run(tool_retriever.index_tools_async())
 
     except typer.Exit:
         raise
