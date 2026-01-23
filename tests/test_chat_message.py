@@ -10,7 +10,7 @@ Tests the ChatMessage class and its methods:
 """
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from langchain_core.messages import AIMessage
 from fivcplayground.plays.components import ChatMessage
 from fivcplayground.agents.types import (
@@ -237,6 +237,68 @@ class TestRenderStreamingMethod:
         assert "@keyframes" in call_args
         assert "pulse" in call_args
         assert "glow" in call_args
+
+    @patch("streamlit.session_state", {})
+    def test_render_stream_accumulates_multiple_chunks(self):
+        """Test that streaming content accumulates across multiple render_streaming calls.
+
+        This test verifies that delta chunks are properly accumulated and displayed
+        as a complete message rather than being replaced.
+        """
+        mock_placeholder = Mock()
+        runtime = AgentRun(agent_id="test-agent")
+
+        chat_msg = ChatMessage(runtime)
+
+        # Simulate multiple streaming chunks arriving
+        chat_msg.render_streaming("Hello ", mock_placeholder)
+        chat_msg.render_streaming("world", mock_placeholder)
+        chat_msg.render_streaming("!", mock_placeholder)
+
+        # Get the last call to markdown (which should have accumulated content)
+        last_call_args = mock_placeholder.markdown.call_args[0][0]
+
+        # Should contain the complete accumulated message
+        assert "Hello world!" in last_call_args
+        assert "loading-dots" in last_call_args
+
+    @patch("streamlit.session_state", {})
+    def test_render_stream_accumulates_with_thinking_blocks(self):
+        """Test that streaming accumulation works with thinking content.
+
+        Verifies that thinking blocks are properly extracted from accumulated
+        content and displayed separately from the main message.
+        """
+        mock_placeholder = Mock()
+        # Setup expander as a context manager
+        mock_expander_context = Mock()
+        mock_placeholder.expander.return_value.__enter__ = Mock(
+            return_value=mock_expander_context
+        )
+        mock_placeholder.expander.return_value.__exit__ = Mock(return_value=None)
+
+        runtime = AgentRun(agent_id="test-agent")
+
+        chat_msg = ChatMessage(runtime)
+
+        # Simulate streaming with thinking blocks
+        chat_msg.render_streaming("<think>Let me ", mock_placeholder)
+        chat_msg.render_streaming("think about this", mock_placeholder)
+        chat_msg.render_streaming("</think>The answer ", mock_placeholder)
+        chat_msg.render_streaming("is 42", mock_placeholder)
+
+        # Verify that expander was called for thinking content
+        # (thinking content should be in an expander)
+        assert mock_placeholder.expander.called
+
+        # Get the last markdown call (should be the main content)
+        last_call_args = mock_placeholder.markdown.call_args[0][0]
+
+        # Should contain the main message without thinking tags
+        assert "The answer is 42" in last_call_args
+        # Should not contain thinking tags in main content
+        assert "<think>" not in last_call_args
+        assert "</think>" not in last_call_args
 
 
 class TestRenderToolCallMethod:

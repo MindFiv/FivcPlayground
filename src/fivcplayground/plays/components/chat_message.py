@@ -101,6 +101,9 @@ class ChatMessage(object):
 
     def __init__(self, runtime: AgentRun):
         self.runtime = runtime
+        # Generate a unique key for this runtime's streaming content accumulation
+        # This allows Streamlit session state to track accumulated content across renders
+        self._streaming_key = f"streaming_content_{runtime.id}"
 
     @classmethod
     def extract_thinking_content(
@@ -181,6 +184,9 @@ class ChatMessage(object):
 
         # Render message or streaming text
         if self.runtime.completed_at is not None:
+            # Clear streaming state when message is completed
+            if self._streaming_key in st.session_state:
+                del st.session_state[self._streaming_key]
             self.render_message(self.runtime.reply, chat_ai)
         else:
             # Extract text from delta if present
@@ -286,16 +292,30 @@ class ChatMessage(object):
         placeholder: DeltaGenerator,
     ):
         """
-        Render streaming text delta chunk.
+        Render streaming text delta chunk with content accumulation.
+
+        This method accumulates delta chunks across multiple calls to properly display
+        the complete message being streamed. It uses Streamlit session state to maintain
+        the accumulated content across re-renders.
 
         Args:
             streaming: Delta message (incremental text chunk) from the agent, not accumulated text.
                       This method is called repeatedly with each new delta chunk.
             placeholder: Streamlit DeltaGenerator for rendering output.
         """
-        # Extract thinking content and clean text for streaming
+        # Initialize session state for accumulating streaming content if not present
+        if self._streaming_key not in st.session_state:
+            st.session_state[self._streaming_key] = ""
+
+        # Accumulate the new delta chunk to the existing content
+        st.session_state[self._streaming_key] += streaming
+
+        # Get the accumulated content so far
+        accumulated_content = st.session_state[self._streaming_key]
+
+        # Extract thinking content and clean text from accumulated content
         cleaned_text, thinking_contents, ongoing_thinking = (
-            self.extract_thinking_content(streaming, is_streaming=True)
+            self.extract_thinking_content(accumulated_content, is_streaming=True)
         )
 
         # Render completed thinking content in expanders
