@@ -33,3 +33,4 @@ temp/
 .coverage
 .fivcplayground/
 .spec-workflow/
+.sisyphus/

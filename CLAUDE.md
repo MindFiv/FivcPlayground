@@ -1,0 +1,321 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Quick Start Commands
+
+### Setup & Installation
+```bash
+# Install all dependencies including dev tools
+make install
+
+# Install runtime dependencies only
+make install-min
+
+# Show available make commands
+make help
+```
+
+### Development
+```bash
+# Run code linting
+make lint
+
+# Format code with ruff
+make format
+
+# Run test suite
+make test
+
+# Run single test file
+uv run pytest tests/path/to/test_file.py -v
+
+# Run single test function
+uv run pytest tests/path/to/test_file.py::test_function_name -v
+
+# Clean temporary files and caches
+make clean
+```
+
+### Running the Application
+```bash
+# Start web interface (Streamlit)
+make serve
+
+# Development web mode with auto-reload
+make serve-dev
+
+# Run CLI agent
+uv run fivcplayground run Generic --query "Your question here"
+
+# Set up initial configuration
+uv run fivcplayground setup
+
+# Show system information
+uv run fivcplayground info
+
+# Clean up temporary files
+uv run fivcplayground clean
+```
+
+## High-Level Architecture
+
+### System Overview
+
+FivcPlayground is an intelligent multi-agent system built on **Strands** framework with LangChain as an alternative backend. It features:
+- **Agent-based execution** - Specialized agents for different task types
+- **Dynamic tool retrieval** - Semantic search-based tool selection
+- **Pluggable backends** - Strands (primary) and LangChain (alternative)
+- **Web UI** - Streamlit-based modern interface
+- **Streaming support** - Real-time response streaming and event callbacks
+
+### Core Architecture Layers
+
+```
+┌─────────────────────────────────────────────────┐
+│   CLI / Web Interface (plays module)            │
+│   - Command-line interface (cli.py)             │
+│   - Streamlit web UI (plays/)                   │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│   Factory & Coordination Layer                  │
+│   - create_agent_async()                        │
+│   - create_tool_retriever_async()               │
+│   - create_model_async()                        │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│   Backend Layer                                 │
+│   - StrandsAgentBackend (primary)               │
+│   - LangchainAgentBackend (alternative)         │
+│   - StrandsModelBackend / LangchainModelBackend │
+│   - StrandsToolBackend / LangchainToolBackend   │
+│   - ChromaEmbeddingBackend                      │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│   Repository Layer (Data Access)                │
+│   - AgentConfigRepository                       │
+│   - AgentRunRepository                          │
+│   - ModelConfigRepository                       │
+│   - ToolConfigRepository                        │
+│   - EmbeddingConfigRepository                   │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│   Storage                                       │
+│   - ~/.fivcplayground/ (YAML configs & runs)    │
+│   - Chroma embeddings database                  │
+└─────────────────────────────────────────────────┘
+```
+
+### Key Components & Responsibilities
+
+#### 1. Agents System (`src/fivcplayground/agents/`)
+- **AgentConfig** - Configuration for an agent (model_id, tools, system prompt)
+- **Agent Types**:
+  - `default` - Standard task execution
+  - `companion` - Casual conversation
+  - `tooling` - Tool selection specialist
+  - `consultant` - Task assessment
+  - `planner` - Execution planning
+  - `researcher` - Pattern analysis
+  - `engineer` - Tool development
+  - `evaluator` - Performance assessment
+- **Execution Flow**: Loads config → creates model → injects tools → streams execution
+- **Key Types**: `AgentRun` (execution record), `AgentRunToolCall` (tool invocation), `AgentRunStatus` (state)
+
+#### 2. Tools System (`src/fivcplayground/tools/`)
+- **Built-in Tools**: clock, calculator, filesystem, shell
+- **Tool Retrieval**:
+  - Semantic search via embeddings to find relevant tools for a query
+  - Configurable similarity threshold and max results
+  - Tools indexed by description in Chroma vector database
+- **Tool Types**:
+  - `StrandsTool` - Function-based tools
+  - `FunctionToolBundle` - Multiple related functions
+  - `StrandsToolBundle` - MCP protocol tools (Playwright, Chrome DevTools, etc.)
+
+#### 3. Models System (`src/fivcplayground/models/`)
+- **Model Abstraction**: Supports OpenAI and Ollama providers
+- **Model Config**: Temperature, max_tokens, base_url, API keys
+- **Model Selection**: Specialist models for different agent types (chat, reasoning, default)
+- **Backend Adapters**: StrandsModel wraps Strands framework, LangchainModel wraps LangChain
+
+#### 4. Embeddings System (`src/fivcplayground/embeddings/`)
+- **EmbeddingDB**: Chroma-based vector search for semantic similarity
+- **Usage**: Tool description indexing for dynamic tool retrieval
+- **Configuration**: EmbeddingConfig specifies database path and collection names
+
+#### 5. Web Interface (`src/fivcplayground/plays/`)
+- **Architecture**:
+  - ViewNavigation (custom sidebar navigation replacing st.navigation)
+  - ChatView (per-conversation UI)
+  - ChatManager (conversation state and agent execution coordination)
+  - Components (ChatMessage rendering with thinking extraction, tool visualization)
+- **Key Features**:
+  - Real-time streaming with delta message handling
+  - Thinking extraction from XML tags (`<think>...</think>`)
+  - Tool call visualization with status and timing
+  - Multi-chat session support
+- **State Management**: Session-based with run.yml for view persistence
+
+#### 6. Backends (`src/fivcplayground/backends/`)
+- **Strands Backend** (primary):
+  - StrandsAgentRunnable - Agent execution wrapper
+  - StrandsModelBackend - Model factory
+  - StrandsToolBackend - Tool factory
+  - Supports streaming via `stream_async()`
+- **LangChain Backend** (alternative):
+  - Similar structure to Strands
+  - Uses LangChain's message-based API
+  - Alternative for users preferring LangChain
+- **Chroma Backend**:
+  - Embedding storage and retrieval
+  - Multi-space support for isolation
+
+### Design Patterns Used
+
+| Pattern | Usage | Key Classes |
+|---------|-------|------------|
+| **Factory** | Create agents, models, tools, retrievers | `create_agent_async()`, `create_model_async()` |
+| **Repository** | Data access abstraction | `FileAgentConfigRepository`, `FileAgentRunRepository` |
+| **Abstract Factory** | Pluggable backends | `AgentBackend`, `ToolBackend`, `ModelBackend` |
+| **Adapter** | Backend adapters | `StrandsAgentRunnable`, `LangchainAgentRunnable` |
+| **Decorator** | Agent composition | `BoundedAgentRunnable`, `ParameterizedAgentRunnable` |
+| **Semantic Search** | Tool retrieval | `ToolRetriever` + `EmbeddingDB` |
+| **Event-Driven** | Streaming execution | `AgentRunEvent` callbacks (START, STREAM, TOOL, UPDATE) |
+
+### Configuration-Driven Architecture
+
+Configuration files in `~/.fivcplayground/configs/` (YAML format):
+- **agents.yaml** - Agent definitions with model references, tools, system prompts
+- **models.yaml** - LLM model configurations (provider, API keys, parameters)
+- **tools.yaml** - Tool bundle configurations (MCP servers)
+- **embeddings.yaml** - Embedding database configuration (Chroma settings)
+
+### Agent Execution Flow
+
+```
+1. Load AgentConfig from repository
+2. Create LLM model via ModelBackend
+3. Retrieve relevant tools via ToolRetriever
+   └─ Semantic search by description
+4. Execute agent via AgentBackend
+   ├─ Initialize with model + tools + system prompt
+   ├─ Stream execution events
+   ├─ Track tool calls in AgentRun
+   └─ Save conversation to AgentRunRepository
+5. Update UI via event callbacks (START, STREAM, TOOL, UPDATE, FINISH)
+```
+
+### Tool Retrieval Flow
+
+```
+1. Query comes in: "Find information about X"
+2. ToolRetriever searches embeddings by description
+3. Filter by similarity_score >= min_sim threshold (default 0.3)
+4. Return top_k results (default 5)
+5. Tools injected into agent prompt
+```
+
+## Key Architectural Decisions
+
+1. **Async-First Design** - All core functions use `*_async()` suffix for streaming and concurrency
+2. **Multi-Backend Support** - Easily switch between Strands and LangChain backends via settings
+3. **Semantic Tool Discovery** - Tools selected dynamically via embeddings, not just by name
+4. **Configuration-Driven** - Agents, models, tools defined in YAML config files
+5. **Event-Driven Streaming** - Real-time UI updates via event callbacks (streaming, tool calls, state)
+6. **Repository Pattern** - Storage implementation agnostic (file-based by default)
+7. **Modular Tool System** - Built-in tools + configurable MCP tool bundles
+
+## Important Constraints
+
+- **Multi-Agent Tasks Not Implemented**: `create_planned_task_async()` raises `NotImplementedError`
+- **Single-Process Only**: File-based repositories are not suitable for multi-server deployments
+- **Conversation Memory**: Hardcoded sliding window of 20 messages in `StrandsAgentRunnable`
+- **Tool Execution Context**: MCP protocol tools require external process management
+- **Streamlit Limitations**: Uses `nest_asyncio` to handle nested event loops in web UI
+
+## Module Organization
+
+- **`src/fivcplayground/agents/`** - Agent configuration, runtime, and types
+- **`src/fivcplayground/tools/`** - Tool management, retrieval, and creation
+- **`src/fivcplayground/models/`** - LLM model factories and provider abstractions
+- **`src/fivcplayground/backends/`** - Backend implementations (Strands, LangChain, Chroma)
+- **`src/fivcplayground/embeddings/`** - Vector database for semantic search
+- **`src/fivcplayground/plays/`** - Streamlit web interface and components
+- **`src/fivcplayground/tasks.py`** - Task creation and planning (mostly unimplemented)
+- **`src/fivcplayground/cli.py`** - Command-line interface entry point
+- **`src/fivcplayground/schemas.py`** - Pydantic data models
+- **`src/fivcplayground/settings.py`** - Configuration and environment management
+- **`tests/`** - Test suite with pytest markers for async tests
+
+## Testing
+
+Tests use pytest with async support:
+```bash
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/agents/test_agent_config.py -v
+
+# Run tests matching pattern
+uv run pytest -k "test_create" -v
+
+# Run with coverage
+uv run pytest --cov=src/fivcplayground
+
+# Skip asyncio tests (for faster execution)
+uv run pytest -m "not asyncio"
+```
+
+Async tests are marked with `@pytest.mark.asyncio` decorator.
+
+## Dependencies & Backend Selection
+
+- **Runtime**: Strands, Typer, Rich, Pydantic, Streamlit, python-dotenv
+- **Optional**: LangChain stack (langchain, langgraph, langchain-mcp-adapters), Chroma embeddings
+- **Dev**: pytest, pytest-asyncio, ruff
+
+Use `make install` to install everything. To switch backends, edit `~/.fivcplayground/configs/settings.yaml` and set `backend: "langchain"` instead of the default `"strands"`.
+
+## Common Development Tasks
+
+### Adding a New Tool
+1. Define tool configuration in `~/.fivcplayground/configs/tools.yaml`
+2. Or use `create_tool()` / `create_tool_bundle()` in code
+3. ToolRetriever automatically indexes new tools
+4. Tools selected dynamically by semantic search
+
+### Adding a New Agent Type
+1. Add agent configuration to `~/.fivcplayground/configs/agents.yaml`
+2. Reference model_id and tools
+3. Use `fivcplayground run <AgentName>` to execute
+4. Custom system prompt in agent config
+
+### Switching Backends
+1. Edit `~/.fivcplayground/configs/settings.yaml`
+2. Change `backend: "langchain"` (from default `"strands"`)
+3. Restart application
+4. All abstractions support both backends automatically
+
+### Debugging Agent Execution
+- Check `~/.fivcplayground/runs/` for execution history
+- Agent runs stored hierarchically by session and agent type
+- Each run includes query, response, tool calls, and status
+- Event callbacks in ChatManager can add custom logging
+
+## Documentation
+
+Comprehensive docs in `docs/` directory:
+- **DESIGN.md** - System architecture deep dive
+- **WEB_INTERFACE.md** - Streamlit UI development guide
+- **DEPENDENCIES.md** - Installation and dependency management
+- **BACKEND_SELECTION.md** - Strands vs LangChain comparison
+- **ARCHITECTURE_PATTERNS.md** - Design patterns and best practices
