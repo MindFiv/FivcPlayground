@@ -272,3 +272,40 @@ class TestFileAgentConfigRepository:
                     assert config.description == "Agent 2"
                 elif config.id == "agent3":
                     assert config.description == "Agent 3"
+
+    @pytest.mark.asyncio
+    async def test_response_model_serialization(self):
+        """Test that response_model field is properly serialized and deserialized through YAML"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentConfigRepository(output_dir=output_dir)
+
+            response_schema = {
+                "title": "TestResponse",
+                "type": "object",
+                "properties": {
+                    "answer": {"type": "string"},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["answer"],
+            }
+
+            agent_config = AgentConfig(
+                id="test-agent-response",
+                description="Agent with response model",
+                response_model=response_schema,
+            )
+            await repo.update_agent_config_async(agent_config)
+
+            # Retrieve and verify response_model round-trips
+            retrieved = await repo.get_agent_config_async("test-agent-response")
+            assert retrieved is not None
+            assert retrieved.response_model == response_schema
+
+            # Verify YAML file contains response_model
+            agents_file = repo._get_agents_file()
+            with open(agents_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+
+            agent_data = data["test-agent-response"]
+            assert agent_data["response_model"] == response_schema

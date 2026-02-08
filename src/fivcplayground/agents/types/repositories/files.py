@@ -4,7 +4,7 @@ File-based agent repository implementations.
 This module provides two separate file-based repository implementations:
 
 1. **FileAgentConfigRepository**: Stores simple agent configurations
-   - Stores: agent id, name, description, system_prompt
+   - Stores: agent id, name, description, system_prompt, response_model
    - Use case: Configuration management for agents
    - Storage: Single consolidated YAML file with all agent configurations
 
@@ -65,6 +65,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
         - tool_ids: Optional list of tool IDs to use with the agent
         - description: Optional agent description
         - system_prompt: Optional system prompt for the agent
+        - response_model: Optional JSON Schema for structured output
 
     Attributes:
         output_dir: OutputDir instance for the repository base directory

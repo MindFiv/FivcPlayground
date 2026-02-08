@@ -48,7 +48,7 @@ console = Console()
 
 
 @app.command()
-async def run(
+def run(
     agent_name: str = typer.Argument("default", help="Type of agent to run"),
     query: Optional[str] = typer.Option(
         None,
@@ -81,13 +81,16 @@ async def run(
     agent_backend = StrandsAgentBackend()
     agent_config_repository = FileAgentConfigRepository()
 
-    tool_retriever = await create_tool_retriever_async(
-        tools=await create_builtin_tools_async(tool_backend=tool_backend),
-        tool_backend=tool_backend,
-        tool_config_repository=tool_config_repository,
-        embedding_backend=embedding_backend,
-        embedding_config_repository=embedding_config_repository,
-        embedding_config_id="default",
+    tools = asyncio.run(create_builtin_tools_async(tool_backend=tool_backend))
+    tool_retriever = asyncio.run(
+        create_tool_retriever_async(
+            tools=tools,
+            tool_backend=tool_backend,
+            tool_config_repository=tool_config_repository,
+            embedding_backend=embedding_backend,
+            embedding_config_repository=embedding_config_repository,
+            embedding_config_id="default",
+        )
     )
 
     console.print(

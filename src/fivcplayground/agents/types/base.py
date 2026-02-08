@@ -36,9 +36,9 @@ class AgentConfig(BaseModel):
     system_prompt: str | None = Field(
         default=None, description="System prompt/instructions for the agent"
     )
-    # response_model: Type[BaseModel] | None = Field(
-    #     default=None, description="Response model for the agent"
-    # )
+    response_model: Dict[str, Any] | None = Field(
+        default=None, description="Response model for the agent in JSON Schema format"
+    )
 
 
 class AgentRunContent(BaseModel):
@@ -275,3 +275,20 @@ class AgentBackend(ABC):
         agent_config: AgentConfig,
     ) -> AgentRunnable:
         """Create an agent instance from an AgentConfig."""
+
+
+def resolve_response_model(
+    agent_config: AgentConfig,
+    response_model: Type[BaseModel] | None = None,
+) -> Type[BaseModel] | None:
+    """Resolve response_model: runtime param takes priority, then config's JSON Schema."""
+    if response_model is not None:
+        return response_model
+    if not agent_config.response_model:
+        return None
+    from jambo import SchemaConverter
+
+    schema = agent_config.response_model
+    if "title" not in schema:
+        schema = {**schema, "title": f"{agent_config.id}_response"}
+    return SchemaConverter.build(schema)

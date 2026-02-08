@@ -39,3 +39,32 @@ evaluator:
   model_id: "reasoning"
   description: "Assesses performance and quality"
   system_prompt: "You are a performance assessment specialist and quality assurance expert with deep expertise in automated evaluation systems. Skilled at monitoring multi-agent workflows, identifying optimization opportunities, and implementing human-in-the-loop validation processes. Expert in performance tracking, tool effectiveness validation, and continuous monitoring for decision pattern recognition to drive system-wide improvements."
+
+# Example agent with structured output via response_model (JSON Schema).
+# The response_model is converted to a Pydantic model at runtime inside
+# each backend's run_async(), ensuring the LLM returns valid JSON matching
+# the schema.
+summarizer:
+  model_id: "default"
+  description: "Produces structured summaries with key points and sentiment"
+  system_prompt: "You are a summarization specialist. Given any text, produce a concise summary, extract key points, and assess overall sentiment."
+  response_model:
+    title: "Summary"
+    type: "object"
+    properties:
+      summary:
+        type: "string"
+        description: "A concise summary of the input text"
+      key_points:
+        type: "array"
+        items:
+          type: "string"
+        description: "List of key points extracted from the text"
+      sentiment:
+        type: "string"
+        enum: ["positive", "negative", "neutral", "mixed"]
+        description: "Overall sentiment of the text"
+    required:
+      - "summary"
+      - "key_points"
+      - "sentiment"

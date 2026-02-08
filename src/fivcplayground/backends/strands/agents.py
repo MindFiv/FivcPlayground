@@ -26,6 +26,7 @@ from fivcplayground.agents import (
     AgentBackend,
     AgentRunToolSpan,
     AgentRunSessionSpan,
+    resolve_response_model,
 )
 from fivcplayground.models import (
     ModelBackend,
@@ -146,6 +147,8 @@ class StrandsAgentRunnable(AgentRunnable):
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
+        response_model = resolve_response_model(self._agent_config, response_model)
+
         if query and not isinstance(query, AgentRunContent):
             query = AgentRunContent(text=str(query))
 
