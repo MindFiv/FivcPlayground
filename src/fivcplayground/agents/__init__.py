@@ -17,7 +17,6 @@ __all__ = [
     "AgentRunToolSpan",
     "BoundedAgentRunnable",
     "ParameterizedAgentRunnable",
-    "resolve_response_model",
 ]
 
 from typing_extensions import deprecated
@@ -44,7 +43,6 @@ from .types import (
     AgentRunToolSpan,
     BoundedAgentRunnable,
     ParameterizedAgentRunnable,
-    resolve_response_model,
 )
 
 

@@ -1,48 +1,27 @@
 """
-Tests for resolve_response_model() helper and SchemaConverter integration.
+Tests for AgentConfig.response_model property and SchemaConverter integration.
 
 Tests verify:
-- Runtime response_model takes priority over config
-- Config's JSON Schema converted to Pydantic model when no runtime model
-- Returns None when neither is set
+- Config's JSON Schema converted to Pydantic model via the property
+- Returns None when no schema is set
 - Auto-generates title when schema lacks one (without mutating original dict)
 - jambo SchemaConverter.build() produces valid Pydantic model from JSON Schema
 """
 
 from pydantic import BaseModel
 
-from fivcplayground.agents import resolve_response_model
 from fivcplayground.agents.types.base import AgentConfig
 
 
-class TestResolveResponseModel:
-    """Tests for resolve_response_model() helper."""
+class TestResponseModelProperty:
+    """Tests for AgentConfig.response_model property."""
 
-    def test_runtime_response_model_takes_priority(self):
-        """Runtime response_model should take priority over config."""
-
-        class CustomModel(BaseModel):
-            custom_field: str
-
+    def test_config_schema_converted_to_pydantic_model(self):
+        """Config's JSON Schema should be converted to Pydantic model."""
         agent_config = AgentConfig(
             id="test-agent",
             model_id="test-model",
-            response_model={
-                "title": "ConfigResponse",
-                "type": "object",
-                "properties": {"answer": {"type": "string"}},
-            },
-        )
-
-        result = resolve_response_model(agent_config, response_model=CustomModel)
-        assert result is CustomModel
-
-    def test_config_schema_converted_when_no_runtime_model(self):
-        """Config's JSON Schema should be converted to Pydantic model when no runtime model."""
-        agent_config = AgentConfig(
-            id="test-agent",
-            model_id="test-model",
-            response_model={
+            response_format={
                 "title": "TestResponse",
                 "type": "object",
                 "properties": {
@@ -53,7 +32,7 @@ class TestResolveResponseModel:
             },
         )
 
-        result = resolve_response_model(agent_config)
+        result = agent_config.response_model
         assert result is not None
         assert issubclass(result, BaseModel)
 
@@ -62,14 +41,14 @@ class TestResolveResponseModel:
         assert instance.answer == "hello"
         assert instance.confidence == 0.9
 
-    def test_returns_none_when_neither_set(self):
-        """Returns None when neither runtime model nor config schema is set."""
+    def test_returns_none_when_no_schema_set(self):
+        """Returns None when no response_format schema is set."""
         agent_config = AgentConfig(
             id="test-agent",
             model_id="test-model",
         )
 
-        result = resolve_response_model(agent_config)
+        result = agent_config.response_model
         assert result is None
 
     def test_auto_generates_title_without_mutating_original(self):
@@ -81,15 +60,15 @@ class TestResolveResponseModel:
         agent_config = AgentConfig(
             id="my-agent",
             model_id="test-model",
-            response_model=original_schema,
+            response_format=original_schema,
         )
 
-        result = resolve_response_model(agent_config)
+        result = agent_config.response_model
         assert result is not None
         assert issubclass(result, BaseModel)
 
         # Verify the original config dict was not mutated
-        assert "title" not in agent_config.response_model
+        assert "title" not in agent_config.response_format
 
 
 class TestSchemaConverterIntegration:

@@ -15,7 +15,6 @@ __all__ = [
     "AgentRunToolSpan",
     "BoundedAgentRunnable",
     "ParameterizedAgentRunnable",
-    "resolve_response_model",
 ]
 
 from .base import (
@@ -29,7 +28,6 @@ from .base import (
     AgentRun,
     AgentRunnable,
     AgentBackend,
-    resolve_response_model,
 )
 from .runnables import (
     BoundedAgentRunnable,
