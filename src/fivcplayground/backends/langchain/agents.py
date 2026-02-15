@@ -120,6 +120,28 @@ class LangchainAgentRunnable(AgentRunnable):
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
+        """
+        Execute agent asynchronously with streaming support.
+
+        Args:
+            query: User query string or AgentRunContent object
+            agent_run_repository: Repository for persisting agent runs
+            agent_run_session_id: Session ID for conversation context
+            tool_verifier: Optional agent for tool selection verification
+            tool_retriever: Tool retrieval system for semantic tool search
+            tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
+            response_model: Structured output model (overrides config)
+            event_callback: Callback for execution events
+            **kwargs: Additional arguments (ignored)
+
+        Returns:
+            Structured output model instance or AgentRunContent
+
+        Notes:
+            - tool_ids are merged with config.tool_ids using set union
+            - Duplicates are automatically eliminated
+            - Example: config=["a","b"] + runtime=["b","c"] → ["a","b","c"]
+        """
         response_model = (
             response_model
             if response_model is not None
@@ -135,11 +157,14 @@ class LangchainAgentRunnable(AgentRunnable):
             query,
         )
 
+        agent_tool_ids = set(tool_ids) if tool_ids else set()
+        agent_tool_ids.update(self._agent_config.tool_ids or [])
+
         async with (
             AgentRunToolSpan(
                 tool_verifier=tool_verifier,
                 tool_retriever=tool_retriever,
-                tool_ids=tool_ids or self._agent_config.tool_ids,
+                tool_ids=list(agent_tool_ids),
                 tool_query=query,
             ) as tools_expanded,
             AgentRunSessionSpan(

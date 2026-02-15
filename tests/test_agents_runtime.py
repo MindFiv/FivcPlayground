@@ -5,7 +5,7 @@ Tests the agent runtime data models including:
 - AgentRunToolCall creation and computed fields
 - AgentRun creation and computed fields
 - Status tracking
-- Tool call tracking
+- Tool call tracking (with merged tool_ids as of v0.1.19+)
 - Timing calculations
 - BaseMessage serialization/deserialization (regression tests)
 - Unknown tool call handling (regression tests)

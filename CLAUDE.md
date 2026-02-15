@@ -125,6 +125,24 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
   - `evaluator` - Performance assessment
 - **Execution Flow**: Loads config → creates model → injects tools → streams execution
 - **Key Types**: `AgentRun` (execution record), `AgentRunToolCall` (tool invocation), `AgentRunStatus` (state)
+- **Tool Configuration and Merging**:
+  - Agents support two sources for tool configuration:
+    1. **Agent Config** (`agent_config.tool_ids`) - Defined in YAML config
+    2. **Runtime Parameter** (`run_async(tool_ids=[...])`) - Passed at execution time
+  - **Merging Logic** (v0.1.19+):
+    - Both sources are **merged using set union**
+    - Duplicates are automatically eliminated
+    - Order is not guaranteed (set-based deduplication)
+    - Example:
+      ```python
+      # Agent config: tool_ids=["calculator", "clock"]
+      # Runtime call: run_async(tool_ids=["clock", "filesystem"])
+      # Result: ["calculator", "clock", "filesystem"] (deduplicated)
+      ```
+  - **Implementation**: Located in both `StrandsAgentRunnable.run_async()` and `LangchainAgentRunnable.run_async()`
+  - **Backward Compatibility Note**:
+    - Prior to v0.1.19: Runtime `tool_ids` overrode config `tool_ids`
+    - From v0.1.19: Runtime `tool_ids` extends config `tool_ids`
 
 #### 2. Tools System (`src/fivcplayground/tools/`)
 - **Built-in Tools**: clock, calculator, filesystem, shell
@@ -229,6 +247,7 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 5. **Event-Driven Streaming** - Real-time UI updates via event callbacks (streaming, tool calls, state)
 6. **Repository Pattern** - Storage implementation agnostic (file-based by default)
 7. **Modular Tool System** - Built-in tools + configurable MCP tool bundles
+8. **Tool ID Union Merging** - Runtime and config tool_ids are merged (union), not overridden, allowing agents to have base tools while accepting additional tools at runtime
 
 ## Important Constraints
 
