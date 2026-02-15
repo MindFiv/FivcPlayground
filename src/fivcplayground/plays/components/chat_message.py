@@ -228,6 +228,11 @@ class ChatMessage(object):
         if cleaned_text:  # Only render if there's content after removing thinking tags
             placeholder.markdown(cleaned_text, unsafe_allow_html=True)
 
+        # Render structured output if available
+        if isinstance(message, AgentRunContent) and message.structured:
+            with placeholder.expander("🔍 **Structured Output**", expanded=False):
+                st.json(message.structured, expanded=False)
+
     @staticmethod
     def render_tool_call(
         tool_call: AgentRunToolCall,

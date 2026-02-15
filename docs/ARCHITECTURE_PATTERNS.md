@@ -109,6 +109,126 @@ class ModelConfig(BaseModel):
 - Automatic validation
 - Easy serialization/deserialization
 
+### 5. Structured Output Pattern
+
+**Purpose**: Enable type-safe, structured data extraction from LLM responses using Pydantic models
+
+**Problem**: Agents need to return structured data (not just text) for integration with downstream systems, databases, and APIs. Manual parsing of text responses is error-prone and fragile.
+
+**Solution**: Store structured output alongside text in `AgentRunContent`:
+
+```python
+class AgentRunContent(BaseModel):
+    text: str | None = None
+    structured: dict[str, Any] | None = None  # JSON-serializable dict
+    images: list[str] | None = None
+    files: list[str] | None = None
+```
+
+**Implementation Flow**:
+
+1. **Configuration**: Define response schema (JSON Schema in agent config → Pydantic model via `SchemaConverter`)
+2. **Execution**: Backend extracts structured output from framework response
+3. **Storage**: Serialize Pydantic model to dict via `model_dump(mode="json")`
+4. **Return**: Return Pydantic instance for immediate use; persist dict for later retrieval
+
+**Backend Parity**:
+
+Both Strands and LangChain backends follow identical patterns:
+
+**Strands Backend** (`backends/strands/agents.py:286-310`):
+```python
+# Extract structured output from StrandsAgentResult
+agent_run_reply_structured = output.structured_output
+
+# Store both text and structured data
+agent_run.reply = AgentRunContent(
+    text=str(output),
+    structured=(
+        agent_run_reply_structured.model_dump(mode="json") if
+        agent_run_reply_structured else None
+    ),
+)
+
+# Return Pydantic instance when available, otherwise AgentRunContent
+return (
+    agent_run_reply_structured if
+    agent_run_reply_structured else agent_run.reply
+)
+```
+
+**LangChain Backend** (`backends/langchain/agents.py:251-283`):
+```python
+# Extract structured output from agent outputs
+agent_run_reply_structured = None
+if "structured_response" in outputs:
+    structured_output = outputs["structured_response"]
+    if isinstance(structured_output, BaseModel):
+        agent_run_reply_structured = structured_output
+
+# Store both text and structured data
+if "messages" in outputs:
+    output = outputs["messages"][-1]
+    agent_run.reply = AgentRunContent(
+        text=output.content,
+        structured=(
+            agent_run_reply_structured.model_dump(mode="json") if
+            agent_run_reply_structured else None
+        ),
+    )
+
+# Return Pydantic instance when available, otherwise AgentRunContent
+return (
+    agent_run_reply_structured if
+    agent_run_reply_structured else agent_run.reply
+)
+```
+
+**Usage Example**:
+
+```python
+from pydantic import BaseModel, EmailStr
+from fivcplayground.agents import create_agent_async
+
+class ContactInfo(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str | None = None
+
+# Runtime approach: Pass Pydantic model
+agent = await create_agent_async("data_extractor")
+result = await agent.run_async(
+    query="Extract: John Doe, john@example.com, +1-555-0100",
+    response_model=ContactInfo
+)
+
+# Result is a typed Pydantic instance
+assert isinstance(result, ContactInfo)
+print(result.name)   # "John Doe"
+print(result.email)  # "john@example.com"
+
+# Structured data is also persisted in agent_run.reply.structured
+agent_run = await repo.get_agent_run_async(session_id, result.id)
+assert agent_run.reply.structured == {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1-555-0100"
+}
+```
+
+**Benefits**:
+- **Type Safety**: Pydantic validation ensures data conforms to schema
+- **Dual Storage**: Structured data (for code) + text (for humans/UI)
+- **Backend Agnostic**: Works identically with Strands and LangChain
+- **Automatic Persistence**: Repositories serialize/deserialize transparently
+- **Developer Experience**: IntelliSense, type hints, and validation errors
+
+**Testing Strategy**:
+- Unit tests verify serialization/deserialization round-trips
+- Integration tests verify backend parity (both produce identical output)
+- Persistence tests verify file and SQLite repositories handle structured field
+- See `tests/test_agent_structured_output.py` for comprehensive test suite
+
 ## 📦 Component Organization
 
 ### Layered Architecture

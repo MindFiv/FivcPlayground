@@ -143,6 +143,41 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
   - **Backward Compatibility Note**:
     - Prior to v0.1.19: Runtime `tool_ids` overrode config `tool_ids`
     - From v0.1.19: Runtime `tool_ids` extends config `tool_ids`
+- **Structured Output Support**:
+  - Agents support type-safe, structured responses using Pydantic models
+  - Two configuration methods:
+    1. **JSON Schema in Agent Config** - Define `response_format` in YAML
+    2. **Runtime Pydantic Model** - Pass `response_model` parameter to `run_async()`
+  - **Storage**: Structured output stored in two forms:
+    - Pydantic instance returned from `run_async()` for immediate use
+    - JSON dict in `agent_run.reply.structured` field for persistence
+  - **Example**:
+    ```python
+    from pydantic import BaseModel, EmailStr
+    from fivcplayground.agents import create_agent_async
+
+    class ContactInfo(BaseModel):
+        name: str
+        email: EmailStr
+
+    agent = await create_agent_async("data_extractor")
+    result = await agent.run_async(
+        query="Extract contact: John Doe (john@example.com)",
+        response_model=ContactInfo
+    )
+    # result is a ContactInfo instance
+    print(result.name)   # "John Doe"
+    print(result.email)  # "john@example.com"
+    ```
+  - **Retrieval from Storage**:
+    ```python
+    # Access structured output from saved runs
+    agent_run = await repo.get_agent_run_async(session_id, run_id)
+    if agent_run.reply and agent_run.reply.structured:
+        data = agent_run.reply.structured  # dict[str, Any]
+        print(data["name"], data["email"])
+    ```
+  - **Backend Support**: Both Strands and LangChain backends fully support structured output
 
 #### 2. Tools System (`src/fivcplayground/tools/`)
 - **Built-in Tools**: clock, calculator, filesystem, shell

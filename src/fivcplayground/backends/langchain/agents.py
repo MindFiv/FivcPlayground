@@ -253,10 +253,25 @@ class LangchainAgentRunnable(AgentRunnable):
 
                 # Ensure reply is set and FINISH event is called even if an exception occurred
                 try:
+                    # Extract structured response if available
+                    agent_run_reply_structured = None
+                    if "structured_response" in outputs:
+                        structured_output = outputs["structured_response"]
+                        if isinstance(structured_output, BaseModel):
+                            agent_run_reply_structured = structured_output
+
+                    # Extract text content from messages
                     if "messages" in outputs:
                         output = outputs["messages"][-1]
                         if isinstance(output, BaseMessage):
-                            agent_run.reply = AgentRunContent(text=output.content)
+                            agent_run.reply = AgentRunContent(
+                                text=output.content,
+                                structured=(
+                                    agent_run_reply_structured.model_dump(mode="json")
+                                    if agent_run_reply_structured
+                                    else None
+                                ),
+                            )
                         else:
                             agent_run.error = (
                                 f"Expected BaseMessage, got {type(output)}"
@@ -275,12 +290,14 @@ class LangchainAgentRunnable(AgentRunnable):
                 await agent_run_session_span(agent_run)
 
             # Return structured output if available, otherwise return reply
-            if "structured_response" in outputs:
-                output = outputs["structured_response"]
-                if isinstance(output, BaseModel):
-                    return output
+            if not agent_run.reply:
+                return AgentRunContent(text="")
 
-            return agent_run.reply if agent_run.reply else AgentRunContent(text="")
+            return (
+                agent_run_reply_structured
+                if agent_run_reply_structured
+                else agent_run.reply
+            )
 
 
 class LangchainAgentBackend(AgentBackend):

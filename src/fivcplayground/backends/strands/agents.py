@@ -284,7 +284,15 @@ class StrandsAgentRunnable(AgentRunnable):
 
                 # Ensure reply is set and FINISH event is called even if an exception occurred
                 if isinstance(output, StrandsAgentResult):
-                    agent_run.reply = AgentRunContent(text=str(output))
+                    agent_run_reply_structured = output.structured_output
+                    agent_run.reply = AgentRunContent(
+                        text=str(output),
+                        structured=(
+                            agent_run_reply_structured.model_dump(mode="json")
+                            if agent_run_reply_structured
+                            else None
+                        ),
+                    )
                 else:
                     agent_run.error = f"Expected AgentResult, got {type(output)}"
                     agent_run.status = AgentRunStatus.FAILED
@@ -294,11 +302,14 @@ class StrandsAgentRunnable(AgentRunnable):
                 # Save the final agent run state to the repository
                 await agent_run_session_span(agent_run)
 
-            # Return structured output if available, otherwise return reply
-            if isinstance(output, StrandsAgentResult) and output.structured_output:
-                return output.structured_output
+            if not agent_run.reply:
+                return AgentRunContent(text="")
 
-            return agent_run.reply if agent_run.reply else AgentRunContent(text="")
+            return (
+                agent_run_reply_structured
+                if agent_run_reply_structured
+                else agent_run.reply
+            )
 
 
 class StrandsAgentBackend(AgentBackend):
