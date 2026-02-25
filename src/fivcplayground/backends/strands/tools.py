@@ -56,12 +56,13 @@ class StrandsToolContext(ToolBundleContext):
         else:
             raise ValueError(f"Unsupported transport: {tool_config.transport}")
 
+        self._bundle_name = tool_config.id
         self._client = MCPClient(lambda: c)
 
     async def __aenter__(self) -> List[Tool]:
         """Enter the context and return the list of tools."""
         c = self._client.__enter__()
-        tools = c.list_tools_sync()
+        tools = c.list_tools_sync(prefix=f"mcp__{self._bundle_name}__")
         return list(StrandsTool(t) for t in tools)
 
     async def __aexit__(self, exc_type, exc_value, traceback):

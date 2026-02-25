@@ -65,13 +65,18 @@ class LangchainToolContext(ToolBundleContext):
         else:
             raise ValueError(f"Unsupported transport: {tool_config.transport}")
 
+        self._bundle_name = tool_config.id
         self._session = create_session(conn)
 
     async def __aenter__(self) -> List[Tool]:
         """Enter the context and return the list of tools."""
         s = await self._session.__aenter__()
         await s.initialize()
-        tools = await load_mcp_tools(s)
+        tools = await load_mcp_tools(
+            s,
+            server_name=f"mcp__{self._bundle_name}__",
+            tool_name_prefix=True,
+        )
         return list(LangchainTool(t) for t in tools)
 
     async def __aexit__(self, exc_type, exc_value, traceback):
