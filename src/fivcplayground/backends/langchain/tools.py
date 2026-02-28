@@ -20,7 +20,10 @@ from fivcplayground.tools import (
     ToolBundle,
     ToolBundleContext,
     ToolBackend,
+    FunctionToolBundle,
 )
+from fivcplayground.tools.types import ToolConfigTransport
+from fivcplayground.utils import DynamicFunc
 
 
 class LangchainTool(Tool):
@@ -131,4 +134,17 @@ class LangchainToolBackend(ToolBackend):
         return LangchainTool(tool_underlying)
 
     def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
+        if tool_config.transport == ToolConfigTransport.FUNCTION:
+            if not tool_config.functions:
+                raise ValueError(
+                    f"ToolConfig '{tool_config.id}' has transport 'function' "
+                    "but 'functions' is None or empty."
+                )
+            funcs = [DynamicFunc(p) for p in tool_config.functions]
+            return FunctionToolBundle(
+                name=tool_config.id,
+                description=tool_config.description,
+                tool_backend=self,
+                tool_funcs=funcs,
+            )
         return LangchainToolBundle(tool_config)

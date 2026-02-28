@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field
 
 
 class ToolConfigTransport(str, Enum):
+    """Transport protocol for the tool."""
+
+    FUNCTION = "function"
     STDIO = "stdio"
     SSE = "sse"
     STREAMABLE_HTTP = "streamable_http"
@@ -25,6 +28,10 @@ class ToolConfig(BaseModel):
     transport: ToolConfigTransport = Field(
         ...,
         description="Transport protocol for the tool",
+    )
+    functions: List[str] | None = Field(
+        None,
+        description="Tool functions for builtin tools, ignored following MCP settings if set",
     )
     command: str | None = Field(None, description="Command to run the tool")
     args: List[str] | None = Field(None, description="Arguments for the command")
@@ -68,14 +75,6 @@ class ToolBundle(Tool):
     @abstractmethod
     def setup(self) -> ToolBundleContext:
         """set up the tool bundle."""
-
-    # @abstractmethod
-    # def load(self) -> Generator[List[Tool], None]:
-    #     """Load the tools in the bundle synchronously."""
-    #
-    # @abstractmethod
-    # async def load_async(self) -> AsyncGenerator[List[Tool], None]:
-    #     """Load the tools in the bundle asynchronously."""
 
 
 class ToolBackend(ABC):

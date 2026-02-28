@@ -9,9 +9,11 @@ This module provides core utility types and abstract base classes:
 __all__ = [
     "DefaultKwargs",
     "OutputDir",
+    "DynamicFunc",
     "LazyValue",
 ]
 
 from .arguments import DefaultKwargs
 from .directories import OutputDir
+from .functions import DynamicFunc
 from .variables import LazyValue
