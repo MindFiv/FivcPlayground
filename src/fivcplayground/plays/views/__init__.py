@@ -9,9 +9,7 @@ __all__ = [
     "ViewBase",
     "ViewNavigation",
     "ChatView",
-    "TaskView",
 ]
 
 from .base import ViewBase, ViewNavigation
 from .chats import ChatView
-from .tasks import TaskView

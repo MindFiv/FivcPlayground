@@ -5,13 +5,8 @@ from typing import Optional, Callable, List
 
 from pydantic import BaseModel
 
-from fivcplayground.tasks import (
-    # create_tooling_task_async,
-    create_briefing_task_async,
-)
 from fivcplayground.agents import (
     create_agent_async,
-    AgentRunContent,
     AgentRunSession,
     AgentRun,
     AgentRunnable,
@@ -33,19 +28,16 @@ class Chat(object):
         agent_runnable: AgentRunnable | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
-        briefing_runnable: AgentRunnable | None = None,
         tooling_runnable: AgentRunnable | None = None,
         tool_retriever: Optional[ToolRetriever] = None,
     ):
         assert tool_retriever is not None, "tool_retriever is required"
         assert agent_runnable is not None, "agent_runnable is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
-        assert briefing_runnable is not None, "briefing_runnable is required"
 
         self._agent_run_session_id = agent_run_session_id
         self._agent_run_repository = agent_run_repository
         self._tool_retriever = tool_retriever
-        self._briefing_runnable = briefing_runnable
         self._tooling_runnable = tooling_runnable
         self._runnable = agent_runnable
         self._running = False
@@ -111,17 +103,12 @@ class Chat(object):
             )
             # Save agent metadata on first query
             if not self._agent_run_session_id:
-                agent_query = f"{query}\n{str(agent_result)}"
-                agent_desc = await self._briefing_runnable.run_async(
-                    query=agent_query,
-                    tool_retriever=self._tool_retriever,
-                )
-                assert isinstance(agent_desc, AgentRunContent)
+                description = query[:50] + "..." if len(query) > 50 else query
                 await self._agent_run_repository.update_agent_run_session_async(
                     AgentRunSession(
                         id=agent_session_id,
                         agent_id=self._runnable.id,
-                        description=str(agent_desc),
+                        description=description,
                         started_at=datetime.now(),
                     )
                 )
@@ -167,23 +154,6 @@ class ChatManager(object):
         ), "agent_config_repository is required"
         assert agent_run_repository is not None, "agent_run_repository is required"
 
-        # self._tooling_runnable = asyncio.run(
-        #     create_tooling_task_async(
-        #         model_backend=model_backend,
-        #         model_config_repository=model_config_repository,
-        #         agent_backend=agent_backend,
-        #         agent_config_repository=agent_config_repository,
-        #         tool_retriever=tool_retriever,
-        #     )
-        # )
-        self._briefing_runnable = asyncio.run(
-            create_briefing_task_async(
-                model_backend=model_backend,
-                model_config_repository=model_config_repository,
-                agent_backend=agent_backend,
-                agent_config_repository=agent_config_repository,
-            )
-        )
         self._agent_runnable = asyncio.run(
             create_agent_async(
                 model_backend=model_backend,
@@ -205,7 +175,6 @@ class ChatManager(object):
                 agent_runnable=self._agent_runnable,
                 agent_run_repository=self._agent_run_repository,
                 agent_run_session_id=agent_run_session.id,
-                briefing_runnable=self._briefing_runnable,
                 tool_retriever=self._tool_retriever,
             )
             for agent_run_session in agent_run_session_list
@@ -222,6 +191,5 @@ class ChatManager(object):
         return Chat(
             agent_runnable=self._agent_runnable,
             agent_run_repository=self._agent_run_repository,
-            briefing_runnable=self._briefing_runnable,
             tool_retriever=self._tool_retriever,
         )

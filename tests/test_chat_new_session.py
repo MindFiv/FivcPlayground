@@ -32,7 +32,6 @@ class TestChatNewSession:
             chat = Chat(
                 agent_runnable=Mock(),
                 agent_run_repository=repo,
-                briefing_runnable=Mock(),
                 tool_retriever=Mock(),
             )
 
@@ -68,16 +67,10 @@ class TestChatNewSession:
             mock_runnable.id = "test-agent"
             mock_runnable.run_async = mock_run_async
 
-            mock_briefing = AsyncMock()
-            mock_briefing.run_async = AsyncMock(
-                return_value=AgentRunContent(text="Test chat description")
-            )
-
             # Create a new chat without session ID
             chat = Chat(
                 agent_runnable=mock_runnable,
                 agent_run_repository=repo,
-                briefing_runnable=mock_briefing,
                 tool_retriever=Mock(),
             )
 
@@ -116,7 +109,6 @@ class TestChatNewSession:
                 agent_runnable=Mock(),
                 agent_run_repository=repo,
                 agent_run_session_id="existing-session-123",
-                briefing_runnable=Mock(),
                 tool_retriever=Mock(),
             )
 

@@ -286,7 +286,6 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 
 ## Important Constraints
 
-- **Multi-Agent Tasks Not Implemented**: `create_planned_task_async()` raises `NotImplementedError`
 - **Single-Process Only**: File-based repositories are not suitable for multi-server deployments
 - **Conversation Memory**: Hardcoded sliding window of 20 messages in `StrandsAgentRunnable`
 - **Tool Execution Context**: MCP protocol tools require external process management
@@ -300,7 +299,6 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 - **`src/fivcplayground/backends/`** - Backend implementations (Strands, LangChain, Chroma)
 - **`src/fivcplayground/embeddings/`** - Vector database for semantic search
 - **`src/fivcplayground/plays/`** - Streamlit web interface and components
-- **`src/fivcplayground/tasks.py`** - Task creation and planning (mostly unimplemented)
 - **`src/fivcplayground/cli.py`** - Command-line interface entry point
 - **`src/fivcplayground/schemas.py`** - Pydantic data models
 - **`src/fivcplayground/settings.py`** - Configuration and environment management

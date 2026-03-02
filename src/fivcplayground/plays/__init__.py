@@ -18,7 +18,6 @@ from fivcplayground.backends.strands import (
     StrandsAgentBackend,
     StrandsModelBackend,
     StrandsToolBackend,
-    # StrandsTaskBackend,
 )
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.repositories import FileModelConfigRepository
@@ -32,7 +31,6 @@ from fivcplayground.plays.utils import ChatManager
 from fivcplayground.plays.views import (
     ViewNavigation,
     ChatView,
-    TaskView,
 )
 
 # Apply nest_asyncio to allow nested event loops in Streamlit context
@@ -50,8 +48,6 @@ embedding_config_repository = FileEmbeddingConfigRepository()
 
 tool_backend = StrandsToolBackend()
 tool_config_repository = FileToolConfigRepository()
-
-# task_backend = StrandsTaskBackend()
 
 
 def main():
@@ -101,10 +97,6 @@ def main():
 
     # Add sections to navigation
     nav.add_section("Chats", chat_pages)
-    nav.add_section(
-        "Tasks",
-        [TaskView()],
-    )
 
     # Run navigation
     nav.run()
