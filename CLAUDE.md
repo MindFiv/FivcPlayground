@@ -73,9 +73,9 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 
 ```
 ┌─────────────────────────────────────────────────┐
-│   CLI / Web Interface (plays module)            │
+│   CLI / Web Interface (labs module)            │
 │   - Command-line interface (cli.py)             │
-│   - Streamlit web UI (plays/)                   │
+│   - Streamlit web UI (labs/)                   │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -201,7 +201,7 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 - **Usage**: Tool description indexing for dynamic tool retrieval
 - **Configuration**: EmbeddingConfig specifies database path and collection names
 
-#### 5. Web Interface (`src/fivcplayground/plays/`)
+#### 5. Web Interface (`src/fivcplayground/labs/`)
 - **Architecture**:
   - ViewNavigation (custom sidebar navigation replacing st.navigation)
   - ChatView (per-conversation UI)
@@ -298,7 +298,7 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 - **`src/fivcplayground/models/`** - LLM model factories and provider abstractions
 - **`src/fivcplayground/backends/`** - Backend implementations (Strands, LangChain, Chroma)
 - **`src/fivcplayground/embeddings/`** - Vector database for semantic search
-- **`src/fivcplayground/plays/`** - Streamlit web interface and components
+- **`src/fivcplayground/labs/`** - Streamlit web interface and components
 - **`src/fivcplayground/cli.py`** - Command-line interface entry point
 - **`src/fivcplayground/schemas.py`** - Pydantic data models
 - **`src/fivcplayground/settings.py`** - Configuration and environment management

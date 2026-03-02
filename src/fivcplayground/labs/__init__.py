@@ -27,8 +27,8 @@ from fivcplayground.agents.types.repositories import (
     FileAgentConfigRepository,
     FileAgentRunRepository,
 )
-from fivcplayground.plays.utils import ChatManager
-from fivcplayground.plays.views import (
+from fivcplayground.labs.utils import ChatManager
+from fivcplayground.labs.views import (
     ViewNavigation,
     ChatView,
 )

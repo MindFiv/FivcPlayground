@@ -12,7 +12,7 @@ Tests the ChatMessage class and its methods:
 import pytest
 from unittest.mock import Mock, patch
 from langchain_core.messages import AIMessage
-from fivcplayground.plays.components import ChatMessage
+from fivcplayground.labs.components import ChatMessage
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunToolCall,

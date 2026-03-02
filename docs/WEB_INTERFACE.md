@@ -126,7 +126,7 @@ The web interface features a modern multi-page layout with dynamic navigation:
 make serve-dev
 
 # Or directly with Streamlit
-uv run streamlit run src/fivcplayground/plays/__init__.py --server.port 8501
+uv run streamlit run src/fivcplayground/labs/__init__.py --server.port 8501
 ```
 
 ### Architecture
@@ -135,7 +135,7 @@ The web interface uses a modular, component-based architecture:
 
 #### Directory Structure
 ```
-src/fivcplayground/plays/
+src/fivcplayground/labs/
 ├── __init__.py              # Main app with ViewNavigation setup
 ├── utils/                   # Utility classes and state management
 │   ├── chats.py            # Chat and ChatManager classes

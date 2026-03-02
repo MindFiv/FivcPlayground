@@ -182,8 +182,8 @@ def web(
         console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
         console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
 
-        # Get the path to the plays module
-        app_path = os.path.join(os.path.dirname(__file__), "plays", "__init__.py")
+        # Get the path to the labs module
+        app_path = os.path.join(os.path.dirname(__file__), "labs", "__init__.py")
 
         # Build streamlit command
         cmd = [
