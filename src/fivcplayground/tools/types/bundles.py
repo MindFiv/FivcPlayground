@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from .base import ToolBundle, ToolBackend, ToolBundleContext, Tool
+from .base import Tool, ToolBackend, ToolBundle, ToolBundleContext
 
 
 class FunctionToolContext(ToolBundleContext):

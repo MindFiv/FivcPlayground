@@ -17,12 +17,12 @@ system for tracking execution state and persistence.
 
 import streamlit as st
 
+from fivcplayground.agents.types import AgentRun, AgentRunContent
+from fivcplayground.labs.components import ChatMessage
 from fivcplayground.labs.utils import (
     Chat,
     # default_running_config,
 )
-from fivcplayground.labs.components import ChatMessage
-from fivcplayground.agents.types import AgentRun, AgentRunContent
 
 from .base import ViewBase, ViewNavigation
 

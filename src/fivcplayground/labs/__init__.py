@@ -10,9 +10,14 @@ __all__ = [
 ]
 
 import asyncio
-import streamlit as st
-import nest_asyncio
 
+import nest_asyncio
+import streamlit as st
+
+from fivcplayground.agents.types.repositories import (
+    FileAgentConfigRepository,
+    FileAgentRunRepository,
+)
 from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 from fivcplayground.backends.strands import (
     StrandsAgentBackend,
@@ -20,18 +25,14 @@ from fivcplayground.backends.strands import (
     StrandsToolBackend,
 )
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
-from fivcplayground.models.types.repositories import FileModelConfigRepository
-from fivcplayground.tools.types.repositories import FileToolConfigRepository
-from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
-from fivcplayground.agents.types.repositories import (
-    FileAgentConfigRepository,
-    FileAgentRunRepository,
-)
 from fivcplayground.labs.utils import ChatManager
 from fivcplayground.labs.views import (
-    ViewNavigation,
     ChatView,
+    ViewNavigation,
 )
+from fivcplayground.models.types.repositories import FileModelConfigRepository
+from fivcplayground.tools import create_builtin_tools_async, create_tool_retriever_async
+from fivcplayground.tools.types.repositories import FileToolConfigRepository
 
 # Apply nest_asyncio to allow nested event loops in Streamlit context
 nest_asyncio.apply()

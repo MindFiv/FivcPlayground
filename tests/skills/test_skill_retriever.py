@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tests for SkillRetriever."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from fivcplayground.skills.types.base import SkillConfig
 from fivcplayground.skills.types.retrievers import SkillRetriever
 

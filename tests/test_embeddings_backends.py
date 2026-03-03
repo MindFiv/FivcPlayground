@@ -9,14 +9,18 @@ Tests verify:
 """
 
 from unittest.mock import Mock, patch
-import pytest
 
-from fivcplayground.embeddings.types.base import EmbeddingConfig
+import pytest
 from fivcplayground.backends.chroma.embeddings import (
     ChromaEmbeddingDB as EmbeddingDB,
+)
+from fivcplayground.backends.chroma.embeddings import (
     ChromaEmbeddingTable as EmbeddingTable,
+)
+from fivcplayground.backends.chroma.embeddings import (
     _create_embedding_function,
 )
+from fivcplayground.embeddings.types.base import EmbeddingConfig
 
 
 class TestCreateEmbeddingFunction:

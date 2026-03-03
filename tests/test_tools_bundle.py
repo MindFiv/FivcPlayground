@@ -6,12 +6,12 @@ ToolBundle is an MCP (Model Context Protocol) tools bundle that wraps
 MCP server connections and provides async loading of tools.
 """
 
-import pytest
 from unittest.mock import Mock, patch
 
-from fivcplayground.tools.types.base import ToolConfig
+import pytest
 from fivcplayground.backends.langchain.tools import LangchainToolBundle
-from fivcplayground.backends.strands.tools import StrandsToolBundle, StrandsTool
+from fivcplayground.backends.strands.tools import StrandsTool, StrandsToolBundle
+from fivcplayground.tools.types.base import ToolConfig
 
 # Use both implementations - tests will run with whichever backend is active
 # For now, we'll test both implementations

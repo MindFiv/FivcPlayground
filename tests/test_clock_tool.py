@@ -14,10 +14,9 @@ Tests verify:
 import re
 
 import pytest
-
-from fivcplayground.tools.clock import clock
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.tools.clock import clock
 
 
 def invoke_tool(tool_func, **kwargs):

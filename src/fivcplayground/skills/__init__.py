@@ -14,9 +14,9 @@ from fivcplayground.embeddings import (
     create_embedding_db_async,
 )
 from fivcplayground.tools.types import (
+    FunctionToolBundle,
     ToolBackend,
     ToolBundle,
-    FunctionToolBundle,
 )
 
 from .types import SkillConfig, SkillConfigRepository, SkillRetriever

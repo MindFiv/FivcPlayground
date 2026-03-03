@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, List, Type, Callable
+from typing import Any, Callable, Dict, List, Optional, Type
 from uuid import uuid4
 
 from jambo import SchemaConverter
@@ -11,8 +11,8 @@ from pydantic import (
     computed_field,
 )
 
-from fivcplayground.tools import ToolRetriever
 from fivcplayground.models import ModelBackend, ModelConfigRepository
+from fivcplayground.tools import ToolRetriever
 
 
 class AgentConfig(BaseModel):

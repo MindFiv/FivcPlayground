@@ -7,10 +7,10 @@ __all__ = [
 ]
 
 from fivcplayground.embeddings.types import (
-    EmbeddingDB,
-    EmbeddingTable,
     EmbeddingBackend,
     EmbeddingConfigRepository,
+    EmbeddingDB,
+    EmbeddingTable,
 )
 
 

@@ -4,6 +4,6 @@ __all__ = [
     "StrandsAgentBackend",
 ]
 
+from .agents import StrandsAgentBackend
 from .models import StrandsModelBackend
 from .tools import StrandsToolBackend
-from .agents import StrandsAgentBackend

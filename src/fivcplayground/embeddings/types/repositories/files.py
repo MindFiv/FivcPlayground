@@ -18,9 +18,10 @@ This structure allows for:
 
 """
 
-import yaml
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
+
+import yaml
 
 from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.embeddings.types.repositories.base import EmbeddingConfigRepository

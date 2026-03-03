@@ -6,14 +6,14 @@ Tests the complete flow: FileToolConfigRepository → create_tool_retriever_asyn
 """
 
 import tempfile
-import pytest
 from unittest.mock import Mock, patch
 
+import pytest
+from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.tools.types.repositories.files import FileToolConfigRepository
-from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
-from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.utils import OutputDir
 
 

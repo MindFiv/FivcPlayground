@@ -1,11 +1,10 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from typing import List
-
 
 from fivcplayground.agents.types.base import (
     AgentConfig,
-    AgentRunSession,
     AgentRun,
+    AgentRunSession,
 )
 
 

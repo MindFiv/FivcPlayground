@@ -7,14 +7,14 @@ Tests verify:
 - Backward compatibility (space_id=None uses default)
 """
 
-import pytest
 from unittest.mock import Mock, patch
 
-from fivcplayground.embeddings.types.base import EmbeddingConfig
+import pytest
 from fivcplayground.backends.chroma.embeddings import ChromaEmbeddingDB as EmbeddingDB
+from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.tools import create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
-from fivcplayground.backends.strands.tools import StrandsToolBackend
 
 
 class TestEmbeddingDBSpaceIsolation:

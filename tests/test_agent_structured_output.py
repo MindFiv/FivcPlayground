@@ -9,8 +9,6 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel
-
 from fivcplayground.agents.types.base import (
     AgentRun,
     AgentRunContent,
@@ -20,6 +18,7 @@ from fivcplayground.agents.types.repositories.files import (
     FileAgentRunRepository,
 )
 from fivcplayground.utils import OutputDir
+from pydantic import BaseModel
 
 
 class TestAgentRunContentStructuredField:

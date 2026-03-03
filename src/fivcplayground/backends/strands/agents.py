@@ -1,31 +1,35 @@
 import asyncio
 from datetime import datetime
-from typing import List, Type, Callable, cast
+from typing import Callable, List, Type, cast
 from warnings import warn
 
 from pydantic import BaseModel
 from strands.agent import (
     Agent as StrandsAgentUnderlying,
+)
+from strands.agent import (
     AgentResult as StrandsAgentResult,
+)
+from strands.agent import (
     SlidingWindowConversationManager,
 )
 from strands.models import Model as StrandsModelUnderlying
-from strands.types.content import Message, ContentBlock
-from strands.types.tools import ToolUse, ToolResult
-# from strands.types.streaming import
+from strands.types.content import ContentBlock, Message
+from strands.types.tools import ToolResult, ToolUse
 
+# from strands.types.streaming import
 from fivcplayground.agents import (
-    AgentConfig,
-    AgentRunEvent,
-    AgentRunStatus,
-    AgentRunContent,
-    AgentRun,
-    AgentRunnable,
-    AgentRunToolCall,
-    AgentRunRepository,
     AgentBackend,
-    AgentRunToolSpan,
+    AgentConfig,
+    AgentRun,
+    AgentRunContent,
+    AgentRunEvent,
+    AgentRunnable,
+    AgentRunRepository,
     AgentRunSessionSpan,
+    AgentRunStatus,
+    AgentRunToolCall,
+    AgentRunToolSpan,
 )
 from fivcplayground.models import (
     ModelBackend,

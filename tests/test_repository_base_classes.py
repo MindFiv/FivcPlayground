@@ -8,15 +8,14 @@ Tests verify:
 """
 
 import pytest
-
 from fivcplayground.agents.types.repositories.base import (
     AgentConfigRepository,
     AgentRunRepository,
 )
-from fivcplayground.models.types.repositories.base import ModelConfigRepository
 from fivcplayground.embeddings.types.repositories.base import (
     EmbeddingConfigRepository,
 )
+from fivcplayground.models.types.repositories.base import ModelConfigRepository
 from fivcplayground.tools.types.repositories.base import ToolConfigRepository
 
 

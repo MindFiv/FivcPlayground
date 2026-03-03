@@ -7,9 +7,9 @@ Tests verify:
 - Model resolution
 """
 
-from unittest.mock import Mock, AsyncMock, patch
-import pytest
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fivcplayground.agents import AgentBackend
 from fivcplayground.agents.types.base import AgentConfig
 

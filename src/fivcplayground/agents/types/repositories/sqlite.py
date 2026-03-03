@@ -51,13 +51,13 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from fivcplayground.agents.types import AgentRunSession
 from fivcplayground.agents.types.repositories import (
     AgentRun,
-    AgentRunToolCall,
     AgentRunRepository,
+    AgentRunToolCall,
 )
 from fivcplayground.utils import OutputDir
 

@@ -4,10 +4,10 @@ Tests for ToolConfig Pydantic model validation.
 """
 
 import json
-import pytest
-from pydantic import ValidationError
 
+import pytest
 from fivcplayground.tools.types.base import ToolConfig, ToolConfigTransport
+from pydantic import ValidationError
 
 
 class TestToolConfigModel:

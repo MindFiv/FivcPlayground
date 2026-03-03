@@ -8,9 +8,8 @@ Tests verify:
 - jambo SchemaConverter.build() produces valid Pydantic model from JSON Schema
 """
 
-from pydantic import BaseModel
-
 from fivcplayground.agents.types.base import AgentConfig
+from pydantic import BaseModel
 
 
 class TestResponseModelProperty:

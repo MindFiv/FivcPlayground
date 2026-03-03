@@ -4,6 +4,6 @@ __all__ = [
     "LangchainAgentBackend",
 ]
 
+from .agents import LangchainAgentBackend
 from .models import LangchainModelBackend
 from .tools import LangchainToolBackend
-from .agents import LangchainAgentBackend

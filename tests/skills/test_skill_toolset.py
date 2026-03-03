@@ -2,9 +2,9 @@
 """Tests for create_skill_tools_async (SkillToolset)."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from fivcplayground.skills import create_skill_tools_async
 from fivcplayground.skills.types.base import SkillConfig
 from fivcplayground.tools.types.bundles import FunctionToolBundle

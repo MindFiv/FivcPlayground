@@ -19,7 +19,8 @@ This structure allows for:
 """
 
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
+
 import yaml
 
 from fivcplayground.models.types.base import ModelConfig

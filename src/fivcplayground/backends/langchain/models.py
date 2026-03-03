@@ -1,7 +1,7 @@
 from typing import Any
 
-from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 
 from fivcplayground.models.types import (
     Model,

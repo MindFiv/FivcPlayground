@@ -1,8 +1,8 @@
-import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
 
-from fivcplayground.tools import ToolBundle
+import pytest
 from fivcplayground.agents import AgentRunToolSpan
+from fivcplayground.tools import ToolBundle
 
 
 class TestAgentRunToolSpanListFlattening:

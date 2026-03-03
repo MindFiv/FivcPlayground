@@ -9,15 +9,16 @@ Tests the ChatMessage class and its methods:
 - render_tool_call() with tool calls
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from langchain_core.messages import AIMessage
-from fivcplayground.labs.components import ChatMessage
+
+import pytest
 from fivcplayground.agents.types import (
     AgentRun,
-    AgentRunToolCall,
     AgentRunContent,
+    AgentRunToolCall,
 )
+from fivcplayground.labs.components import ChatMessage
+from langchain_core.messages import AIMessage
 
 
 class TestChatMessageClass:

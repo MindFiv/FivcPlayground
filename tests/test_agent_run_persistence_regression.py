@@ -13,20 +13,20 @@ These tests prevent regression of the bug where agent run final states were not
 being persisted to the repository after the FINISH event.
 """
 
-import pytest
-import tempfile
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 from fivcplayground.agents import (
     AgentRunSessionSpan,
 )
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunContent,
-    AgentRunStatus,
     AgentRunSession,
+    AgentRunStatus,
 )
 from fivcplayground.agents.types.repositories import (
     FileAgentRunRepository,

@@ -3,20 +3,20 @@
 Tests for FileEmbeddingConfigRepository functionality and EmbeddingDB/EmbeddingTable integration.
 """
 
-import pytest
-import yaml
 import tempfile
 
+import pytest
+import yaml
+from fivcplayground.backends.chroma import ChromaEmbeddingBackend
+from fivcplayground.embeddings import (
+    EmbeddingDB,
+    EmbeddingTable,
+    create_embedding_db_async,
+)
 from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.embeddings.types.repositories.files import (
     FileEmbeddingConfigRepository,
 )
-from fivcplayground.embeddings import (
-    create_embedding_db_async,
-    EmbeddingDB,
-    EmbeddingTable,
-)
-from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 from fivcplayground.utils import OutputDir
 
 

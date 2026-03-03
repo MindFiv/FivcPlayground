@@ -3,13 +3,13 @@
 Tests for the tools retriever module.
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from fivcplayground.tools.types.retrievers import ToolRetriever
-from fivcplayground.embeddings.types.base import EmbeddingConfig
+import pytest
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.embeddings.types.base import EmbeddingConfig
+from fivcplayground.tools.types.retrievers import ToolRetriever
 
 # Test with both backends
 get_tool_backends = [

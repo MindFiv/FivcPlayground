@@ -1,31 +1,30 @@
 import asyncio
 from datetime import datetime
-from typing import List, Type, Callable
+from typing import Callable, List, Type
 
+from langchain.agents import create_agent as LangchainAgentUnderlying
+from langchain_core.language_models import BaseChatModel as LangchainModelUnderlying
 from langchain_core.messages import (
-    HumanMessage,
-    BaseMessage,
     AIMessage,
     AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
     ToolMessage,
 )
-from langchain_core.language_models import BaseChatModel as LangchainModelUnderlying
-from langchain.agents import create_agent as LangchainAgentUnderlying
-
 from pydantic import BaseModel
 
 from fivcplayground.agents import (
+    AgentBackend,
     AgentConfig,
-    AgentRunEvent,
-    AgentRunStatus,
-    AgentRunContent,
-    AgentRunToolCall,
     AgentRun,
+    AgentRunContent,
+    AgentRunEvent,
     AgentRunnable,
     AgentRunRepository,
     AgentRunSessionSpan,
+    AgentRunStatus,
+    AgentRunToolCall,
     AgentRunToolSpan,
-    AgentBackend,
 )
 from fivcplayground.models import (
     ModelBackend,

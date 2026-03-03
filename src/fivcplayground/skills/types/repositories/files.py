@@ -6,9 +6,10 @@ Storage Structure:
     └── skills.yaml    # All skill configurations (mapping of skill_id -> SkillConfig)
 """
 
-import yaml
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
+
+import yaml
 
 from fivcplayground.skills.types.base import SkillConfig
 from fivcplayground.skills.types.repositories.base import SkillConfigRepository

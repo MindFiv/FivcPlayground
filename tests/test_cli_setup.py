@@ -3,8 +3,8 @@
 Tests for the CLI setup command.
 """
 
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
 
 

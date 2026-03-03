@@ -16,8 +16,9 @@ The clock tool supports multiple modes:
 """
 
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo, available_timezones
 from typing import Literal
+
+from zoneinfo import ZoneInfo, available_timezones
 
 
 def clock(

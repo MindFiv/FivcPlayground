@@ -7,10 +7,10 @@ __all__ = [
 ]
 
 from .base import (
+    EmbeddingBackend,
     EmbeddingConfig,
     EmbeddingDB,
     EmbeddingTable,
-    EmbeddingBackend,
 )
 from .repositories import (
     EmbeddingConfigRepository,

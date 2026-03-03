@@ -6,16 +6,16 @@ Tests that when a new chat is created and the agent responds,
 the Chat.id property is properly updated to reflect the new session ID.
 """
 
-import tempfile
 import asyncio
-from unittest.mock import Mock, AsyncMock
+import tempfile
+from unittest.mock import AsyncMock, Mock
 
-from fivcplayground.labs.utils import Chat
 from fivcplayground.agents.types import (
     AgentRunContent,
     AgentRunSession,
 )
 from fivcplayground.agents.types.repositories import FileAgentRunRepository
+from fivcplayground.labs.utils import Chat
 from fivcplayground.utils import OutputDir
 
 

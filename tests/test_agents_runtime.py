@@ -14,13 +14,14 @@ Tests the agent runtime data models including:
 import json
 import warnings
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 from fivcplayground.agents.types import (
     AgentRun,
-    AgentRunToolCall,
-    AgentRunStatus,
     AgentRunContent,
+    AgentRunStatus,
+    AgentRunToolCall,
 )
 
 
@@ -527,8 +528,8 @@ class TestStrandsAgentUnknownToolCallHandling:
         This is the core regression test for the bug fix in StrandsAgentRunnable.run_async()
         where tool results for unknown tool calls would cause a crash.
         """
-        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
         from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
 
         # Create a mock model
         mock_model = Mock()
@@ -617,8 +618,8 @@ class TestStrandsAgentUnknownToolCallHandling:
         The key is that when a tool call is registered first (via toolUse), then its
         result (via toolResult) should be processed without errors.
         """
-        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
         from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
 
         # Create a mock model
         mock_model = Mock()
@@ -706,8 +707,8 @@ class TestStrandsAgentUnknownToolCallHandling:
         of known tool results. The agent should continue processing even when it
         receives a tool result for an unknown tool call ID.
         """
-        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
         from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
 
         # Create a mock model
         mock_model = Mock()

@@ -1,7 +1,7 @@
 from typing import Any
 
-from strands.models.openai import OpenAIModel
 from strands.models.ollama import OllamaModel
+from strands.models.openai import OpenAIModel
 
 from fivcplayground.models import (
     Model,

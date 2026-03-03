@@ -11,12 +11,13 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 - Fix: Changed to use tool.name which is the correct LangChain Tool attribute
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
-from fivcplayground.tools.types.retrievers import ToolRetriever
 from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
+from fivcplayground.tools import create_builtin_tools_async, create_tool_retriever_async
+from fivcplayground.tools.types.retrievers import ToolRetriever
 
 # Test with both backends
 get_tool_backends = [
@@ -95,8 +96,9 @@ class TestToolsInitRegression:
         This ensures that tools returned from list_tools_async() have the correct
         attributes for the current backend (name for LangChain, tool_name for Strands).
         """
-        from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
+
+        from fivcplayground.tools.types.retrievers import ToolRetriever
 
         with patch("fivcplayground.tools.create_embedding_db_async") as mock_create_db:
             # Create mock embedding DB
@@ -193,8 +195,9 @@ class TestToolsInitRegression:
 
         This test verifies that tools wrapped by LangChain backend have correct attributes.
         """
-        from fivcplayground.tools.types.retrievers import ToolRetriever
         from unittest.mock import Mock
+
+        from fivcplayground.tools.types.retrievers import ToolRetriever
 
         # Create mock embedding DB
         mock_db = Mock()

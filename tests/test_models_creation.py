@@ -8,9 +8,9 @@ Tests verify:
 - Model backend creation
 """
 
-from unittest.mock import Mock, AsyncMock, patch
-import pytest
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fivcplayground.models import (
     create_model_async,
 )

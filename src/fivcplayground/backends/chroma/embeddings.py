@@ -2,7 +2,7 @@ __all__ = [
     "ChromaEmbeddingBackend",
 ]
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 from chromadb import (
     Collection,
@@ -10,17 +10,18 @@ from chromadb import (
     PersistentClient,
 )
 from chromadb.utils.embedding_functions import (
-    OpenAIEmbeddingFunction,
     OllamaEmbeddingFunction,
+    OpenAIEmbeddingFunction,
 )
 
 from fivcplayground.embeddings.types import (
+    EmbeddingBackend,
     EmbeddingConfig,
     EmbeddingDB,
     EmbeddingTable,
-    EmbeddingBackend,
 )
 from fivcplayground.utils import OutputDir
+
 from .splitters import ChromaTextSplitter
 
 
