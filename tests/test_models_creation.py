@@ -12,15 +12,16 @@ from unittest.mock import Mock, AsyncMock, patch
 import pytest
 
 from fivcplayground.models import (
-    create_model,
+    create_model_async,
 )
 from fivcplayground.models.types.base import ModelConfig
 
 
 class TestCreateModel:
-    """Test create_model function."""
+    """Test create_model_async function."""
 
-    def test_create_model_with_valid_config(self):
+    @pytest.mark.asyncio
+    async def test_create_model_with_valid_config(self):
         """Test creating model with valid configuration."""
         mock_model = Mock()
         mock_model_config = ModelConfig(
@@ -36,7 +37,7 @@ class TestCreateModel:
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model
 
-        result = create_model(
+        result = await create_model_async(
             model_backend=mock_backend,
             model_config_repository=mock_model_repo,
             model_config_id="test-model",
@@ -46,20 +47,22 @@ class TestCreateModel:
         mock_model_repo.get_model_config_async.assert_called_once_with("test-model")
         mock_backend.create_model.assert_called_once_with(mock_model_config)
 
-    def test_create_model_missing_config(self):
-        """Test create_model raises error when config not found."""
+    @pytest.mark.asyncio
+    async def test_create_model_missing_config(self):
+        """Test create_model_async raises error when config not found."""
         mock_model_repo = Mock()
         mock_model_repo.get_model_config_async = AsyncMock(return_value=None)
 
         mock_backend = Mock()
 
         with pytest.raises(ValueError, match="Default model not found"):
-            create_model(
+            await create_model_async(
                 model_backend=mock_backend, model_config_repository=mock_model_repo
             )
 
-    def test_create_model_default_config_id(self):
-        """Test create_model uses 'default' as default config ID."""
+    @pytest.mark.asyncio
+    async def test_create_model_default_config_id(self):
+        """Test create_model_async uses 'default' as default config ID."""
         mock_model = Mock()
         mock_model_config = ModelConfig(
             id="default",
@@ -74,14 +77,15 @@ class TestCreateModel:
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model
 
-        create_model(
+        await create_model_async(
             model_backend=mock_backend, model_config_repository=mock_model_repo
         )
 
         mock_model_repo.get_model_config_async.assert_called_once_with("default")
 
-    def test_create_model_passes_config_to_backend(self):
-        """Test create_model passes config to backend create function."""
+    @pytest.mark.asyncio
+    async def test_create_model_passes_config_to_backend(self):
+        """Test create_model_async passes config to backend create function."""
         mock_model = Mock()
         mock_model_config = ModelConfig(
             id="test",
@@ -98,7 +102,7 @@ class TestCreateModel:
         mock_backend = Mock()
         mock_backend.create_model.return_value = mock_model
 
-        create_model(
+        await create_model_async(
             model_backend=mock_backend, model_config_repository=mock_model_repo
         )
 

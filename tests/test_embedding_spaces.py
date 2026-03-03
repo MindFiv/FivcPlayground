@@ -133,7 +133,9 @@ class TestToolRetrieverSpaceIsolation:
 
     def test_tool_retriever_default_space(self, mock_embedding_config_repository):
         """Test ToolRetriever with default space."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_db.space_id = None
             mock_embedding_table = Mock()
@@ -155,7 +157,9 @@ class TestToolRetrieverSpaceIsolation:
 
     def test_tool_retriever_custom_space(self, mock_embedding_config_repository):
         """Test ToolRetriever with custom space."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_db.space_id = "user_alice"
             mock_embedding_table = Mock()

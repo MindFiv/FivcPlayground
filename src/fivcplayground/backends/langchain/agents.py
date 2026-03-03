@@ -139,8 +139,6 @@ class LangchainAgentRunnable(AgentRunnable):
 
         Notes:
             - tool_ids are merged with config.tool_ids using set union
-            - Duplicates are automatically eliminated
-            - Example: config=["a","b"] + runtime=["b","c"] → ["a","b","c"]
         """
         response_model = (
             response_model

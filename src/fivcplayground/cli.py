@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from fivcplayground.agents import create_agent
+from fivcplayground.agents import create_agent_async
 from fivcplayground.tools import create_tool_retriever_async, create_builtin_tools_async
 from fivcplayground.utils import OutputDir
 
@@ -69,6 +69,17 @@ def run(
     """
     Run a FivcPlayground agent
     """
+    asyncio.run(_run_async(agent_name, query, output, dry_run, verbose))
+
+
+async def _run_async(
+    agent_name: str,
+    query: Optional[str],
+    output: Optional[Path],
+    dry_run: bool,
+    verbose: bool,
+):
+    """Async implementation of the run command"""
     model_backend = StrandsModelBackend()
     model_config_repository = FileModelConfigRepository()
 
@@ -81,16 +92,14 @@ def run(
     agent_backend = StrandsAgentBackend()
     agent_config_repository = FileAgentConfigRepository()
 
-    tools = asyncio.run(create_builtin_tools_async(tool_backend=tool_backend))
-    tool_retriever = asyncio.run(
-        create_tool_retriever_async(
-            tools=tools,
-            tool_backend=tool_backend,
-            tool_config_repository=tool_config_repository,
-            embedding_backend=embedding_backend,
-            embedding_config_repository=embedding_config_repository,
-            embedding_config_id="default",
-        )
+    tools = await create_builtin_tools_async(tool_backend=tool_backend)
+    tool_retriever = await create_tool_retriever_async(
+        tools=tools,
+        tool_backend=tool_backend,
+        tool_config_repository=tool_config_repository,
+        embedding_backend=embedding_backend,
+        embedding_config_repository=embedding_config_repository,
+        embedding_config_id="default",
     )
 
     console.print(
@@ -106,7 +115,7 @@ def run(
             console.print("[red]❌ Query cannot be empty[/red]")
             raise typer.Exit(1)
 
-    agent_runnable = create_agent(
+    agent_runnable = await create_agent_async(
         model_backend=model_backend,
         model_config_repository=model_config_repository,
         agent_backend=agent_backend,
@@ -129,7 +138,7 @@ def run(
         return
 
     try:
-        agent_result = agent_runnable.run(
+        agent_result = await agent_runnable.run_async(
             query=query,
             tool_retriever=tool_retriever,
         )

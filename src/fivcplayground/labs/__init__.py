@@ -67,7 +67,6 @@ def main():
             embedding_config_repository=embedding_config_repository,
         )
     )
-    # tool_retriever.index_tools()
 
     # Page configuration (must be called first)
     st.set_page_config(

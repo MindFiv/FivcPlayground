@@ -63,7 +63,9 @@ class TestToolRetriever:
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_init(self, mock_embedding_config_repository, backend_name, get_backend):
         """Test ToolRetriever initialization."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             # Mock the embedding database
             mock_db = Mock()
             mock_embedding_table = Mock()
@@ -88,7 +90,9 @@ class TestToolRetriever:
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_str(self, mock_embedding_config_repository, backend_name, get_backend):
         """Test string representation."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -112,7 +116,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test indexing tools in the retriever."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -150,7 +156,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, mock_tool, backend_name, get_backend
     ):
         """Test getting a tool by name."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -176,7 +184,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test getting a nonexistent tool returns None."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -205,7 +215,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test listing all tools."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -240,7 +252,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieve_min_sim property."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -266,7 +280,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieve_max_num property."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -293,7 +309,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieving tools by query."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -338,7 +356,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test retrieving tools with minimum score filter."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -385,7 +405,9 @@ class TestToolRetriever:
         self, mock_embedding_config_repository, backend_name, get_backend
     ):
         """Test calling retriever as a function."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -421,7 +443,9 @@ class TestToolRetriever:
     @pytest.mark.parametrize("backend_name,get_backend", get_tool_backends)
     def test_to_tool(self, mock_embedding_config_repository, backend_name, get_backend):
         """Test converting retriever to a tool."""
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -452,7 +476,9 @@ class TestToolRetriever:
         recursion when ToolBundle objects were in the results due to circular
         references in Pydantic models.
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -506,7 +532,9 @@ class TestToolRetriever:
 
         Fix: Filter out None values before returning from retrieve_tools_async.
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -568,7 +596,9 @@ class TestToolRetriever:
         When some tools in search results don't have configs, __call__ should
         only return metadata for tools that were successfully loaded.
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()
@@ -623,7 +653,9 @@ class TestToolRetriever:
         Edge case: If all tools in search results don't have configs, should
         return an empty list instead of a list of None values.
         """
-        with patch("fivcplayground.embeddings.create_embedding_db") as mock_create_db:
+        with patch(
+            "fivcplayground.embeddings.create_embedding_db_async"
+        ) as mock_create_db:
             mock_db = Mock()
             mock_embedding_table = Mock()
             mock_embedding_table.cleanup = Mock()

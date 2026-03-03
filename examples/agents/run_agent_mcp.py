@@ -86,7 +86,7 @@ async def main():
 
         # Create a companion agent with all loaded MCP tools
         # The agent will use these tools to fulfill user requests
-        agent = agents.create_agent(agent_config_id="companion")
+        agent = await agents.create_agent_async(agent_config_id="companion")
         print(f"✓ Agent created successfully")
         print(f"  Agent ID: {agent.id}")
         print(f"  Agent Name: {agent.name}")

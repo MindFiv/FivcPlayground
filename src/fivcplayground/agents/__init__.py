@@ -1,5 +1,4 @@
 __all__ = [
-    "create_agent",
     "create_agent_async",
     "AgentRunContent",
     "AgentRunEvent",
@@ -18,8 +17,6 @@ __all__ = [
     "BoundedAgentRunnable",
     "ParameterizedAgentRunnable",
 ]
-
-from typing_extensions import deprecated
 
 from fivcplayground.models import (
     ModelConfigRepository,
@@ -89,30 +86,4 @@ async def create_agent_async(
         model_backend,
         model_config_repository,
         agent_config,
-    )
-
-
-@deprecated("Use create_agent_async instead")
-def create_agent(
-    model_backend: ModelBackend | None = None,
-    model_config_repository: ModelConfigRepository | None = None,
-    agent_backend: AgentBackend | None = None,
-    agent_config_repository: AgentConfigRepository | None = None,
-    agent_config_id: str = "default",
-    raise_exception: bool = True,
-    **kwargs,  # ignore additional kwargs
-) -> AgentRunnable | None:
-    """Create a standard ReAct agent for task execution."""
-    import asyncio
-
-    return asyncio.run(
-        create_agent_async(
-            model_backend=model_backend,
-            model_config_repository=model_config_repository,
-            agent_backend=agent_backend,
-            agent_config_repository=agent_config_repository,
-            agent_config_id=agent_config_id,
-            raise_exception=raise_exception,
-            **kwargs,
-        )
     )

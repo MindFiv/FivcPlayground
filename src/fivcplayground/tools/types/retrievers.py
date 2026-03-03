@@ -1,7 +1,5 @@
 import json
-from typing_extensions import deprecated
 
-from pydantic import BaseModel, Field
 from fivcplayground import embeddings
 from fivcplayground.tools.types.base import (
     Tool,
@@ -57,30 +55,6 @@ class ToolRetriever(object):
     @retrieve_max_num.setter
     def retrieve_max_num(self, value: int):
         self.max_num = value
-
-    @deprecated("Use get_tool_async instead")
-    def get_tool(self, name: str) -> Tool | None:
-        import asyncio
-
-        return asyncio.run(self.get_tool_async(name))
-
-    @deprecated("Use list_tools_async instead")
-    def list_tools(self) -> list[Tool]:
-        import asyncio
-
-        return asyncio.run(self.list_tools_async())
-
-    @deprecated("Use index_tools_async instead")
-    def index_tools(self):
-        import asyncio
-
-        asyncio.run(self.index_tools_async())
-
-    @deprecated("Use retrieve_tools_async instead")
-    def retrieve_tools(self, query: str, **kwargs) -> list[Tool]:
-        import asyncio
-
-        return asyncio.run(self.retrieve_tools_async(query, **kwargs))
 
     async def get_tool_async(self, name: str) -> Tool | None:
         """Get a tool by name (async version)."""
@@ -141,26 +115,27 @@ class ToolRetriever(object):
         tools = await self.retrieve_tools_async(*args, **kwargs)
         return [{"name": t.name, "description": t.description} for t in tools]
 
-    class _ToolSchema(BaseModel):
-        query: str = Field(description="The task to find the best tool for")
-
     def to_tool(self, dummy: bool = False) -> Tool:
         """Convert the retriever to a tool."""
         if dummy:
 
-            async def dummy() -> str:
+            async def _func() -> str:
                 """A dummy tool that does nothing."""
                 return "Hi there! nothing happened."
 
-            return self.tool_backend.create_tool(dummy)
+            return self.tool_backend.create_tool(
+                _func, "dummy_tool", "A dummy tool that does nothing."
+            )
 
         else:
 
-            async def tool_retriever(query: str) -> str:
+            async def _func(query: str) -> str:
                 """Use this tool to retrieve the best tools for a given task"""
                 # Use __call__ to get tool metadata (name and description) instead of
                 # the full BaseTool objects, which can cause infinite recursion when
                 # converting to string due to circular references in Pydantic models
                 return json.dumps(await self.__call__(query))
 
-            return self.tool_backend.create_tool(tool_retriever)
+            return self.tool_backend.create_tool(
+                _func, "tool_retriever", "A tool to retrieve tools."
+            )

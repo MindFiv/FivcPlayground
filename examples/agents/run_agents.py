@@ -30,7 +30,7 @@ async def main():
     from fivcplayground import tools
     from fivcplayground.backends.strands.tools import StrandsToolBackend
 
-    agent = agents.create_agent(agent_config_id="companion")
+    agent = await agents.create_agent_async(agent_config_id="companion")
     tool_retriever = await tools.create_tool_retriever_async(
         tool_backend=StrandsToolBackend()
     )
@@ -39,20 +39,20 @@ async def main():
     print(f"Agent Name: {agent.name}")
     print()
 
-    # Example 1: Synchronous invocation
-    print("Example 1: Synchronous Invocation")
+    # Example 1: Asynchronous invocation
+    print("Example 1: Asynchronous Invocation")
     print("-" * 50)
     query = "What time is it now?"
     print(f"Query: {query}")
-    result = agent.run(
+    result = await agent.run_async(
         query=query,
         tool_retriever=tool_retriever,
     )
     print(f"Result: {result}")
     print()
 
-    # Example 2: Asynchronous invocation
-    print("Example 2: Asynchronous Invocation")
+    # Example 2: Another asynchronous invocation
+    print("Example 2: Another Asynchronous Invocation")
     print("-" * 50)
     query = "Tell me a fun fact about AI"
     print(f"Query: {query}")
@@ -74,7 +74,7 @@ async def main():
 
     for query in queries:
         print(f"Query: {query}")
-        result = agent.run(
+        result = await agent.run_async(
             query=query,
             tool_retriever=tool_retriever,
         )
