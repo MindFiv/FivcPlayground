@@ -1,4 +1,6 @@
+import inspect
 import json
+from typing import Callable, Awaitable
 
 from fivcplayground import embeddings
 from fivcplayground.skills.types.base import SkillConfig
@@ -66,7 +68,12 @@ class SkillRetriever(object):
         skills = await self.retrieve_skills_async(*args, **kwargs)
         return [s.model_dump(mode="json") for s in skills]
 
-    def to_tool(self) -> FunctionToolBundle:
+    def to_tool(
+        self,
+        load_callback: Callable[[SkillConfig], None]
+        | Callable[[SkillConfig], Awaitable[None]]
+        | None = None,
+    ) -> FunctionToolBundle:
         """Convert the retriever to a tool bundle with skill_list and skill_get."""
         assert self.tool_backend
 
@@ -74,19 +81,28 @@ class SkillRetriever(object):
             """List all available skills with their id and description."""
             skills = await self.list_skills_async()
             return json.dumps(
-                [{"id": s.id, "description": s.description} for s in skills]
+                [
+                    s.model_dump(mode="json", include={"id", "description"})
+                    for s in skills
+                ]
             )
 
-        async def skill_get(skill_id: str) -> str:
-            """Get the full details of a skill by its id."""
+        async def skill_load(skill_id: str) -> str:
+            """Load a skill by ID."""
             skill = await self.get_skill_async(skill_id)
             if not skill:
                 return json.dumps({"error": f"Skill '{skill_id}' not found"})
+
+            if load_callback:
+                result = load_callback(skill)
+                if inspect.iscoroutine(result):
+                    await result
+
             return json.dumps(skill.model_dump(mode="json"))
 
         return FunctionToolBundle(
             name="skills",
-            description="Tools for listing and retrieving skills",
+            description="Tools for listing and loading skills",
             tool_backend=self.tool_backend,
-            tool_funcs=[skill_list, skill_get],
+            tool_funcs=[skill_list, skill_load],
         )

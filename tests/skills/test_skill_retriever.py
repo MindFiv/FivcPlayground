@@ -202,10 +202,10 @@ class TestSkillRetrieverToTool:
 
         assert isinstance(bundle, FunctionToolBundle)
         assert bundle.name == "skills"
-        assert bundle.description == "Tools for listing and retrieving skills"
+        assert bundle.description == "Tools for listing and loading skills"
 
-    def test_to_tool_creates_skill_list_and_skill_get(self):
-        """to_tool() creates both skill_list and skill_get tools."""
+    def test_to_tool_creates_skill_list_and_skill_load(self):
+        """to_tool() creates both skill_list and skill_load tools."""
         repo = _make_mock_repo([])
         embedding_db = _make_mock_embedding_db()
         tool_backend = CapturingToolBackend()
@@ -221,7 +221,7 @@ class TestSkillRetrieverToTool:
 
         # FunctionToolBundle should have created tools from the functions
         assert "skill_list" in tool_backend.captured
-        assert "skill_get" in tool_backend.captured
+        assert "skill_load" in tool_backend.captured
 
     @pytest.mark.asyncio
     async def test_skill_list_returns_all_skills(self):
@@ -279,8 +279,8 @@ class TestSkillRetrieverToTool:
         assert data == []
 
     @pytest.mark.asyncio
-    async def test_skill_get_returns_full_skill_details(self):
-        """skill_get tool returns full skill configuration as JSON."""
+    async def test_skill_load_returns_full_skill_details(self):
+        """skill_load tool returns full skill configuration as JSON."""
         skill = SkillConfig(
             id="analyst",
             description="Data analysis skill",
@@ -301,9 +301,9 @@ class TestSkillRetrieverToTool:
         bundle = retriever.to_tool()
         assert bundle
 
-        skill_get_func = tool_backend.captured["skill_get"]
+        skill_load_func = tool_backend.captured["skill_load"]
 
-        result = await skill_get_func("analyst")
+        result = await skill_load_func("analyst")
         data = json.loads(result)
 
         assert data["id"] == "analyst"
@@ -313,8 +313,8 @@ class TestSkillRetrieverToTool:
         assert data["resources"] == {"guide": "https://example.com"}
 
     @pytest.mark.asyncio
-    async def test_skill_get_nonexistent_skill(self):
-        """skill_get returns error JSON for nonexistent skill ID."""
+    async def test_skill_load_nonexistent_skill(self):
+        """skill_load returns error JSON for nonexistent skill ID."""
         repo = _make_mock_repo([])
         embedding_db = _make_mock_embedding_db()
         tool_backend = CapturingToolBackend()
@@ -327,9 +327,9 @@ class TestSkillRetrieverToTool:
 
         bundle = retriever.to_tool()
         assert bundle
-        skill_get_func = tool_backend.captured["skill_get"]
+        skill_load_func = tool_backend.captured["skill_load"]
 
-        result = await skill_get_func("nonexistent")
+        result = await skill_load_func("nonexistent")
         data = json.loads(result)
 
         assert "error" in data

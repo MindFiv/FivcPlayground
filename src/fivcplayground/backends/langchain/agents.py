@@ -141,14 +141,14 @@ class LangchainAgentRunnable(AgentRunnable):
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
                 tool_query=query,
-            ) as tools_expanded,
+            ) as agent_tool_span,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
                 self.id,
             ) as agent_run_session_span,
         ):
-            agent_tools = [t.get_underlying() for t in tools_expanded]
+            agent_tools = [t.get_underlying() for t in agent_tool_span.tools]
             agent = LangchainAgentUnderlying(
                 self._agent_model,
                 agent_tools,

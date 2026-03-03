@@ -172,7 +172,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
                 tool_query=query,
-            ) as tools_expanded,
+            ) as agent_tool_span,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
@@ -182,7 +182,7 @@ class StrandsAgentRunnable(AgentRunnable):
             agent = StrandsAgentUnderlying(
                 name=self.id,
                 model=self._agent_model,
-                tools=[t.get_underlying() for t in tools_expanded],
+                tools=[t.get_underlying() for t in agent_tool_span.tools],
                 system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
             )

@@ -33,7 +33,14 @@ class AgentRunToolSpan:
         self._tool_retriever = tool_retriever
         self._tool_ids = tool_ids
         self._tool_query = tool_query
-        self._tool_bundle_contexts = []
+        self._tool_contexts = []
+        self._tool_loaded = {}
+        self._tool_loaded_expanded = {}
+
+    @property
+    def tools(self) -> List[Tool]:
+        """Get all loaded tools."""
+        return list(self._tool_loaded_expanded.values())
 
     async def get_tools_async(self) -> List[Tool]:
         """Get tools from tool retriever."""
@@ -82,26 +89,40 @@ class AgentRunToolSpan:
 
         return tools
 
-    async def __aenter__(self) -> List[Tool]:
+    async def __aenter__(self) -> "AgentRunToolSpan":
         """Expand tool bundles into individual tools."""
-        tools_expanded = []
         for tool in await self.get_tools_async():
+            if tool.name in self._tool_loaded:
+                continue
+
+            if tool.name in self._tool_loaded_expanded:
+                continue
+
             if isinstance(tool, ToolBundle):
                 tool_context = tool.setup()
                 try:
-                    tools_expanded.extend(await tool_context.__aenter__())
-                    self._tool_bundle_contexts.append(tool_context)
+                    tools_expanded = await tool_context.__aenter__()
+                    self._tool_contexts.append(tool_context)
+                    self._tool_loaded[tool.name] = tool
+                    self._tool_loaded_expanded.update(
+                        {t.name: t for t in tools_expanded}
+                    )
                 except Exception as e:
                     print(f"Failed to setup tool bundle {tool.name}: {e}")
             else:
-                tools_expanded.append(tool)
+                self._tool_loaded[tool.name] = tool
+                self._tool_loaded_expanded[tool.name] = tool
 
-        return tools_expanded
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Exit the context."""
-        for tool_context in self._tool_bundle_contexts:
+        for tool_context in self._tool_contexts:
             await tool_context.__aexit__(exc_type, exc_val, exc_tb)
+
+        self._tool_loaded.clear()
+        self._tool_loaded_expanded.clear()
+        self._tool_contexts.clear()
 
 
 class AgentRunSessionSpan:

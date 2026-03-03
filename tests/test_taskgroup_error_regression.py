@@ -35,7 +35,8 @@ class TestAgentRunToolSpanListFlattening:
         # Create AgentRunToolSpan with the mock tool retriever
         span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
 
-        tools_expanded = await span.__aenter__()
+        tool_span = await span.__aenter__()
+        tools_expanded = tool_span.tools
 
         # Verify the result is properly flattened
         assert len(tools_expanded) == 3, f"Expected 3 tools, got {len(tools_expanded)}"
@@ -86,7 +87,8 @@ class TestAgentRunToolSpanListFlattening:
         # Create AgentRunToolSpan with the mock tool retriever
         span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
 
-        tools_expanded = await span.__aenter__()
+        tool_span = await span.__aenter__()
+        tools_expanded = tool_span.tools
 
         # Verify all tools are flattened
         assert len(tools_expanded) == 3
@@ -119,7 +121,8 @@ class TestAgentRunToolSpanListFlattening:
         # Create AgentRunToolSpan with the mock tool retriever
         span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
 
-        tools_expanded = await span.__aenter__()
+        tool_span = await span.__aenter__()
+        tools_expanded = tool_span.tools
 
         # Should have only the regular tool
         assert len(tools_expanded) == 1
