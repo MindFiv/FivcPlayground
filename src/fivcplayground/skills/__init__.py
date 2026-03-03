@@ -1,23 +1,16 @@
 __all__ = [
     "create_skill_retriever_async",
-    "create_skill_tools_async",
     "SkillRetriever",
     "SkillConfig",
     "SkillConfigRepository",
 ]
-
-import json
 
 from fivcplayground.embeddings import (
     EmbeddingBackend,
     EmbeddingConfigRepository,
     create_embedding_db_async,
 )
-from fivcplayground.tools.types import (
-    FunctionToolBundle,
-    ToolBackend,
-    ToolBundle,
-)
+from fivcplayground.tools.types import ToolBackend
 
 from .types import SkillConfig, SkillConfigRepository, SkillRetriever
 
@@ -59,40 +52,4 @@ async def create_skill_retriever_async(
         skill_config_repository=skill_config_repository,
         embedding_db=embedding_db,
         tool_backend=tool_backend,
-    )
-
-
-async def create_skill_tools_async(
-    skill_retriever: SkillRetriever,
-    tool_backend: ToolBackend,
-    raise_exception: bool = True,
-) -> ToolBundle | None:
-    """Create a FunctionToolBundle that exposes skill_find and skill_execute as agent tools."""
-
-    async def skill_find(query: str) -> str:
-        """Find skills relevant to a task using semantic search.
-        Returns a JSON list of matching skills with their id and description."""
-        skills = await skill_retriever.retrieve_skills_async(query)
-        return json.dumps([{"id": s.id, "description": s.description} for s in skills])
-
-    async def skill_execute(skill_id: str) -> str:
-        """Execute a skill by ID. Returns its instructions, suggested tool IDs,
-        and any reference resources as JSON."""
-        skill = await skill_retriever.get_skill_async(skill_id)
-        if not skill:
-            return json.dumps({"error": f"Skill '{skill_id}' not found"})
-        result: dict = {"id": skill.id}
-        if skill.instructions:
-            result["instructions"] = skill.instructions
-        if skill.tool_ids:
-            result["suggested_tool_ids"] = skill.tool_ids
-        if skill.resources:
-            result["resources"] = skill.resources
-        return json.dumps(result)
-
-    return FunctionToolBundle(
-        name="skills",
-        description="Tools for discovering and applying agent skills",
-        tool_backend=tool_backend,
-        tool_funcs=[skill_find, skill_execute],
     )
