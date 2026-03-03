@@ -26,11 +26,6 @@ class BoundedAgentRunnable(AgentRunnable):
     def description(self) -> str:
         return self._runnable.description
 
-    def run(self, **kwargs) -> BaseModel:
-        for k, v in self._kwargs.items():
-            kwargs.setdefault(k, v)
-        return self._runnable.run(**kwargs)
-
     async def run_async(self, **kwargs) -> BaseModel:
         for k, v in self._kwargs.items():
             kwargs.setdefault(k, v)
@@ -60,14 +55,6 @@ class ParameterizedAgentRunnable(AgentRunnable):
     @property
     def description(self) -> str:
         return self._runnable.description
-
-    def run(
-        self, query: str = "", query_params: dict[str, str] | None = None, **kwargs
-    ) -> BaseModel:
-        query_params = query_params or {}
-        query_params["query"] = query
-        kwargs["query"] = self._query_format.format(**query_params)
-        return self._runnable.run(**kwargs)
 
     async def run_async(
         self, query: str = "", query_params: dict[str, str] | None = None, **kwargs

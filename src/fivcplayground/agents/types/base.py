@@ -12,6 +12,7 @@ from pydantic import (
 )
 
 from fivcplayground.models import ModelBackend, ModelConfigRepository
+from fivcplayground.skills import SkillRetriever
 from fivcplayground.tools import ToolRetriever
 
 
@@ -253,20 +254,6 @@ class AgentRunnable(ABC):
         """Description of the agent runnable"""
 
     @abstractmethod
-    def run(
-        self,
-        query: str | AgentRunContent = "",
-        # agent_run_repository: 'AgentRunRepository' | None = None,
-        # agent_run_session_id: str | None = None,
-        tool_retriever: ToolRetriever | None = None,
-        tool_ids: List[str] | None = None,
-        response_model: Type[BaseModel] | None = None,
-        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
-        **kwargs,  # ignore additional kwargs
-    ) -> BaseModel:
-        """Synchronous execution of agent"""
-
-    @abstractmethod
     async def run_async(
         self,
         query: str | AgentRunContent = "",
@@ -274,6 +261,7 @@ class AgentRunnable(ABC):
         # agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
+        skill_retriever: SkillRetriever | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs

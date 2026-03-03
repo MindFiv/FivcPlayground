@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from typing import Callable, List, Type, cast
 from warnings import warn
@@ -36,6 +35,7 @@ from fivcplayground.models import (
     ModelConfigRepository,
     create_model_async,
 )
+from fivcplayground.skills import SkillRetriever
 from fivcplayground.tools import ToolRetriever
 
 
@@ -114,30 +114,6 @@ class StrandsAgentRunnable(AgentRunnable):
     def description(self) -> str:
         return self._agent_config.description
 
-    def run(
-        self,
-        query: str | AgentRunContent = "",
-        agent_run_repository: AgentRunRepository | None = None,
-        agent_run_session_id: str | None = None,
-        tool_retriever: ToolRetriever | None = None,
-        tool_ids: List[str] | None = None,
-        response_model: Type[BaseModel] | None = None,
-        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
-        **kwargs,  # ignore additional kwargs
-    ) -> BaseModel:
-        return asyncio.run(
-            self.run_async(
-                query,
-                agent_run_repository=agent_run_repository,
-                agent_run_session_id=agent_run_session_id,
-                tool_retriever=tool_retriever,
-                tool_ids=tool_ids,
-                response_model=response_model,
-                event_callback=event_callback,
-                **kwargs,
-            )
-        )
-
     async def run_async(
         self,
         query: str | AgentRunContent = "",
@@ -146,6 +122,7 @@ class StrandsAgentRunnable(AgentRunnable):
         tool_verifier: AgentRunnable | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
+        skill_retriever: SkillRetriever | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
@@ -160,6 +137,7 @@ class StrandsAgentRunnable(AgentRunnable):
             tool_verifier: Optional agent for tool selection verification
             tool_retriever: Tool retrieval system for semantic tool search
             tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
+            skill_retriever: Optional skill retriever for dynamic tool injection
             response_model: Structured output model (overrides config)
             event_callback: Callback for execution events
             **kwargs: Additional arguments (ignored)
