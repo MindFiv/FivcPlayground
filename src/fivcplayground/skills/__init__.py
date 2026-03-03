@@ -29,6 +29,7 @@ async def create_skill_retriever_async(
     embedding_config_id: str = "default",
     space_id: str | None = None,
     raise_exception: bool = True,
+    tool_backend: ToolBackend | None = None,
     **kwargs,  # ignore additional kwargs
 ) -> SkillRetriever | None:
     """Create a SkillRetriever with semantic search capability."""
@@ -57,6 +58,7 @@ async def create_skill_retriever_async(
     return SkillRetriever(
         skill_config_repository=skill_config_repository,
         embedding_db=embedding_db,
+        tool_backend=tool_backend,
     )
 
 

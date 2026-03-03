@@ -1,6 +1,10 @@
+import json
+
 from fivcplayground import embeddings
 from fivcplayground.skills.types.base import SkillConfig
 from fivcplayground.skills.types.repositories.base import SkillConfigRepository
+from fivcplayground.tools.types.base import ToolBackend
+from fivcplayground.tools.types.bundles import FunctionToolBundle
 
 
 class SkillRetriever(object):
@@ -10,6 +14,7 @@ class SkillRetriever(object):
         self,
         skill_config_repository: SkillConfigRepository | None = None,
         embedding_db: embeddings.EmbeddingDB | None = None,
+        tool_backend: ToolBackend | None = None,
         **kwargs,  # ignore additional kwargs
     ):
         assert skill_config_repository
@@ -20,6 +25,7 @@ class SkillRetriever(object):
 
         self.skill_config_repository = skill_config_repository
         self.skill_indices = embedding_db.skills
+        self.tool_backend = tool_backend
 
     async def get_skill_async(self, skill_id: str) -> SkillConfig | None:
         """Get a skill by ID."""
@@ -57,5 +63,30 @@ class SkillRetriever(object):
         return [s for s in skills if s is not None]
 
     async def __call__(self, *args, **kwargs) -> list[dict]:
-        tools = await self.retrieve_skills_async(*args, **kwargs)
-        return [{"name": t.id, "description": t.description} for t in tools]
+        skills = await self.retrieve_skills_async(*args, **kwargs)
+        return [s.model_dump(mode="json") for s in skills]
+
+    def to_tool(self) -> FunctionToolBundle:
+        """Convert the retriever to a tool bundle with skill_list and skill_get."""
+        assert self.tool_backend
+
+        async def skill_list() -> str:
+            """List all available skills with their id and description."""
+            skills = await self.list_skills_async()
+            return json.dumps(
+                [{"id": s.id, "description": s.description} for s in skills]
+            )
+
+        async def skill_get(skill_id: str) -> str:
+            """Get the full details of a skill by its id."""
+            skill = await self.get_skill_async(skill_id)
+            if not skill:
+                return json.dumps({"error": f"Skill '{skill_id}' not found"})
+            return json.dumps(skill.model_dump(mode="json"))
+
+        return FunctionToolBundle(
+            name="skills",
+            description="Tools for listing and retrieving skills",
+            tool_backend=self.tool_backend,
+            tool_funcs=[skill_list, skill_get],
+        )

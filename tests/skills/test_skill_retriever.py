@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Tests for SkillRetriever."""
 
+import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fivcplayground.skills.types.base import SkillConfig
 from fivcplayground.skills.types.retrievers import SkillRetriever
+from fivcplayground.tools.types.bundles import FunctionToolBundle
 
 
 def _make_mock_embedding_db():
@@ -28,6 +30,21 @@ def _make_mock_repo(skills: list[SkillConfig]):
         side_effect=lambda sid: next((s for s in skills if s.id == sid), None)
     )
     return repo
+
+
+class CapturingToolBackend:
+    """Mock ToolBackend that captures functions passed to create_tool."""
+
+    def __init__(self):
+        self.captured: dict[str, object] = {}
+
+    def create_tool(self, func, tool_name=None, tool_description=None):
+        name = tool_name or func.__name__
+        self.captured[name] = func
+        return MagicMock()
+
+    def create_tool_bundle(self, config):
+        return MagicMock()
 
 
 class TestSkillRetriever:
@@ -164,3 +181,156 @@ class TestSkillRetriever:
 
         results = await retriever.retrieve_skills_async("anything")
         assert results == []
+
+
+class TestSkillRetrieverToTool:
+    """Tests for SkillRetriever.to_tool() method."""
+
+    def test_to_tool_returns_function_tool_bundle(self):
+        """to_tool() returns a FunctionToolBundle named 'skills'."""
+        repo = _make_mock_repo([])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+
+        assert isinstance(bundle, FunctionToolBundle)
+        assert bundle.name == "skills"
+        assert bundle.description == "Tools for listing and retrieving skills"
+
+    def test_to_tool_creates_skill_list_and_skill_get(self):
+        """to_tool() creates both skill_list and skill_get tools."""
+        repo = _make_mock_repo([])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+        assert bundle
+
+        # FunctionToolBundle should have created tools from the functions
+        assert "skill_list" in tool_backend.captured
+        assert "skill_get" in tool_backend.captured
+
+    @pytest.mark.asyncio
+    async def test_skill_list_returns_all_skills(self):
+        """skill_list tool returns JSON list of all skills with id and description."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert data[0]["id"] == "analyst"
+        assert data[0]["description"] == "Data analysis skill"
+        assert data[1]["id"] == "researcher"
+        assert data[1]["description"] == "Research skill"
+
+    @pytest.mark.asyncio
+    async def test_skill_list_empty_repository(self):
+        """skill_list returns empty JSON list when no skills exist."""
+        repo = _make_mock_repo([])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert data == []
+
+    @pytest.mark.asyncio
+    async def test_skill_get_returns_full_skill_details(self):
+        """skill_get tool returns full skill configuration as JSON."""
+        skill = SkillConfig(
+            id="analyst",
+            description="Data analysis skill",
+            instructions="Analyze data carefully.",
+            tool_ids=["calculator", "filesystem"],
+            resources={"guide": "https://example.com"},
+        )
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+        assert bundle
+
+        skill_get_func = tool_backend.captured["skill_get"]
+
+        result = await skill_get_func("analyst")
+        data = json.loads(result)
+
+        assert data["id"] == "analyst"
+        assert data["description"] == "Data analysis skill"
+        assert data["instructions"] == "Analyze data carefully."
+        assert set(data["tool_ids"]) == {"calculator", "filesystem"}
+        assert data["resources"] == {"guide": "https://example.com"}
+
+    @pytest.mark.asyncio
+    async def test_skill_get_nonexistent_skill(self):
+        """skill_get returns error JSON for nonexistent skill ID."""
+        repo = _make_mock_repo([])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool()
+        assert bundle
+        skill_get_func = tool_backend.captured["skill_get"]
+
+        result = await skill_get_func("nonexistent")
+        data = json.loads(result)
+
+        assert "error" in data
+        assert "nonexistent" in data["error"]
