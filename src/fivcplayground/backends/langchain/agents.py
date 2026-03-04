@@ -88,7 +88,6 @@ class LangchainAgentRunnable(AgentRunnable):
         query: str | AgentRunContent = "",
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
-        tool_verifier: AgentRunnable | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
@@ -103,7 +102,6 @@ class LangchainAgentRunnable(AgentRunnable):
             query: User query string or AgentRunContent object
             agent_run_repository: Repository for persisting agent runs
             agent_run_session_id: Session ID for conversation context
-            tool_verifier: Optional agent for tool selection verification
             tool_retriever: Tool retrieval system for semantic tool search
             tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
             skill_retriever: Optional skill retriever for dynamic tool injection
@@ -137,10 +135,8 @@ class LangchainAgentRunnable(AgentRunnable):
 
         async with (
             AgentRunToolSpan(
-                tool_verifier=tool_verifier,
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
-                tool_query=query,
             ) as agent_tool_span,
             AgentRunSessionSpan(
                 agent_run_repository,
@@ -149,6 +145,19 @@ class LangchainAgentRunnable(AgentRunnable):
             ) as agent_run_session_span,
         ):
             agent_tools = [t.get_underlying() for t in agent_tool_span.tools]
+
+            # Register skill tools via callback if skill_retriever provided
+            if skill_retriever:
+                async def _extend_tools(skill):
+                    """Callback to dynamically load skill tools."""
+                    for tool_id in skill.tool_ids or []:
+                        # Load tools into span for potential future use
+                        await agent_tool_span.register_tool_async(tool_id)
+
+                # Add skill tool to the agent's tools
+                skill_tool = skill_retriever.to_tool(load_callback=_extend_tools)
+                agent_tools.append(skill_tool.get_underlying())
+
             agent = LangchainAgentUnderlying(
                 self._agent_model,
                 agent_tools,

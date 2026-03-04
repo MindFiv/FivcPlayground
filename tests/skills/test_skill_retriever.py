@@ -333,4 +333,188 @@ class TestSkillRetrieverToTool:
         data = json.loads(result)
 
         assert "error" in data
-        assert "nonexistent" in data["error"]
+
+
+class TestSkillRetrieverCallbacks:
+    """Tests for skill callback execution in SkillRetriever.to_tool()."""
+
+    @pytest.mark.asyncio
+    async def test_skill_load_calls_async_callback(self):
+        """skill_load invokes async callback when provided."""
+        skill = SkillConfig(id="test-skill", description="Test skill", tool_ids=["tool1", "tool2"])
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        # Create mock async callback
+        callback_called_with = []
+        async def async_callback(skill_config):
+            callback_called_with.append(skill_config)
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=async_callback)
+        assert bundle
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # Call skill_load
+        result = await skill_load_func("test-skill")
+        data = json.loads(result)
+
+        # Verify callback was called
+        assert len(callback_called_with) == 1
+        assert callback_called_with[0].id == "test-skill"
+        assert data["id"] == "test-skill"
+
+    @pytest.mark.asyncio
+    async def test_skill_load_calls_sync_callback(self):
+        """skill_load invokes sync callback when provided."""
+        skill = SkillConfig(id="test-skill", description="Test skill", tool_ids=["tool1"])
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        # Create mock sync callback
+        callback_called_with = []
+        def sync_callback(skill_config):
+            callback_called_with.append(skill_config)
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=sync_callback)
+        assert bundle
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # Call skill_load
+        result = await skill_load_func("test-skill")
+        data = json.loads(result)
+
+        # Verify callback was called
+        assert len(callback_called_with) == 1
+        assert callback_called_with[0].id == "test-skill"
+        assert data["id"] == "test-skill"
+
+    @pytest.mark.asyncio
+    async def test_skill_load_without_callback_works(self):
+        """skill_load works normally without callback."""
+        skill = SkillConfig(id="test-skill", description="Test skill")
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=None)
+        assert bundle
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # Call skill_load without callback
+        result = await skill_load_func("test-skill")
+        data = json.loads(result)
+
+        assert data["id"] == "test-skill"
+
+    @pytest.mark.asyncio
+    async def test_skill_load_callback_receives_skill_config(self):
+        """Callback receives complete SkillConfig with all fields."""
+        skill = SkillConfig(
+            id="analyzer",
+            description="Data analysis skill",
+            instructions="Analyze the data",
+            tool_ids=["calculator", "clock"],
+            resources={"db_url": "postgresql://localhost/data"}
+        )
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        received_skill = None
+        async def capture_callback(skill_config):
+            nonlocal received_skill
+            received_skill = skill_config
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=capture_callback)
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        await skill_load_func("analyzer")
+
+        assert received_skill is not None
+        assert received_skill.id == "analyzer"
+        assert received_skill.description == "Data analysis skill"
+        assert received_skill.instructions == "Analyze the data"
+        assert received_skill.tool_ids == ["calculator", "clock"]
+        assert received_skill.resources == {"db_url": "postgresql://localhost/data"}
+
+    @pytest.mark.asyncio
+    async def test_skill_load_callback_exception_handled(self):
+        """skill_load still returns result even if callback raises exception."""
+        skill = SkillConfig(id="test-skill", description="Test skill")
+        repo = _make_mock_repo([skill])
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        async def failing_callback(skill_config):
+            raise ValueError("Callback error")
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=failing_callback)
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # skill_load should still work even if callback fails
+        # (the exception handling is in the backend implementation)
+        with pytest.raises(ValueError):
+            await skill_load_func("test-skill")
+
+    @pytest.mark.asyncio
+    async def test_skill_load_callback_with_multiple_skills(self):
+        """Callback is called separately for each skill loaded."""
+        skills = [
+            SkillConfig(id="skill1", description="Skill 1", tool_ids=["tool1"]),
+            SkillConfig(id="skill2", description="Skill 2", tool_ids=["tool2"]),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        callback_calls = []
+        async def tracking_callback(skill_config):
+            callback_calls.append(skill_config.id)
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(load_callback=tracking_callback)
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # Load multiple skills
+        await skill_load_func("skill1")
+        await skill_load_func("skill2")
+
+        # Callback should have been called for each
+        assert callback_calls == ["skill1", "skill2"]

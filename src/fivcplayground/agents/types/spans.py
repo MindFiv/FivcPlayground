@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import List
 
@@ -10,29 +9,26 @@ from fivcplayground.tools import (
 
 from .base import (
     AgentRun,
-    AgentRunContent,
-    AgentRunnable,
     AgentRunSession,
-    AgentRunToolSet,
 )
 from .repositories import AgentRunRepository
 
 
 class AgentRunToolSpan:
-    """Context manager for setup tool context."""
+    """Context manager for dynamic tool setup and lifecycle management.
+
+    Handles tool retrieval, registration, expansion of tool bundles, and cleanup.
+    Supports dynamic tool registration via callback pattern for skills.
+    """
 
     def __init__(
         self,
-        tool_verifier: AgentRunnable | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
-        tool_query: AgentRunContent | None = None,
         **kwargs,  # ignore additional kwargs
     ):
-        self._tool_verifier = tool_verifier
         self._tool_retriever = tool_retriever
         self._tool_ids = tool_ids
-        self._tool_query = tool_query
         self._tool_contexts = []
         self._tool_loaded = {}
         self._tool_loaded_expanded = {}
@@ -44,75 +40,77 @@ class AgentRunToolSpan:
 
     async def get_tools_async(self) -> List[Tool]:
         """Get tools from tool retriever."""
-
-        tools = []
         if not self._tool_retriever:
-            return tools
+            return []
 
         if self._tool_ids:
             tools = [
                 await self._tool_retriever.get_tool_async(name)
                 for name in self._tool_ids
             ]
-
-        elif self._tool_query:
-            tools = await self._tool_retriever.retrieve_tools_async(
-                self._tool_query.text
-            )
-            if self._tool_verifier:
-                toolbox = await self._tool_verifier.run_async(
-                    query=self._tool_query,
-                    query_params={
-                        "tools": json.dumps(
-                            [
-                                {"name": t.name, "description": t.description}
-                                for t in tools
-                            ]
-                        )
-                    },
-                    tool_retriever=self._tool_retriever,
-                    tool_ids=["tool_retriever"],
-                    response_model=AgentRunToolSet,
-                )
-                tools = [
-                    await self._tool_retriever.get_tool_async(name)
-                    for name in toolbox.tool_ids
-                ]
         else:
-            # No tool_ids or tool_query specified, use list_tools_async to get all available tools
             tools = await self._tool_retriever.list_tools_async()
-
         tools = [t for t in tools if t is not None]
-
         if not tools:
             tools = [self._tool_retriever.to_tool(dummy=True)]
-
         return tools
+
+    async def register_tool_async(self, tool: Tool | str) -> list[Tool]:
+        """Register a tool or tool bundle dynamically.
+
+        Args:
+            tool: Tool object or tool_id string to register
+
+        Returns:
+            List of expanded tools (for bundles, returns individual tools; for regular tools, returns [tool])
+            Returns empty list if tool already registered (deduplication) or not found
+
+        Behavior:
+            - Handles Tool objects directly
+            - Looks up tool_id strings via tool_retriever if provided
+            - Expands ToolBundles into individual tools via setup()
+            - Deduplicates across _tool_loaded_expanded
+            - Stores bundle contexts for cleanup on exit
+        """
+        if isinstance(tool, str):
+            if tool in self._tool_loaded or tool in self._tool_loaded_expanded:
+                return []
+
+            if not self._tool_retriever:
+                return []
+
+            tool = await self._tool_retriever.get_tool_async(tool)
+            if tool is None:
+                return []
+
+        elif tool.name in self._tool_loaded or tool.name in self._tool_loaded_expanded:
+            return []
+
+        if isinstance(tool, ToolBundle):
+            tool_context = tool.setup()
+            try:
+                tools_expanded = await tool_context.__aenter__()
+                tools_expanded = [
+                    t
+                    for t in tools_expanded
+                    if t.name not in self._tool_loaded_expanded
+                ]
+                self._tool_contexts.append(tool_context)
+                self._tool_loaded[tool.name] = tool
+                self._tool_loaded_expanded.update({t.name: t for t in tools_expanded})
+                return tools_expanded
+            except Exception as e:
+                print(f"Failed to setup tool bundle {tool.name}: {e}")
+                return []
+        else:
+            self._tool_loaded[tool.name] = tool
+            self._tool_loaded_expanded[tool.name] = tool
+            return [tool]
 
     async def __aenter__(self) -> "AgentRunToolSpan":
         """Expand tool bundles into individual tools."""
         for tool in await self.get_tools_async():
-            if tool.name in self._tool_loaded:
-                continue
-
-            if tool.name in self._tool_loaded_expanded:
-                continue
-
-            if isinstance(tool, ToolBundle):
-                tool_context = tool.setup()
-                try:
-                    tools_expanded = await tool_context.__aenter__()
-                    self._tool_contexts.append(tool_context)
-                    self._tool_loaded[tool.name] = tool
-                    self._tool_loaded_expanded.update(
-                        {t.name: t for t in tools_expanded}
-                    )
-                except Exception as e:
-                    print(f"Failed to setup tool bundle {tool.name}: {e}")
-            else:
-                self._tool_loaded[tool.name] = tool
-                self._tool_loaded_expanded[tool.name] = tool
-
+            await self.register_tool_async(tool)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

@@ -337,7 +337,74 @@ Async tests are marked with `@pytest.mark.asyncio` decorator.
 
 Use `make install` to install everything. To switch backends, edit `~/.fivcplayground/configs/settings.yaml` and set `backend: "langchain"` instead of the default `"strands"`.
 
-## Common Development Tasks
+## Skills & Dynamic Tool Loading
+
+Skills enable agents to load specialized tools dynamically at runtime based on the skill being executed. This pattern allows agents to request relevant tools only when needed.
+
+### Skill Configuration
+
+Skills are defined in `~/.fivcplayground/configs/skills.yaml`:
+```yaml
+skills:
+  data-analyzer:
+    description: "Analyzes data with statistical tools"
+    instructions: "Use calculator and clock to analyze time series"
+    tool_ids: ["calculator", "clock"]
+    resources:
+      timeout: "300"
+      memory_limit: "512MB"
+```
+
+### Dynamic Tool Loading with Callbacks
+
+The skill retrieval system uses a callback pattern for dynamic tool loading:
+
+1. **Callback Type**: `LoadCallback = Callable[[SkillConfig], None] | Callable[[SkillConfig], Awaitable[None]]`
+
+2. **Strands Backend Pattern**:
+```python
+async def _extend_tools(skill: SkillConfig):
+    """Callback to dynamically load skill tools."""
+    for tool_id in skill.tool_ids or []:
+        for tool in await agent_tool_span.register_tool_async(tool_id):
+            agent.tool_registry.register_dynamic_tool(tool)
+
+# Register skill tool with callback
+agent.tool_registry.register_tool(
+    skill_retriever.to_tool(load_callback=_extend_tools)
+)
+```
+
+3. **LangChain Backend Pattern**:
+```python
+async def _extend_tools(skill: SkillConfig):
+    """Callback to pre-load skill tools."""
+    for tool_id in skill.tool_ids or []:
+        await agent_tool_span.register_tool_async(tool_id)
+
+# Add skill tool with callback to agent's tool list
+agent_tools.append(
+    skill_retriever.to_tool(load_callback=_extend_tools).get_underlying()
+)
+```
+
+### Runtime Tool Registration
+
+The `AgentRunToolSpan.register_tool_async()` method handles dynamic tool registration:
+
+- **Registers individual tools** or expands `ToolBundle` instances
+- **Handles deduplication** across multiple registrations
+- **Returns expanded tools** (for bundles, returns individual tools)
+- **Accepts Tool objects or tool_id strings** (when `tool_retriever` is available)
+
+### Implementation Details
+
+- Tools are registered in `_tool_loaded_expanded` dict for deduplication
+- ToolBundles are set up and stored in `_tool_contexts` for cleanup
+- Context manager exit automatically cleans up all registered tools and contexts
+- Both Strands and LangChain backends support the callback pattern
+
+### Common Development Tasks
 
 ### Adding a New Tool
 1. Define tool configuration in `~/.fivcplayground/configs/tools.yaml`
@@ -350,6 +417,27 @@ Use `make install` to install everything. To switch backends, edit `~/.fivcplayg
 2. Reference model_id and tools
 3. Use `fivcplayground run <AgentName>` to execute
 4. Custom system prompt in agent config
+
+### Adding a New Skill
+1. Define skill configuration in `~/.fivcplayground/configs/skills.yaml`
+2. Specify `id`, `description`, `instructions`, and `tool_ids` (array of tool IDs)
+3. Optional: add `resources` dictionary for resource constraints/metadata
+4. SkillRetriever automatically indexes new skills for semantic search
+5. When agent loads a skill, the callback dynamically registers specified tools:
+   - Callback invoked with SkillConfig when skill is executed
+   - Registers each tool_id via `AgentRunToolSpan.register_tool_async()`
+   - Tools become available to agent for rest of execution
+   - Deduplication prevents duplicate tool registration across multiple skills
+
+Example:
+```yaml
+data-analyzer:
+  description: "Analyzes data with statistical tools"
+  instructions: "Use calculator and file tools to analyze data"
+  tool_ids: ["calculator", "filesystem"]
+  resources:
+    timeout: "300"
+```
 
 ### Switching Backends
 1. Edit `~/.fivcplayground/configs/settings.yaml`

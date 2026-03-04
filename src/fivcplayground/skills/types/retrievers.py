@@ -3,10 +3,9 @@ import json
 from typing import Callable, Awaitable
 
 from fivcplayground import embeddings
-from fivcplayground.skills.types.base import SkillConfig
-from fivcplayground.skills.types.repositories.base import SkillConfigRepository
-from fivcplayground.tools.types.base import ToolBackend
-from fivcplayground.tools.types.bundles import FunctionToolBundle
+from fivcplayground.skills.types import SkillConfig, SkillConfigRepository
+from fivcplayground.tools import ToolBackend
+from fivcplayground.tools.types import FunctionToolBundle
 
 
 class SkillRetriever(object):
@@ -21,6 +20,7 @@ class SkillRetriever(object):
     ):
         assert skill_config_repository
         assert embedding_db
+        # assert tool_backend
 
         self.max_num = 3
         self.min_sim = 0.3
@@ -68,13 +68,35 @@ class SkillRetriever(object):
         skills = await self.retrieve_skills_async(*args, **kwargs)
         return [s.model_dump(mode="json") for s in skills]
 
+    LoadCallback = (
+        Callable[[SkillConfig], None] | Callable[[SkillConfig], Awaitable[None]]
+    )
+
     def to_tool(
         self,
-        load_callback: Callable[[SkillConfig], None]
-        | Callable[[SkillConfig], Awaitable[None]]
-        | None = None,
+        load_callback: LoadCallback | None = None,
     ) -> FunctionToolBundle:
-        """Convert the retriever to a tool bundle with skill_list and skill_get."""
+        """Convert the retriever to a tool bundle with skill_list and skill_load.
+
+        Args:
+            load_callback: Optional callback invoked when a skill is loaded.
+                Callback receives SkillConfig and can be sync or async.
+                Used for dynamic tool registration: callback calls
+                agent_tool_span.register_tool_async() for skill.tool_ids
+
+        Returns:
+            FunctionToolBundle with two functions:
+            - skill_list() → JSON list of {id, description}
+            - skill_load(skill_id) → JSON with full skill details, triggers callback if provided
+
+        Example:
+            async def _extend_tools(skill: SkillConfig):
+                for tool_id in skill.tool_ids or []:
+                    for tool in await agent_tool_span.register_tool_async(tool_id):
+                        agent.tool_registry.register_dynamic_tool(tool)
+
+            bundle = skill_retriever.to_tool(load_callback=_extend_tools)
+        """
         assert self.tool_backend
 
         async def skill_list() -> str:

@@ -35,7 +35,7 @@ from fivcplayground.models import (
     ModelConfigRepository,
     create_model_async,
 )
-from fivcplayground.skills import SkillRetriever
+from fivcplayground.skills import SkillConfig, SkillRetriever
 from fivcplayground.tools import ToolRetriever
 
 
@@ -119,7 +119,6 @@ class StrandsAgentRunnable(AgentRunnable):
         query: str | AgentRunContent = "",
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
-        tool_verifier: AgentRunnable | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
@@ -134,7 +133,6 @@ class StrandsAgentRunnable(AgentRunnable):
             query: User query string or AgentRunContent object
             agent_run_repository: Repository for persisting agent runs
             agent_run_session_id: Session ID for conversation context
-            tool_verifier: Optional agent for tool selection verification
             tool_retriever: Tool retrieval system for semantic tool search
             tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
             skill_retriever: Optional skill retriever for dynamic tool injection
@@ -168,10 +166,8 @@ class StrandsAgentRunnable(AgentRunnable):
 
         async with (
             AgentRunToolSpan(
-                tool_verifier=tool_verifier,
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
-                tool_query=query,
             ) as agent_tool_span,
             AgentRunSessionSpan(
                 agent_run_repository,
@@ -186,6 +182,20 @@ class StrandsAgentRunnable(AgentRunnable):
                 system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
             )
+            if skill_retriever:
+
+                async def _extend_tools(skill: SkillConfig):
+                    for tool_id in skill.tool_ids or []:
+                        for t in await agent_tool_span.register_tool_async(tool_id):
+                            agent.tool_registry.register_dynamic_tool(t.get_underlying())
+
+                agent_skill_tools = await agent_tool_span.register_tool_async(
+                    skill_retriever.to_tool(load_callback=_extend_tools)
+                )
+                for tool in agent_skill_tools:
+                    agent.tool_registry.register_tool(tool.get_underlying())
+
+            # Create agent run
             agent_run = AgentRun(
                 agent_id=self.id,
                 status=AgentRunStatus.EXECUTING,
