@@ -1,0 +1,26 @@
+# Example skill configuration
+#
+# Skills allow agents to load specialized tools and instructions dynamically.
+# Each skill has a unique id, description, and optional instructions, tools, and resources.
+#
+# Fields:
+#   id (required)           - Unique skill identifier
+#   description (required)  - Human-readable description for semantic discovery
+#   instructions (optional) - Instructions injected into agent context
+#   tool_ids (optional)     - Array of tool IDs to merge into agent tool set
+#   resources (optional)    - Dictionary of reference materials (name -> markdown content)
+#
+
+# General-purpose utility skill for common tasks
+general-utility:
+  id: "general-utility"
+  description: "Handles everyday tasks like checking time, performing calculations, and accessing file system"
+  instructions: |
+    This skill provides general-purpose utilities for common operations:
+    - Use the clock tool to get current date, time, or perform time-related queries
+    - Use the calculator tool for arithmetic and mathematical operations
+    - Use the filesystem tool to read files, list directories, and explore the file system
+
+    Combine these tools to solve practical problems efficiently.
+  tool_ids:
+    - "auxiliary"
