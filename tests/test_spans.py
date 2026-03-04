@@ -208,4 +208,3 @@ class TestRegisterToolAsync:
         names = [t.name for t in tools]
         expected = [f"tool_{i}" for i in range(5)]
         assert names == expected
-

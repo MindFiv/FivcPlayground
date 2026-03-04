@@ -65,10 +65,7 @@ class TestSkillDynamicToolLoadingIntegration:
         clock_tool.name = "clock"
 
         mock_tool_retriever.get_tool_async = AsyncMock(
-            side_effect=lambda name: {
-                "calc": calc_tool,
-                "clock": clock_tool
-            }.get(name)
+            side_effect=lambda name: {"calc": calc_tool, "clock": clock_tool}.get(name)
         )
 
         span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
@@ -128,11 +125,7 @@ class TestSkillDynamicToolLoadingIntegration:
     async def test_callback_integration_pattern(self):
         """Test the full callback integration pattern."""
         # Setup
-        skill = SkillConfig(
-            id="test-skill",
-            description="Test",
-            tool_ids=["t1", "t2"]
-        )
+        skill = SkillConfig(id="test-skill", description="Test", tool_ids=["t1", "t2"])
 
         mock_tool_retriever = AsyncMock()
         t1 = Mock()
@@ -178,8 +171,12 @@ class TestSkillDynamicToolLoadingIntegration:
     async def test_callback_with_all_patterns_combined(self):
         """Test complete callback flow with all patterns combined."""
         # Multiple skills, some with overlapping tools
-        skill_a = SkillConfig(id="skill-a", description="A", tool_ids=["common", "unique_a"])
-        skill_b = SkillConfig(id="skill-b", description="B", tool_ids=["common", "unique_b"])
+        skill_a = SkillConfig(
+            id="skill-a", description="A", tool_ids=["common", "unique_a"]
+        )
+        skill_b = SkillConfig(
+            id="skill-b", description="B", tool_ids=["common", "unique_b"]
+        )
 
         mock_tool_retriever = AsyncMock()
         common = Mock()

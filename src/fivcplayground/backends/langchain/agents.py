@@ -148,6 +148,7 @@ class LangchainAgentRunnable(AgentRunnable):
 
             # Register skill tools via callback if skill_retriever provided
             if skill_retriever:
+
                 async def _extend_tools(skill):
                     """Callback to dynamically load skill tools."""
                     for tool_id in skill.tool_ids or []:

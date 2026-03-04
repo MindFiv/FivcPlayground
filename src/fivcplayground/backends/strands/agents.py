@@ -187,7 +187,9 @@ class StrandsAgentRunnable(AgentRunnable):
                 async def _extend_tools(skill: SkillConfig):
                     for tool_id in skill.tool_ids or []:
                         for t in await agent_tool_span.register_tool_async(tool_id):
-                            agent.tool_registry.register_dynamic_tool(t.get_underlying())
+                            agent.tool_registry.register_dynamic_tool(
+                                t.get_underlying()
+                            )
 
                 agent_skill_tools = await agent_tool_span.register_tool_async(
                     skill_retriever.to_tool(load_callback=_extend_tools)

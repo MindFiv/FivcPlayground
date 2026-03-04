@@ -341,13 +341,16 @@ class TestSkillRetrieverCallbacks:
     @pytest.mark.asyncio
     async def test_skill_load_calls_async_callback(self):
         """skill_load invokes async callback when provided."""
-        skill = SkillConfig(id="test-skill", description="Test skill", tool_ids=["tool1", "tool2"])
+        skill = SkillConfig(
+            id="test-skill", description="Test skill", tool_ids=["tool1", "tool2"]
+        )
         repo = _make_mock_repo([skill])
         embedding_db = _make_mock_embedding_db()
         tool_backend = CapturingToolBackend()
 
         # Create mock async callback
         callback_called_with = []
+
         async def async_callback(skill_config):
             callback_called_with.append(skill_config)
 
@@ -373,13 +376,16 @@ class TestSkillRetrieverCallbacks:
     @pytest.mark.asyncio
     async def test_skill_load_calls_sync_callback(self):
         """skill_load invokes sync callback when provided."""
-        skill = SkillConfig(id="test-skill", description="Test skill", tool_ids=["tool1"])
+        skill = SkillConfig(
+            id="test-skill", description="Test skill", tool_ids=["tool1"]
+        )
         repo = _make_mock_repo([skill])
         embedding_db = _make_mock_embedding_db()
         tool_backend = CapturingToolBackend()
 
         # Create mock sync callback
         callback_called_with = []
+
         def sync_callback(skill_config):
             callback_called_with.append(skill_config)
 
@@ -434,13 +440,14 @@ class TestSkillRetrieverCallbacks:
             description="Data analysis skill",
             instructions="Analyze the data",
             tool_ids=["calculator", "clock"],
-            resources={"db_url": "postgresql://localhost/data"}
+            resources={"db_url": "postgresql://localhost/data"},
         )
         repo = _make_mock_repo([skill])
         embedding_db = _make_mock_embedding_db()
         tool_backend = CapturingToolBackend()
 
         received_skill = None
+
         async def capture_callback(skill_config):
             nonlocal received_skill
             received_skill = skill_config
@@ -451,7 +458,7 @@ class TestSkillRetrieverCallbacks:
             tool_backend=tool_backend,
         )
 
-        bundle = retriever.to_tool(load_callback=capture_callback)
+        retriever.to_tool(load_callback=capture_callback)
         skill_load_func = tool_backend.captured["skill_load"]
 
         await skill_load_func("analyzer")
@@ -480,7 +487,7 @@ class TestSkillRetrieverCallbacks:
             tool_backend=tool_backend,
         )
 
-        bundle = retriever.to_tool(load_callback=failing_callback)
+        retriever.to_tool(load_callback=failing_callback)
         skill_load_func = tool_backend.captured["skill_load"]
 
         # skill_load should still work even if callback fails
@@ -500,6 +507,7 @@ class TestSkillRetrieverCallbacks:
         tool_backend = CapturingToolBackend()
 
         callback_calls = []
+
         async def tracking_callback(skill_config):
             callback_calls.append(skill_config.id)
 
@@ -511,6 +519,8 @@ class TestSkillRetrieverCallbacks:
 
         bundle = retriever.to_tool(load_callback=tracking_callback)
         skill_load_func = tool_backend.captured["skill_load"]
+
+        assert bundle
 
         # Load multiple skills
         await skill_load_func("skill1")
