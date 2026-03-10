@@ -74,11 +74,13 @@ class SkillRetriever(object):
 
     def to_tool(
         self,
+        skill_ids: list[str] | None = None,
         load_callback: LoadCallback | None = None,
     ) -> FunctionToolBundle:
         """Convert the retriever to a tool bundle with skill_list and skill_load.
 
         Args:
+            skill_ids: Optional list of skill IDs to filter by.
             load_callback: Optional callback invoked when a skill is loaded.
                 Callback receives SkillConfig and can be sync or async.
                 Used for dynamic tool registration: callback calls
@@ -101,11 +103,16 @@ class SkillRetriever(object):
 
         async def skill_list() -> str:
             """List all available skills with their id and description."""
-            skills = await self.list_skills_async()
+            skills = (
+                [await self.get_skill_async(sid) for sid in skill_ids]
+                if skill_ids is not None
+                else await self.list_skills_async()
+            )
             return json.dumps(
                 [
                     s.model_dump(mode="json", include={"id", "description"})
                     for s in skills
+                    if s is not None
                 ]
             )
 

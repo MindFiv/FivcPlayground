@@ -528,3 +528,218 @@ class TestSkillRetrieverCallbacks:
 
         # Callback should have been called for each
         assert callback_calls == ["skill1", "skill2"]
+
+
+class TestSkillRetrieverSkillIdsFiltering:
+    """Tests for skill_ids parameter filtering in SkillRetriever.to_tool()."""
+
+    @pytest.mark.asyncio
+    async def test_skill_list_with_single_skill_id_filter(self):
+        """skill_list with skill_ids filters to only specified skill."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+            SkillConfig(id="engineer", description="Engineering skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=["analyst"])
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["id"] == "analyst"
+
+    @pytest.mark.asyncio
+    async def test_skill_list_with_multiple_skill_ids_filter(self):
+        """skill_list with skill_ids filters to multiple specified skills."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+            SkillConfig(id="engineer", description="Engineering skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=["analyst", "engineer"])
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert isinstance(data, list)
+        assert len(data) == 2
+        ids = {item["id"] for item in data}
+        assert ids == {"analyst", "engineer"}
+
+    @pytest.mark.asyncio
+    async def test_skill_list_with_nonexistent_skill_ids(self):
+        """skill_list with nonexistent skill_ids returns empty list."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=["nonexistent", "alsonotfound"])
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert data == []
+
+    @pytest.mark.asyncio
+    async def test_skill_list_with_empty_skill_ids_list(self):
+        """skill_list with empty skill_ids list returns empty list."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=[])
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert data == []
+
+    @pytest.mark.asyncio
+    async def test_skill_list_with_none_skill_ids_returns_all(self):
+        """skill_list with skill_ids=None returns all skills."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+            SkillConfig(id="engineer", description="Engineering skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=None)
+        assert bundle
+
+        skill_list_func = tool_backend.captured["skill_list"]
+
+        result = await skill_list_func()
+        data = json.loads(result)
+
+        assert len(data) == 3
+        ids = {item["id"] for item in data}
+        assert ids == {"analyst", "researcher", "engineer"}
+
+    @pytest.mark.asyncio
+    async def test_skill_load_with_skill_ids_filter(self):
+        """skill_load respects skill_ids filter and loads filtered skill."""
+        skills = [
+            SkillConfig(id="analyst", description="Data analysis skill"),
+            SkillConfig(id="researcher", description="Research skill"),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        bundle = retriever.to_tool(skill_ids=["analyst"])
+        assert bundle
+
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # Load the filtered skill
+        result = await skill_load_func("analyst")
+        data = json.loads(result)
+
+        assert data["id"] == "analyst"
+
+    @pytest.mark.asyncio
+    async def test_skill_load_with_mixed_skill_ids(self):
+        """skill_load with skill_ids allows loading any existing skill via ID."""
+        skills = [
+            SkillConfig(
+                id="analyst",
+                description="Data analysis skill",
+                tool_ids=["calculator"],
+            ),
+            SkillConfig(
+                id="researcher", description="Research skill", tool_ids=["browser"]
+            ),
+        ]
+        repo = _make_mock_repo(skills)
+        embedding_db = _make_mock_embedding_db()
+        tool_backend = CapturingToolBackend()
+
+        retriever = SkillRetriever(
+            skill_config_repository=repo,
+            embedding_db=embedding_db,
+            tool_backend=tool_backend,
+        )
+
+        # Filter to only analyst, but skill_load can still look up any skill by ID
+        bundle = retriever.to_tool(skill_ids=["analyst"])
+        assert bundle
+
+        skill_load_func = tool_backend.captured["skill_load"]
+
+        # skill_load should still work for any skill (filter only affects list)
+        result = await skill_load_func("analyst")
+        data = json.loads(result)
+        assert data["id"] == "analyst"
+
+        # skill_load should also work for researcher (not in filter)
+        result = await skill_load_func("researcher")
+        data = json.loads(result)
+        assert data["id"] == "researcher"

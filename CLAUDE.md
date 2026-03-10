@@ -388,6 +388,29 @@ agent_tools.append(
 )
 ```
 
+### Skill ID Filtering
+
+The `to_tool()` method supports an optional `skill_ids` parameter to filter which skills are available:
+
+```python
+# Only make specific skills available to an agent
+skill_tool = skill_retriever.to_tool(
+    skill_ids=["data-analyzer", "researcher"],
+    load_callback=_extend_tools,
+)
+```
+
+**Filtering Behavior**:
+- `skill_ids=None` (default) — All skills are available
+- `skill_ids=[]` — No skills are available (empty list)
+- `skill_ids=["id1", "id2"]` — Only specified skills are available in `skill_list()` and `skill_load()`
+- Non-existent skill IDs are silently filtered out
+
+**Use Cases**:
+- Restrict agent capabilities by exposing only relevant skills
+- Multi-tenant scenarios where different agents have different skill access
+- Preventing unnecessary tool loading for specialized agents
+
 ### Runtime Tool Registration
 
 The `AgentRunToolSpan.register_tool_async()` method handles dynamic tool registration:

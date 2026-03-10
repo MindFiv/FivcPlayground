@@ -122,6 +122,7 @@ class StrandsAgentRunnable(AgentRunnable):
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
+        skill_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
@@ -136,6 +137,7 @@ class StrandsAgentRunnable(AgentRunnable):
             tool_retriever: Tool retrieval system for semantic tool search
             tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
             skill_retriever: Optional skill retriever for dynamic tool injection
+            skill_ids: Runtime skill IDs (merged with config.skill_ids via set union)
             response_model: Structured output model (overrides config)
             event_callback: Callback for execution events
             **kwargs: Additional arguments (ignored)
@@ -192,7 +194,10 @@ class StrandsAgentRunnable(AgentRunnable):
                             )
 
                 agent_skill_tools = await agent_tool_span.register_tool_async(
-                    skill_retriever.to_tool(load_callback=_extend_tools)
+                    skill_retriever.to_tool(
+                        skill_ids=skill_ids,
+                        load_callback=_extend_tools,
+                    )
                 )
                 for tool in agent_skill_tools:
                     agent.tool_registry.register_tool(tool.get_underlying())
