@@ -143,6 +143,10 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
   - **Backward Compatibility Note**:
     - Prior to v0.1.19: Runtime `tool_ids` overrode config `tool_ids`
     - From v0.1.19: Runtime `tool_ids` extends config `tool_ids`
+- **Skill ID Configuration and Merging** (`skill_ids`):
+  - `AgentConfig.skill_ids` is merged with the runtime `skill_ids` parameter via set union (same behavior as `tool_ids`)
+  - When the merged set is empty, `None` is passed to `to_tool()` to preserve "show all skills" semantics
+  - Example: config `skill_ids=["data-analyzer"]` + runtime `skill_ids=["researcher"]` → `["data-analyzer", "researcher"]`
 - **Structured Output Support**:
   - Agents support type-safe, structured responses using Pydantic models
   - Two configuration methods:
@@ -405,6 +409,7 @@ skill_tool = skill_retriever.to_tool(
 - `skill_ids=[]` — No skills are available (empty list)
 - `skill_ids=["id1", "id2"]` — Only specified skills are available in `skill_list()` and `skill_load()`
 - Non-existent skill IDs are silently filtered out
+- When `AgentConfig.skill_ids` is set, it is merged with the runtime `skill_ids` parameter via set union (same behavior as `tool_ids`). When the merged set is empty, `None` is passed to preserve "all skills" semantics.
 
 **Use Cases**:
 - Restrict agent capabilities by exposing only relevant skills

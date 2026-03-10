@@ -32,6 +32,9 @@ class AgentConfig(BaseModel):
     tool_ids: List[str] | None = Field(
         default=None, description="List of tool IDs to use with the agent"
     )
+    skill_ids: List[str] | None = Field(
+        default=None, description="List of skill IDs to use with the agent"
+    )
     description: str | None = Field(
         default=None, description="Description of the agent"
     )
@@ -87,12 +90,6 @@ class AgentRunEvent(str, Enum):
     UPDATE = "update"
     STREAM = "stream"
     TOOL = "tool"  # tool call
-
-
-class AgentRunToolSet(BaseModel):
-    """Agent toolbox."""
-
-    tool_ids: List[str] = Field(description="List of tool IDs to use with the agent")
 
 
 class AgentRunToolCall(BaseModel):
@@ -262,6 +259,7 @@ class AgentRunnable(ABC):
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
+        skill_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs

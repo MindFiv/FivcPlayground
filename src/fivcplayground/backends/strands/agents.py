@@ -193,9 +193,12 @@ class StrandsAgentRunnable(AgentRunnable):
                                 t.get_underlying()
                             )
 
+                agent_skill_ids = set(skill_ids) if skill_ids else set()
+                agent_skill_ids.update(self._agent_config.skill_ids or [])
+
                 agent_skill_tools = await agent_tool_span.register_tool_async(
                     skill_retriever.to_tool(
-                        skill_ids=skill_ids,
+                        skill_ids=list(agent_skill_ids) if agent_skill_ids else None,
                         load_callback=_extend_tools,
                     )
                 )
