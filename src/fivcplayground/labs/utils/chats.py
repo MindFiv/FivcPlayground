@@ -51,8 +51,10 @@ class Chat(object):
         if not self._agent_run_session_id:
             return ""
 
-        return self._agent_run_repository.get_agent_run_session(
-            self._agent_run_session_id
+        return asyncio.run(
+            self._agent_run_repository.get_agent_run_session_async(
+                self._agent_run_session_id
+            )
         )
 
     @property
@@ -71,8 +73,10 @@ class Chat(object):
         if not self._agent_run_session_id:
             return []
 
-        agent_runs = self._agent_run_repository.list_agent_runs(
-            self._agent_run_session_id,
+        agent_runs = asyncio.run(
+            self._agent_run_repository.list_agent_runs_async(
+                self._agent_run_session_id,
+            )
         )
         return [r for r in agent_runs if r.is_completed]
 
@@ -130,8 +134,10 @@ class Chat(object):
 
     def cleanup(self) -> None:
         if self._agent_run_session_id:
-            self._agent_run_repository.delete_agent_run_session(
-                self._agent_run_session_id
+            asyncio.run(
+                self._agent_run_repository.delete_agent_run_session_async(
+                    self._agent_run_session_id
+                )
             )
 
 
