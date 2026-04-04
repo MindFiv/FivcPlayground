@@ -20,6 +20,9 @@ venv/
 # Env
 .env
 
+# Claude Code
+.claude/
+
 # Temporary files and generated content
 dist/
 configs/models.yaml
