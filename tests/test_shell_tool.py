@@ -9,10 +9,16 @@ Tests verify:
 """
 
 import json
+import sys
 import tempfile
 
 import pytest
 from fivcplayground.tools.shell import shell
+
+# Cross-platform command substitutes (avoid Unix-only commands like pwd/sleep)
+_PY = sys.executable
+_PWD_CMD = f'"{_PY}" -c "import os; print(os.getcwd())"'
+_SLEEP_CMD = f'"{_PY}" -c "import time; time.sleep(10)"'
 
 # Optional backend imports
 try:
@@ -55,15 +61,20 @@ class TestShell:
 
     def test_command_with_stderr(self):
         """Test command that produces stderr."""
-        # Using a command that will produce stderr
-        result = shell("ls /nonexistent_directory_12345 2>&1")
+        # Use a Python command that writes to stderr
+        result = shell(f'"{_PY}" -c "import sys; sys.stderr.write(\'err\\n\')"')
         assert isinstance(result, str)
 
     def test_command_with_custom_cwd(self):
         """Test command execution with custom working directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = shell("pwd", cwd=tmpdir)
-            assert tmpdir in result or "successfully" in result.lower()
+            result = shell(_PWD_CMD, cwd=tmpdir)
+            import os
+
+            assert (
+                os.path.basename(tmpdir).lower() in result.lower()
+                or "successfully" in result.lower()
+            )
 
     def test_invalid_cwd(self):
         """Test command with invalid working directory."""
@@ -73,8 +84,8 @@ class TestShell:
 
     def test_command_timeout(self):
         """Test command timeout handling."""
-        # Use a command that will timeout
-        result = shell("sleep 60", timeout=1)
+        # Use a cross-platform Python sleep that will timeout
+        result = shell(_SLEEP_CMD, timeout=1)
         assert "Error" in result
         assert "timed out" in result.lower()
 
@@ -106,7 +117,7 @@ class TestShellStructured:
     def test_command_with_custom_cwd(self):
         """Test command with custom working directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = shell("pwd", cwd=tmpdir, structured=True)
+            result = shell(_PWD_CMD, cwd=tmpdir, structured=True)
             data = json.loads(result)
             assert data["exit_code"] == 0
 
@@ -117,7 +128,7 @@ class TestShellStructured:
 
     def test_command_timeout(self):
         """Test command timeout handling."""
-        result = shell("sleep 60", timeout=1, structured=True)
+        result = shell(_SLEEP_CMD, timeout=1, structured=True)
         assert "Error" in result
         assert "timed out" in result.lower()
 

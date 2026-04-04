@@ -56,9 +56,10 @@ class TestFileRead:
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("Hello, World!")
             f.flush()
-            result = file_read(f.name)
-            assert result == "Hello, World!"
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_read(fname)
+        assert result == "Hello, World!"
+        Path(fname).unlink()
 
     def test_read_nonexistent_file(self):
         """Test reading a nonexistent file."""
@@ -78,18 +79,20 @@ class TestFileRead:
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as f:
             f.write("Test content")
             f.flush()
-            result = file_read(f.name, encoding="utf-8")
-            assert result == "Test content"
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_read(fname, encoding="utf-8")
+        assert result == "Test content"
+        Path(fname).unlink()
 
     def test_returns_string(self):
         """Test that file_read returns a string."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("test")
             f.flush()
-            result = file_read(f.name)
-            assert isinstance(result, str)
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_read(fname)
+        assert isinstance(result, str)
+        Path(fname).unlink()
 
 
 class TestFileWrite:
@@ -109,22 +112,24 @@ class TestFileWrite:
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("First line\n")
             f.flush()
-            result = file_write(f.name, "Second line\n", mode="append")
-            assert "Successfully wrote" in result
-            content = Path(f.name).read_text()
-            assert "First line" in content
-            assert "Second line" in content
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_write(fname, "Second line\n", mode="append")
+        assert "Successfully wrote" in result
+        content = Path(fname).read_text()
+        assert "First line" in content
+        assert "Second line" in content
+        Path(fname).unlink()
 
     def test_write_overwrite_mode(self):
         """Test overwriting a file."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write("Original content")
             f.flush()
-            result = file_write(f.name, "New content", mode="write")
-            assert "Successfully wrote" in result
-            assert Path(f.name).read_text() == "New content"
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_write(fname, "New content", mode="write")
+        assert "Successfully wrote" in result
+        assert Path(fname).read_text() == "New content"
+        Path(fname).unlink()
 
     def test_write_creates_parent_directories(self):
         """Test that file_write creates parent directories."""
@@ -204,10 +209,11 @@ class TestFileSearch:
         """Test searching when path is a file, not a directory."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.flush()
-            result = file_search(f.name, "*.py")
-            assert "Error" in result
-            assert "not a directory" in result.lower()
-            Path(f.name).unlink()
+            fname = f.name
+        result = file_search(fname, "*.py")
+        assert "Error" in result
+        assert "not a directory" in result.lower()
+        Path(fname).unlink()
 
     def test_search_recursive(self):
         """Test recursive directory search."""
