@@ -1,3 +1,4 @@
+import base64
 import re
 
 import streamlit as st
@@ -195,6 +196,14 @@ class ChatMessage(object):
                 delta_text = self.runtime.delta.text
             self.render_streaming(delta_text, chat_ai)
 
+            # Render any images in the delta immediately (not accumulated)
+            if self.runtime.delta and self.runtime.delta.images:
+                for fmt, content_data in self.runtime.delta.images:
+                    try:
+                        chat_ai.image(base64.b64decode(content_data))
+                    except Exception:
+                        chat_ai.warning(f"Could not render image ({fmt})")
+
     @staticmethod
     def render_message(
         message: AgentRunContent | BaseModel,
@@ -202,7 +211,7 @@ class ChatMessage(object):
     ):
         # Wrap message in adapter for dict-like access
         if isinstance(message, AgentRunContent):
-            msg_text = message.text
+            msg_text = message.text or ""
         elif isinstance(message, BaseModel):
             msg_text = message.model_dump_json()
         else:
@@ -232,6 +241,32 @@ class ChatMessage(object):
         if isinstance(message, AgentRunContent) and message.structured:
             with placeholder.expander("🔍 **Structured Output**", expanded=False):
                 st.json(message.structured, expanded=False)
+
+        # Render images if available
+        if isinstance(message, AgentRunContent) and message.images:
+            for i, (fmt, content_data) in enumerate(message.images):
+                try:
+                    image_bytes = base64.b64decode(content_data)
+                    placeholder.image(image_bytes)
+                except Exception:
+                    placeholder.warning(f"Could not render image ({fmt})")
+
+        # Render files if available
+        if isinstance(message, AgentRunContent) and message.files:
+            for i, (fmt, content_data) in enumerate(message.files):
+                with placeholder.expander(f"📎 File ({fmt})", expanded=False):
+                    try:
+                        file_bytes = base64.b64decode(content_data)
+                        ext = fmt.split("/")[-1] if "/" in fmt else "bin"
+                        st.download_button(
+                            label=f"Download {ext} file",
+                            data=file_bytes,
+                            file_name=f"file.{ext}",
+                            mime=fmt,
+                            key=f"file_download_{i}_{fmt}",
+                        )
+                    except Exception:
+                        st.text(content_data)
 
     @staticmethod
     def render_tool_call(

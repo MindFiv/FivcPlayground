@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Tuple
 from uuid import uuid4
 
 from jambo import SchemaConverter
@@ -66,8 +66,16 @@ class AgentRunContent(BaseModel):
     structured: dict[str, Any] | None = Field(
         default=None, description="Structured content"
     )
-    images: list[str] | None = Field(default=None, description="Image contents")
-    files: list[str] | None = Field(default=None, description="File contents")
+    images: list[Tuple[str, str]] | None = Field(
+        default=None,
+        description="Image contents, first string indicates type/format of the image, "
+        "second string indicates content/location of the image",
+    )
+    files: list[Tuple[str, str]] | None = Field(
+        default=None,
+        description="File contents, first string indicates type/format of the file, "
+        "second string indicates content/location of the file",
+    )
 
     def __str__(self):
         return self.text

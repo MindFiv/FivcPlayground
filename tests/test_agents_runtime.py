@@ -801,3 +801,113 @@ class TestStrandsAgentUnknownToolCallHandling:
 
             # Verify the agent completed successfully despite receiving an unknown tool result
             assert result is not None
+
+
+class TestAgentRunContentImageFiles:
+    """Tests for AgentRunContent images and files fields with new tuple schema."""
+
+    def test_agent_run_content_with_images(self):
+        """Test AgentRunContent accepts images as list of (fmt, data) tuples."""
+        content = AgentRunContent(
+            text="Here is an image",
+            images=[("image/png", "aGVsbG8="), ("image/jpeg", "d29ybGQ=")],
+        )
+        assert content.images is not None
+        assert len(content.images) == 2
+        assert content.images[0] == ("image/png", "aGVsbG8=")
+        assert content.images[1] == ("image/jpeg", "d29ybGQ=")
+
+    def test_agent_run_content_with_files(self):
+        """Test AgentRunContent accepts files as list of (fmt, data) tuples."""
+        content = AgentRunContent(
+            files=[("application/pdf", "cGRmY29udGVudA==")],
+        )
+        assert content.files is not None
+        assert len(content.files) == 1
+        assert content.files[0] == ("application/pdf", "cGRmY29udGVudA==")
+
+    def test_agent_run_content_images_none_by_default(self):
+        """Test images and files default to None."""
+        content = AgentRunContent(text="hello")
+        assert content.images is None
+        assert content.files is None
+
+    def test_agent_run_content_images_roundtrip_serialization(self):
+        """Test images field survives JSON roundtrip as list of 2-element lists.
+
+        Pydantic serializes Tuple[str, str] as a JSON array ["a", "b"]. On
+        deserialization from JSON/dict, Pydantic coerces 2-element lists back
+        to tuples. This roundtrip must be lossless.
+        """
+        content = AgentRunContent(
+            text="with image",
+            images=[("image/png", "aGVsbG8=")],
+        )
+        data = content.model_dump(mode="json")
+        # Pydantic serializes tuples as lists in JSON
+        assert data["images"] == [["image/png", "aGVsbG8="]]
+
+        restored = AgentRunContent(**data)
+        assert restored.images is not None
+        assert restored.images[0] == ("image/png", "aGVsbG8=")
+
+    def test_agent_run_content_files_roundtrip_serialization(self):
+        """Test files field survives JSON roundtrip."""
+        content = AgentRunContent(
+            files=[("application/pdf", "cGRmY29udGVudA==")],
+        )
+        data = content.model_dump(mode="json")
+        assert data["files"] == [["application/pdf", "cGRmY29udGVudA=="]]
+
+        restored = AgentRunContent(**data)
+        assert restored.files is not None
+        assert restored.files[0] == ("application/pdf", "cGRmY29udGVudA==")
+
+    def test_agent_run_content_multiple_images_and_files(self):
+        """Test content can hold both images and files simultaneously."""
+        content = AgentRunContent(
+            text="Media content",
+            images=[("image/png", "aGVsbG8="), ("image/webp", "d2VicA==")],
+            files=[("application/pdf", "cGRm"), ("text/csv", "Y3N2")],
+        )
+        assert len(content.images) == 2
+        assert len(content.files) == 2
+        assert content.images[1] == ("image/webp", "d2VicA==")
+        assert content.files[1] == ("text/csv", "Y3N2")
+
+    def test_agent_run_delta_with_images_excluded_from_serialization(self):
+        """Test that delta (including images) is excluded from AgentRun serialization."""
+        run = AgentRun(
+            agent_id="test",
+            delta=AgentRunContent(
+                images=[("image/png", "aGVsbG8=")],
+            ),
+        )
+        data = run.model_dump(mode="json")
+        # delta is excluded=True on the field, so it must not appear
+        assert "delta" not in data
+
+    def test_agent_run_reply_with_images_is_persisted(self):
+        """Test that reply with images is included in AgentRun serialization."""
+        run = AgentRun(
+            agent_id="test",
+            reply=AgentRunContent(
+                text="Here is your image",
+                images=[("image/png", "aGVsbG8=")],
+            ),
+        )
+        data = run.model_dump(mode="json")
+        assert data["reply"]["images"] == [["image/png", "aGVsbG8="]]
+
+    def test_agent_run_content_full_roundtrip_json_string(self):
+        """Test images and files survive a full json.dumps/json.loads roundtrip."""
+        content = AgentRunContent(
+            text="full roundtrip",
+            images=[("image/jpeg", "anBlZw==")],
+            files=[("application/pdf", "cGRm")],
+        )
+        json_str = json.dumps(content.model_dump(mode="json"))
+        data = json.loads(json_str)
+        restored = AgentRunContent(**data)
+        assert restored.images[0] == ("image/jpeg", "anBlZw==")
+        assert restored.files[0] == ("application/pdf", "cGRm")

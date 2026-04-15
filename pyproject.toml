@@ -50,7 +50,8 @@ langchain = [
 strands = [
     "strands-agents>=1.20.0",
     "strands-agents[openai]>=1.20.0",
-    "strands-agents[ollama]>=1.20.0"
+    "strands-agents[ollama]>=1.20.0",
+    "strands-agents[gemini]>=1.20.0"
 ]
 
 # All backends and embedding support
@@ -66,7 +67,8 @@ all = [
     "langchain-text-splitters>=0.3.11",
     "strands-agents>=1.20.0",
     "strands-agents[openai]>=1.20.0",
-    "strands-agents[ollama]>=1.20.0"
+    "strands-agents[ollama]>=1.20.0",
+    "strands-agents[gemini]>=1.20.0"
 ]
 
 # Development dependencies

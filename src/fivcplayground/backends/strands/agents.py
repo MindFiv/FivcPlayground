@@ -45,8 +45,13 @@ def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
     if content.text:
         blocks.append(ContentBlock(text=content.text))
 
-    # for img in content.images:
-    #     blocks.append(ContentBlock(image={"source": img, "format": ""}))
+    # TODO: Uncomment and wire up when image input is supported by the backend.
+    # The new tuple schema is (mime_type, base64_content), e.g. ("image/png", "<base64>").
+    # for fmt, content_data in (content.images or []):
+    #     blocks.append(ContentBlock(image={
+    #         "format": fmt.split("/")[-1],   # e.g. "image/png" -> "png"
+    #         "source": {"bytes": base64.b64decode(content_data)},
+    #     }))
 
     return blocks
 
