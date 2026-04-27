@@ -1,3 +1,5 @@
+import os
+
 from datetime import datetime
 from typing import Callable, List, Type, cast
 from warnings import warn
@@ -5,12 +7,11 @@ from warnings import warn
 from pydantic import BaseModel
 from strands.agent import (
     Agent as StrandsAgentUnderlying,
-)
-from strands.agent import (
     AgentResult as StrandsAgentResult,
-)
-from strands.agent import (
     SlidingWindowConversationManager,
+)
+from strands import (
+    AgentSkills as StrandsSkillsPlugin,
 )
 from strands.models import Model as StrandsModelUnderlying
 from strands.types.content import ContentBlock, Message
@@ -171,6 +172,30 @@ class StrandsAgentRunnable(AgentRunnable):
         agent_tool_ids = set(tool_ids) if tool_ids else set()
         agent_tool_ids.update(self._agent_config.tool_ids or [])
 
+        agent_skill_mixed_ids = set(skill_ids) if skill_ids else set()
+        agent_skill_mixed_ids.update(self._agent_config.skill_ids or [])
+
+        # Classify skill entries as either:
+        # - Skill IDs: string identifiers managed by SkillRetriever (e.g., "analyzer", "researcher")
+        # - Skill locations: file paths, directories, or URLs to load via StrandsSkillsPlugin
+        agent_skill_ids = []
+        agent_skill_locations = []
+        for s in agent_skill_mixed_ids:
+            if os.path.isdir(s) or os.path.isfile(s) or s.startswith("https://"):
+                agent_skill_locations.append(s)
+            else:
+                agent_skill_ids.append(s)
+
+        # Create StrandsSkillsPlugin if there are skill locations to load.
+        # Plugin is None if no locations exist (backward compatible with skill ID-only setup).
+        agent_skill_plugin = (
+            StrandsSkillsPlugin(
+                skills=agent_skill_locations,
+            )
+            if agent_skill_locations
+            else None
+        )
+
         async with (
             AgentRunToolSpan(
                 tool_retriever=tool_retriever,
@@ -188,6 +213,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 tools=[t.get_underlying() for t in agent_tool_span.tools],
                 system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
+                plugins=[agent_skill_plugin] if agent_skill_plugin else None,
             )
             if skill_retriever:
 
@@ -197,9 +223,6 @@ class StrandsAgentRunnable(AgentRunnable):
                             agent.tool_registry.register_dynamic_tool(
                                 t.get_underlying()
                             )
-
-                agent_skill_ids = set(skill_ids) if skill_ids else set()
-                agent_skill_ids.update(self._agent_config.skill_ids or [])
 
                 agent_skill_tools = await agent_tool_span.register_tool_async(
                     skill_retriever.to_tool(

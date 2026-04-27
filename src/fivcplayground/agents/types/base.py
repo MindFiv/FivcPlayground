@@ -33,7 +33,8 @@ class AgentConfig(BaseModel):
         default=None, description="List of tool IDs to use with the agent"
     )
     skill_ids: List[str] | None = Field(
-        default=None, description="List of skill IDs to use with the agent"
+        default=None,
+        description="List of skill IDs to use with the agent, or directories to load skills",
     )
     description: str | None = Field(
         default=None, description="Description of the agent"

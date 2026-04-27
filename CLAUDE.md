@@ -146,9 +146,13 @@ FivcPlayground is an intelligent multi-agent system with **pluggable backends**.
     - Prior to v0.1.19: Runtime `tool_ids` overrode config `tool_ids`
     - From v0.1.19: Runtime `tool_ids` extends config `tool_ids`
 - **Skill ID Configuration and Merging** (`skill_ids`):
-  - `AgentConfig.skill_ids` is merged with the runtime `skill_ids` parameter via set union (same behavior as `tool_ids`)
-  - When the merged set is empty, `None` is passed to `to_tool()` to preserve "show all skills" semantics
-  - Example: config `skill_ids=["data-analyzer"]` + runtime `skill_ids=["researcher"]` → `["data-analyzer", "researcher"]`
+  - `AgentConfig.skill_ids` accepts both **skill IDs** (string identifiers) and **skill locations** (paths/URLs)
+  - Entries are classified at runtime:
+    - **Skill IDs**: String identifiers → looked up via `SkillRetriever` from `~/.fivcplayground/configs/skills.yaml`
+    - **Skill Locations**: Local/absolute file paths, directories, or HTTPS URLs → loaded via `StrandsSkillsPlugin`
+  - Merged with runtime `skill_ids` parameter via set union (same behavior as `tool_ids`)
+  - When the merged set is empty, `None` is passed to preserve "show all skills" semantics
+  - Example: config `skill_ids=["data-analyzer"]` + runtime `skill_ids=["/custom/skills"]` → both used (IDs via callback, locations via plugin)
 - **Structured Output Support**:
   - Agents support type-safe, structured responses using Pydantic models
   - Two configuration methods:
@@ -383,6 +387,11 @@ Use `make install` to install everything.
 
 Skills enable agents to load specialized tools dynamically at runtime based on the skill being executed. This pattern allows agents to request relevant tools only when needed.
 
+FivcPlayground supports two complementary skill loading mechanisms:
+
+1. **Skill IDs**: String identifiers for skills managed by `SkillRetriever` (semantic search from `~/.fivcplayground/configs/skills.yaml`)
+2. **Skill Locations**: File paths, directories, or HTTPS URLs loaded directly via Strands' `AgentSkills` plugin
+
 ### Skill Configuration
 
 Skills are defined in `~/.fivcplayground/configs/skills.yaml`:
@@ -396,6 +405,37 @@ skills:
       timeout: "300"
       memory_limit: "512MB"
 ```
+
+### Directory-Based Skill Loading
+
+Agents can load skills directly from file paths, directories, or URLs by specifying them in `skill_ids`:
+
+```python
+# Load from local directory
+agent = await create_agent_async(
+    agent_id="analyzer",
+    skill_ids=["/path/to/custom/skills"]  # or relative path
+)
+
+# Load from remote URL
+agent = await create_agent_async(
+    agent_id="analyzer", 
+    skill_ids=["https://example.com/skills.tar.gz"]
+)
+
+# Mix skill IDs and skill locations
+agent = await create_agent_async(
+    agent_id="analyzer",
+    skill_ids=["data-analyzer", "/custom/skills", "https://example.com/remote-skills.tar.gz"]
+)
+```
+
+**Classification Logic** (at runtime):
+- Entries matching `os.path.isdir()`, `os.path.isfile()`, or starting with `https://` are treated as skill locations
+- All other entries are treated as skill IDs (looked up via `SkillRetriever`)
+- Skill locations are loaded via `StrandsSkillsPlugin`; skill IDs are loaded via callback pattern (see below)
+
+**Non-existent paths are treated as skill IDs** (to support forward references to remotely-registered skills)
 
 ### Dynamic Tool Loading with Callbacks
 
