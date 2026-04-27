@@ -14,14 +14,12 @@ Regression: https://github.com/FivcPlayground/fivcadvisor/issues/XXX
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.tools import create_builtin_tools_async, create_tool_retriever_async
 from fivcplayground.tools.types.retrievers import ToolRetriever
 
-# Test with both backends
+# Test with Strands backend (primary)
 get_tool_backends = [
-    ("langchain", lambda: LangchainToolBackend()),
     ("strands", lambda: StrandsToolBackend()),
 ]
 
@@ -124,7 +122,7 @@ class TestToolsInitRegression:
                 mock_repo_class.return_value = mock_repo
 
                 retriever = ToolRetriever(
-                    tool_backend=LangchainToolBackend(),  # Use LangChain for this test
+                    tool_backend=StrandsToolBackend(),  # Use Strands backend
                     tools=[tool1, tool2],
                     embedding_db=mock_db,
                     tool_config_repository=mock_repo,
@@ -187,65 +185,6 @@ class TestToolsInitRegression:
             tool_names = [tool.name for tool in all_tools]
             assert "auxiliary" in tool_names
             assert "filesystem" in tool_names
-
-    @pytest.mark.asyncio
-    async def test_tools_retriever_list_tools_with_langchain_tools(self):
-        """
-        Test that ToolRetriever.list_tools_async() works with LangChain backend.
-
-        This test verifies that tools wrapped by LangChain backend have correct attributes.
-        """
-        from unittest.mock import Mock
-
-        from fivcplayground.tools.types.retrievers import ToolRetriever
-
-        # Create mock embedding DB
-        mock_db = Mock()
-        mock_embedding_table = Mock()
-        mock_embedding_table.cleanup = Mock()
-        mock_db.tools = mock_embedding_table
-
-        # Create mock tool config repository
-        mock_repo = Mock()
-        mock_repo.list_tool_configs_async = AsyncMock(return_value=[])
-
-        # Create simple Python functions to wrap
-        def calculator(expression: str) -> float:
-            """Calculate a mathematical expression."""
-            return eval(expression)
-
-        def search(query: str) -> str:
-            """Search for information."""
-            return f"Results for {query}"
-
-        # Wrap tools with the backend
-        backend = LangchainToolBackend()
-        wrapped_calculator = backend.create_tool(calculator)
-        wrapped_search = backend.create_tool(search)
-
-        # Create a retriever with the tools
-        retriever_with_tools = ToolRetriever(
-            tool_backend=backend,
-            tools=[wrapped_calculator, wrapped_search],
-            embedding_db=mock_db,
-            tool_config_repository=mock_repo,
-        )
-
-        # Get all tools using async version
-        all_tools = await retriever_with_tools.list_tools_async()
-
-        # Verify tools have 'name' attribute (Tool interface standard)
-        assert len(all_tools) == 3  # calculator, search, and tool_retriever
-        tool_names = [t.name for t in all_tools]
-        assert "calculator" in tool_names
-        assert "search" in tool_names
-        assert "tool_retriever" in tool_names
-
-        # Verify we can access the name attribute without AttributeError
-        for tool in all_tools:
-            name = tool.name  # This should not raise AttributeError
-            assert isinstance(name, str)
-            assert len(name) > 0
 
 
 if __name__ == "__main__":

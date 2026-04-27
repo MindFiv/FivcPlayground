@@ -34,18 +34,6 @@ chroma = [
     "chromadb>=1.1.0",
 ]
 
-# LangChain agent backend
-langchain = [
-    "langchain>=1.2.0",
-    "langchain-core>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-openai>=1.0.0",
-    "langgraph>=1.0.5",
-    "langchain-mcp-adapters>=0.2.1",
-    "langchain-ollama>=1.0.0",
-    "langchain-text-splitters>=0.3.11",
-]
-
 # Strands agent backend
 strands = [
     "strands-agents>=1.20.0",
@@ -57,14 +45,6 @@ strands = [
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
-    "langchain>=1.2.0",
-    "langchain-core>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-openai>=1.0.0",
-    "langgraph>=1.0.5",
-    "langchain-mcp-adapters>=0.2.1",
-    "langchain-ollama>=1.0.0",
-    "langchain-text-splitters>=0.3.11",
     "strands-agents>=1.20.0",
     "strands-agents[openai]>=1.20.0",
     "strands-agents[ollama]>=1.20.0",

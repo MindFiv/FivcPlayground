@@ -6,14 +6,12 @@ Tests for the tools retriever module.
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.embeddings.types.base import EmbeddingConfig
 from fivcplayground.tools.types.retrievers import ToolRetriever
 
-# Test with both backends
+# Test with Strands backend (primary)
 get_tool_backends = [
-    ("langchain", lambda: LangchainToolBackend()),
     ("strands", lambda: StrandsToolBackend()),
 ]
 

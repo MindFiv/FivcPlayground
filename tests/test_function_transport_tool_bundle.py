@@ -5,20 +5,15 @@ Tests for FUNCTION transport support in create_tool_bundle.
 Covers:
 - DynamicFunc utility (unit tests)
 - StrandsToolBackend.create_tool_bundle() with FUNCTION transport
-- LangchainToolBackend.create_tool_bundle() with FUNCTION transport
 """
 
 import pytest
-from fivcplayground.backends.langchain.tools import (
-    LangchainToolBackend,
-    LangchainToolBundle,
-)
 from fivcplayground.backends.strands.tools import StrandsToolBackend, StrandsToolBundle
 from fivcplayground.tools.types import FunctionToolBundle
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.utils import DynamicFunc
 
-BackendImpls = [StrandsToolBackend, LangchainToolBackend]
+BackendImpls = [StrandsToolBackend]
 
 
 # ---------------------------------------------------------------------------
@@ -170,19 +165,6 @@ class TestCreateToolBundleFunctionTransport:
         )
         bundle = backend.create_tool_bundle(config)
         assert isinstance(bundle, StrandsToolBundle)
-        assert not isinstance(bundle, FunctionToolBundle)
-
-    def test_non_function_transport_langchain_still_works(self):
-        backend = LangchainToolBackend()
-        config = ToolConfig(
-            id="stdio_bundle",
-            description="MCP bundle",
-            transport="stdio",
-            command="python",
-            args=["-m", "mcp_server"],
-        )
-        bundle = backend.create_tool_bundle(config)
-        assert isinstance(bundle, LangchainToolBundle)
         assert not isinstance(bundle, FunctionToolBundle)
 
     @pytest.mark.asyncio

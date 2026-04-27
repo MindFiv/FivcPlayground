@@ -9,7 +9,6 @@ Tests verify:
 from unittest.mock import Mock, patch
 
 import pytest
-from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.tools import (
     create_tool_retriever_async,
@@ -72,7 +71,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 # Create builtin tools explicitly
-                backend = LangchainToolBackend()
+                backend = StrandsToolBackend()
                 builtin_tools = await create_builtin_tools_async(
                     tool_backend=backend,
                     raise_exception=False,
@@ -139,7 +138,7 @@ class TestCreateToolRetriever:
                 mock_retriever_class.return_value = mock_retriever
 
                 retriever = await create_tool_retriever_async(
-                    tool_backend=LangchainToolBackend(),
+                    tool_backend=StrandsToolBackend(),
                     embedding_config_repository=mock_embedding_repo,
                     tool_config_repository=mock_tool_repo,
                 )

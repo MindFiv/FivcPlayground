@@ -164,56 +164,6 @@ class TestModelBackendCreation:
             assert call_kwargs["model_id"] == "nomic-embed-text"
             assert call_kwargs["model_id"] != "ollama-config"
 
-    def test_langchain_backend_uses_model_field_not_id(self):
-        """Test that LangChain backend uses model_config.model, not model_config.id."""
-        from fivcplayground.backends.langchain.models import (
-            LangchainModelBackend,
-        )
-
-        model_config = ModelConfig(
-            id="default",  # Config ID
-            provider="openai",
-            model="gpt-4o-mini",  # Actual model name
-            api_key="sk-test",
-        )
-
-        with patch(
-            "fivcplayground.backends.langchain.models.ChatOpenAI"
-        ) as mock_openai:
-            backend = LangchainModelBackend()
-            backend.create_model(model_config)
-
-            # Verify that model_config.model (not model_config.id) was passed
-            mock_openai.assert_called_once()
-            call_kwargs = mock_openai.call_args[1]
-            assert call_kwargs["model"] == "gpt-4o-mini"
-            assert call_kwargs["model"] != "default"
-
-    def test_langchain_backend_ollama_uses_model_field(self):
-        """Test that LangChain backend uses model_config.model for Ollama."""
-        from fivcplayground.backends.langchain.models import (
-            LangchainModelBackend,
-        )
-
-        model_config = ModelConfig(
-            id="ollama-config",
-            provider="ollama",
-            model="llama2",
-            base_url="http://localhost:11434",
-        )
-
-        with patch(
-            "fivcplayground.backends.langchain.models.ChatOllama"
-        ) as mock_ollama:
-            backend = LangchainModelBackend()
-            backend.create_model(model_config)
-
-            # Verify that model_config.model (not model_config.id) was passed
-            mock_ollama.assert_called_once()
-            call_kwargs = mock_ollama.call_args[1]
-            assert call_kwargs["model"] == "llama2"
-            assert call_kwargs["model"] != "ollama-config"
-
     def test_model_config_id_vs_model_distinction(self):
         """Test that ModelConfig correctly distinguishes between id and model fields."""
         model_config = ModelConfig(

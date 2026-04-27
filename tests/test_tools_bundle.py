@@ -9,13 +9,11 @@ MCP server connections and provides async loading of tools.
 from unittest.mock import Mock, patch
 
 import pytest
-from fivcplayground.backends.langchain.tools import LangchainToolBundle
 from fivcplayground.backends.strands.tools import StrandsTool, StrandsToolBundle
 from fivcplayground.tools.types.base import ToolConfig
 
-# Use both implementations - tests will run with whichever backend is active
-# For now, we'll test both implementations
-ToolBundleImpls = [LangchainToolBundle, StrandsToolBundle]
+# Use Strands implementation - the primary backend
+ToolBundleImpls = [StrandsToolBundle]
 
 
 class TestToolsBundleInit:

@@ -14,7 +14,6 @@ Tests verify:
 import re
 
 import pytest
-from fivcplayground.backends.langchain.tools import LangchainToolBackend
 from fivcplayground.backends.strands.tools import StrandsToolBackend
 from fivcplayground.tools.clock import clock
 
@@ -278,7 +277,7 @@ class TestClockToolIntegration:
         # Should match YYYY-MM-DD HH:MM:SS format (datetime mode)
         assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
 
-    @pytest.mark.parametrize("BackendClass", [LangchainToolBackend, StrandsToolBackend])
+    @pytest.mark.parametrize("BackendClass", [StrandsToolBackend])
     def test_tool_has_name(self, BackendClass):
         """Test that tool has a name."""
         backend = BackendClass()
@@ -287,7 +286,7 @@ class TestClockToolIntegration:
         assert tool_name is not None
         assert tool_name == "clock"
 
-    @pytest.mark.parametrize("BackendClass", [LangchainToolBackend, StrandsToolBackend])
+    @pytest.mark.parametrize("BackendClass", [StrandsToolBackend])
     def test_tool_has_description(self, BackendClass):
         """Test that tool has a description."""
         backend = BackendClass()

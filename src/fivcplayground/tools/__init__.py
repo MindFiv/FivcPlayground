@@ -87,7 +87,7 @@ async def create_tool_retriever_async(
         if raise_exception:
             raise RuntimeError(
                 "tool_backend is required. Please provide a ToolBackend instance "
-                "(e.g., StrandsToolBackend() or LangchainToolBackend())"
+                "(e.g., StrandsToolBackend())"
             )
         return None
 

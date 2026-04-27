@@ -12,13 +12,33 @@ Tests the ChatMessage class and its methods:
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import BaseModel
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunContent,
     AgentRunToolCall,
 )
 from fivcplayground.labs.components import ChatMessage
-from langchain_core.messages import AIMessage
+
+
+class _TestMessage(BaseModel):
+    """Test message model for testing render_message."""
+
+    content: str
+
+
+def create_test_message(content) -> _TestMessage:
+    """Create a test message object for render_message testing."""
+    if isinstance(content, str):
+        return _TestMessage(content=content)
+    elif isinstance(content, list):
+        # For list of dicts, combine text parts
+        text = " ".join(
+            item.get("text", "") for item in content if item.get("type") == "text"
+        )
+        return _TestMessage(content=text)
+    else:
+        return _TestMessage(content=str(content))
 
 
 class TestChatMessageClass:
@@ -135,7 +155,7 @@ class TestRenderMessageMethod:
         """Test rendering message with single text content block."""
         mock_placeholder = Mock()
 
-        message = AIMessage(content="Hello, world!")
+        message = create_test_message("Hello, world!")
 
         ChatMessage.render_message(message, mock_placeholder)
 
@@ -148,9 +168,8 @@ class TestRenderMessageMethod:
         mock_placeholder = Mock()
 
         # Create a message with multiple content blocks
-        # AIMessage.text will combine them into a single string
-        message = AIMessage(
-            content=[
+        message = create_test_message(
+            [
                 {"type": "text", "text": "First part."},
                 {"type": "text", "text": "Second part."},
                 {"type": "text", "text": "Third part."},
@@ -166,8 +185,8 @@ class TestRenderMessageMethod:
         """Test rendering message ignores non-text content blocks."""
         mock_placeholder = Mock()
 
-        # AIMessage with text content - non-text blocks are handled by AIMessage
-        message = AIMessage(content="Text content")
+        # Message with text content
+        message = create_test_message("Text content")
 
         ChatMessage.render_message(message, mock_placeholder)
 
@@ -178,7 +197,7 @@ class TestRenderMessageMethod:
         """Test rendering message enables unsafe_allow_html."""
         mock_placeholder = Mock()
 
-        message = AIMessage(content="Test")
+        message = create_test_message("Test")
 
         ChatMessage.render_message(message, mock_placeholder)
 

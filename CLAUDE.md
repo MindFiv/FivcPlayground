@@ -62,10 +62,10 @@ uv run fivcplayground clean
 
 ### System Overview
 
-FivcPlayground is an intelligent multi-agent system built on **Strands** framework with LangChain as an alternative backend. It features:
+FivcPlayground is an intelligent multi-agent system with **pluggable backends**. It features:
 - **Agent-based execution** - Specialized agents for different task types
 - **Dynamic tool retrieval** - Semantic search-based tool selection
-- **Pluggable backends** - Strands (primary) and LangChain (alternative)
+- **Multiple backends** - Strands (primary), Google ADK, and extensible architecture
 - **Web UI** - Streamlit-based modern interface
 - **Streaming support** - Real-time response streaming and event callbacks
 
@@ -88,9 +88,11 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 ┌────────────────▼────────────────────────────────┐
 │   Backend Layer                                 │
 │   - StrandsAgentBackend (primary)               │
-│   - LangchainAgentBackend (alternative)         │
-│   - StrandsModelBackend / LangchainModelBackend │
-│   - StrandsToolBackend / LangchainToolBackend   │
+│   - StrandsModelBackend                         │
+│   - StrandsToolBackend                          │
+│   - GoogleADKAgentBackend (alternative)         │
+│   - GoogleADKModelBackend                       │
+│   - GoogleADKToolBackend                        │
 │   - ChromaEmbeddingBackend                      │
 └────────────────┬────────────────────────────────┘
                  │
@@ -139,7 +141,7 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
       # Runtime call: run_async(tool_ids=["clock", "filesystem"])
       # Result: ["calculator", "clock", "filesystem"] (deduplicated)
       ```
-  - **Implementation**: Located in both `StrandsAgentRunnable.run_async()` and `LangchainAgentRunnable.run_async()`
+  - **Implementation**: Located in `StrandsAgentRunnable.run_async()`
   - **Backward Compatibility Note**:
     - Prior to v0.1.19: Runtime `tool_ids` overrode config `tool_ids`
     - From v0.1.19: Runtime `tool_ids` extends config `tool_ids`
@@ -181,7 +183,7 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
         data = agent_run.reply.structured  # dict[str, Any]
         print(data["name"], data["email"])
     ```
-  - **Backend Support**: Both Strands and LangChain backends fully support structured output
+  - **Backend Support**: Strands backend fully supports structured output
 
 #### 2. Tools System (`src/fivcplayground/tools/`)
 - **Built-in Tools**: clock, calculator, filesystem, shell
@@ -198,7 +200,7 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 - **Model Abstraction**: Supports OpenAI and Ollama providers
 - **Model Config**: Temperature, max_tokens, base_url, API keys
 - **Model Selection**: Specialist models for different agent types (chat, reasoning, default)
-- **Backend Adapters**: StrandsModel wraps Strands framework, LangchainModel wraps LangChain
+- **Backend Adapters**: StrandsModel wraps Strands framework
 
 #### 4. Embeddings System (`src/fivcplayground/embeddings/`)
 - **EmbeddingDB**: Chroma-based vector search for semantic similarity
@@ -219,18 +221,53 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 - **State Management**: Session-based with run.yml for view persistence
 
 #### 6. Backends (`src/fivcplayground/backends/`)
-- **Strands Backend** (primary):
+
+**Strands Backend** (primary):
   - StrandsAgentRunnable - Agent execution wrapper
   - StrandsModelBackend - Model factory
   - StrandsToolBackend - Tool factory
   - Supports streaming via `stream_async()`
-- **LangChain Backend** (alternative):
-  - Similar structure to Strands
-  - Uses LangChain's message-based API
-  - Alternative for users preferring LangChain
-- **Chroma Backend**:
+
+**Google ADK Backend** (alternative):
+  - GoogleADKAgentRunnable - Agent execution wrapper
+  - GoogleADKModelBackend - Model factory
+  - GoogleADKToolBackend - Tool factory
+  - Supports Gemini, Claude, and other models
+  - Same API as Strands backend for easy switching
+  - Install: `pip install google-adk`
+  - See `examples/google_adk_backend_example.py` for usage
+
+**Chroma Backend**:
   - Embedding storage and retrieval
   - Multi-space support for isolation
+
+### Backend Selection & Switching
+
+Both Strands and Google ADK backends implement the same abstract interfaces (`AgentBackend`, `ToolBackend`, `ModelBackend`). Switch backends by importing different backend classes:
+
+```python
+# Strands backend (current default)
+from fivcplayground.backends.strands import (
+    StrandsAgentBackend, StrandsModelBackend, StrandsToolBackend
+)
+
+# Google ADK backend (alternative)
+from fivcplayground.backends.google_adk import (
+    GoogleADKAgentBackend, GoogleADKModelBackend, GoogleADKToolBackend
+)
+
+# Instantiate chosen backend
+agent_backend = GoogleADKAgentBackend()  # or StrandsAgentBackend()
+model_backend = GoogleADKModelBackend()  # or StrandsModelBackend()
+tool_backend = GoogleADKToolBackend()    # or StrandsToolBackend()
+
+# Rest of code works identically with either backend
+agent = await agent_backend.create_agent_async(
+    model_backend=model_backend,
+    model_config_repository=model_repo,
+    agent_config=agent_config,
+)
+```
 
 ### Design Patterns Used
 
@@ -239,7 +276,7 @@ FivcPlayground is an intelligent multi-agent system built on **Strands** framewo
 | **Factory** | Create agents, models, tools, retrievers | `create_agent_async()`, `create_model_async()` |
 | **Repository** | Data access abstraction | `FileAgentConfigRepository`, `FileAgentRunRepository` |
 | **Abstract Factory** | Pluggable backends | `AgentBackend`, `ToolBackend`, `ModelBackend` |
-| **Adapter** | Backend adapters | `StrandsAgentRunnable`, `LangchainAgentRunnable` |
+| **Adapter** | Backend adapters | `StrandsAgentRunnable` |
 | **Decorator** | Agent composition | `BoundedAgentRunnable`, `ParameterizedAgentRunnable` |
 | **Semantic Search** | Tool retrieval | `ToolRetriever` + `EmbeddingDB` |
 | **Event-Driven** | Streaming execution | `AgentRunEvent` callbacks (START, STREAM, TOOL, UPDATE) |
@@ -280,13 +317,14 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 ## Key Architectural Decisions
 
 1. **Async-First Design** - All core functions use `*_async()` suffix for streaming and concurrency
-2. **Multi-Backend Support** - Easily switch between Strands and LangChain backends via settings
+2. **Pluggable Backends** - Multiple backend implementations (Strands, Google ADK, extensible)
 3. **Semantic Tool Discovery** - Tools selected dynamically via embeddings, not just by name
 4. **Configuration-Driven** - Agents, models, tools defined in YAML config files
 5. **Event-Driven Streaming** - Real-time UI updates via event callbacks (streaming, tool calls, state)
 6. **Repository Pattern** - Storage implementation agnostic (file-based by default)
 7. **Modular Tool System** - Built-in tools + configurable MCP tool bundles
 8. **Tool ID Union Merging** - Runtime and config tool_ids are merged (union), not overridden, allowing agents to have base tools while accepting additional tools at runtime
+9. **Backend Abstraction** - Common interfaces (AgentBackend, ToolBackend, ModelBackend) enable backend switching without code changes
 
 ## Important Constraints
 
@@ -336,10 +374,10 @@ Async tests are marked with `@pytest.mark.asyncio` decorator.
 ## Dependencies & Backend Selection
 
 - **Runtime**: Strands, Typer, Rich, Pydantic, Streamlit, python-dotenv
-- **Optional**: LangChain stack (langchain, langgraph, langchain-mcp-adapters), Chroma embeddings
+- **Optional**: Chroma embeddings
 - **Dev**: pytest, pytest-asyncio, ruff
 
-Use `make install` to install everything. To switch backends, edit `~/.fivcplayground/configs/settings.yaml` and set `backend: "langchain"` instead of the default `"strands"`.
+Use `make install` to install everything.
 
 ## Skills & Dynamic Tool Loading
 
@@ -376,19 +414,6 @@ async def _extend_tools(skill: SkillConfig):
 # Register skill tool with callback
 agent.tool_registry.register_tool(
     skill_retriever.to_tool(load_callback=_extend_tools)
-)
-```
-
-3. **LangChain Backend Pattern**:
-```python
-async def _extend_tools(skill: SkillConfig):
-    """Callback to pre-load skill tools."""
-    for tool_id in skill.tool_ids or []:
-        await agent_tool_span.register_tool_async(tool_id)
-
-# Add skill tool with callback to agent's tool list
-agent_tools.append(
-    skill_retriever.to_tool(load_callback=_extend_tools).get_underlying()
 )
 ```
 
@@ -430,7 +455,7 @@ The `AgentRunToolSpan.register_tool_async()` method handles dynamic tool registr
 - Tools are registered in `_tool_loaded_expanded` dict for deduplication
 - ToolBundles are set up and stored in `_tool_contexts` for cleanup
 - Context manager exit automatically cleans up all registered tools and contexts
-- Both Strands and LangChain backends support the callback pattern
+- Strands backend supports the callback pattern
 
 ### Common Development Tasks
 
@@ -467,12 +492,6 @@ data-analyzer:
     timeout: "300"
 ```
 
-### Switching Backends
-1. Edit `~/.fivcplayground/configs/settings.yaml`
-2. Change `backend: "langchain"` (from default `"strands"`)
-3. Restart application
-4. All abstractions support both backends automatically
-
 ### Debugging Agent Execution
 - Check `~/.fivcplayground/runs/` for execution history
 - Agent runs stored hierarchically by session and agent type
@@ -485,5 +504,4 @@ Comprehensive docs in `docs/` directory:
 - **DESIGN.md** - System architecture deep dive
 - **WEB_INTERFACE.md** - Streamlit UI development guide
 - **DEPENDENCIES.md** - Installation and dependency management
-- **BACKEND_SELECTION.md** - Strands vs LangChain comparison
 - **ARCHITECTURE_PATTERNS.md** - Design patterns and best practices

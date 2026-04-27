@@ -22,14 +22,6 @@ _SLEEP_CMD = f'"{_PY}" -c "import time; time.sleep(10)"'
 
 # Optional backend imports
 try:
-    from fivcplayground.backends.langchain.tools import LangchainToolBackend
-
-    HAS_LANGCHAIN = True
-except ImportError:
-    HAS_LANGCHAIN = False
-    LangchainToolBackend = None
-
-try:
     from fivcplayground.backends.strands.tools import StrandsToolBackend
 
     HAS_STRANDS = True
@@ -39,8 +31,6 @@ except ImportError:
 
 # Build list of available backends for parametrize
 AVAILABLE_BACKENDS = []
-if HAS_LANGCHAIN:
-    AVAILABLE_BACKENDS.append(LangchainToolBackend)
 if HAS_STRANDS:
     AVAILABLE_BACKENDS.append(StrandsToolBackend)
 
