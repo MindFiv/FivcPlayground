@@ -263,7 +263,7 @@ class TestFileModelConfigRepository:
             assert retrieved.api_key is None
             assert retrieved.base_url is None
             assert retrieved.temperature == 0.5  # default value
-            assert retrieved.max_tokens == 4096  # default value
+            assert retrieved.max_tokens is None
 
     @pytest.mark.asyncio
     async def test_id_field_set_on_get(self):

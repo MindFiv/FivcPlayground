@@ -28,8 +28,8 @@ class ModelConfig(BaseModel):
     temperature: float = Field(
         default=0.5, description="Temperature for the model (if applicable)"
     )
-    max_tokens: int = Field(
-        default=4096, description="Maximum tokens for the model (if applicable)"
+    max_tokens: int | None = Field(
+        default=None, description="Maximum tokens for the model (if applicable)"
     )
 
 

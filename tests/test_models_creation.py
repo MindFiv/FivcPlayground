@@ -140,6 +140,49 @@ class TestModelBackendCreation:
             assert call_kwargs["model_id"] == "gpt-4o-mini"
             assert call_kwargs["model_id"] != "default"
 
+    def test_strands_backend_openai_uses_max_completion_tokens(self):
+        """Test that Strands backend sends OpenAI's current token limit field."""
+        from fivcplayground.backends.strands.models import (
+            StrandsModelBackend,
+        )
+
+        model_config = ModelConfig(
+            id="default",
+            provider="openai",
+            model="gpt-5-mini",
+            api_key="sk-test",
+            max_tokens=1000,
+        )
+
+        with patch("fivcplayground.backends.strands.models.OpenAIModel") as mock_openai:
+            backend = StrandsModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_openai.call_args[1]
+            assert call_kwargs["params"]["max_completion_tokens"] == 1000
+            assert "max_tokens" not in call_kwargs["params"]
+
+    def test_strands_backend_openai_omits_unset_max_tokens(self):
+        """Test that Strands backend does not send null token limits to OpenAI."""
+        from fivcplayground.backends.strands.models import (
+            StrandsModelBackend,
+        )
+
+        model_config = ModelConfig(
+            id="default",
+            provider="openai",
+            model="gpt-5-mini",
+            api_key="sk-test",
+        )
+
+        with patch("fivcplayground.backends.strands.models.OpenAIModel") as mock_openai:
+            backend = StrandsModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_openai.call_args[1]
+            assert "max_completion_tokens" not in call_kwargs["params"]
+            assert "max_tokens" not in call_kwargs["params"]
+
     def test_strands_backend_ollama_uses_model_field(self):
         """Test that Strands backend uses model_config.model for Ollama."""
         from fivcplayground.backends.strands.models import (

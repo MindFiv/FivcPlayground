@@ -287,9 +287,7 @@ class TestStrandsSkillsPluginCreation:
         agent_skill_locations = []
         # Simulate the conditional in run_async
         agent_skill_plugin = (
-            {"skills": agent_skill_locations}
-            if agent_skill_locations
-            else None
+            {"skills": agent_skill_locations} if agent_skill_locations else None
         )
         assert agent_skill_plugin is None
 
@@ -310,15 +308,19 @@ class TestBackwardCompatibilityWithSkillIds:
         agent_skill_ids = ["analyzer", "researcher"]
         # These are passed to skill_retriever.to_tool(skill_ids=agent_skill_ids)
         # Skill retriever looks them up in embedding DB
-        assert all(isinstance(sid, str) and not ("/" in sid or sid.startswith("https://"))
-                   for sid in agent_skill_ids)
+        assert all(
+            isinstance(sid, str) and not ("/" in sid or sid.startswith("https://"))
+            for sid in agent_skill_ids
+        )
 
     def test_only_ids_no_locations_no_plugin(self):
         """When only skill IDs exist (no locations), plugin is not created."""
         agent_skill_ids, agent_skill_locations = self._classify(
             {"analyzer", "researcher"}
         )
-        agent_skill_plugin = {"skills": agent_skill_locations} if agent_skill_locations else None
+        agent_skill_plugin = (
+            {"skills": agent_skill_locations} if agent_skill_locations else None
+        )
         assert agent_skill_plugin is None
         assert set(agent_skill_ids) == {"analyzer", "researcher"}
 

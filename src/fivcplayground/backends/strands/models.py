@@ -22,6 +22,11 @@ class StrandsModel(Model):
 class StrandsModelBackend(ModelBackend):
     def create_model(self, model_config: ModelConfig) -> Model:
         if model_config.provider == "openai":
+            params = {
+                "max_completion_tokens": model_config.max_tokens,
+                "temperature": model_config.temperature,
+            }
+            params = {k: v for k, v in params.items() if v is not None}
             return StrandsModel(
                 OpenAIModel(
                     client_args={
@@ -29,10 +34,7 @@ class StrandsModelBackend(ModelBackend):
                         "base_url": model_config.base_url,
                     },
                     model_id=model_config.model,
-                    params={
-                        "max_tokens": model_config.max_tokens,
-                        "temperature": model_config.temperature,
-                    },
+                    params=params,
                 )
             )
         elif model_config.provider == "gemini":
