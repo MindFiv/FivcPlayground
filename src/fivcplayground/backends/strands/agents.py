@@ -1,5 +1,3 @@
-import os
-
 from datetime import datetime
 from typing import Callable, List, Type, cast
 from warnings import warn
@@ -172,19 +170,24 @@ class StrandsAgentRunnable(AgentRunnable):
         agent_tool_ids = set(tool_ids) if tool_ids else set()
         agent_tool_ids.update(self._agent_config.tool_ids or [])
 
-        agent_skill_mixed_ids = set(skill_ids) if skill_ids else set()
-        agent_skill_mixed_ids.update(self._agent_config.skill_ids or [])
+        agent_skill_ids = set(skill_ids) if skill_ids else set()
+        agent_skill_ids.update(self._agent_config.skill_ids or [])
 
-        # Classify skill entries as either:
-        # - Skill IDs: string identifiers managed by SkillRetriever (e.g., "analyzer", "researcher")
-        # - Skill locations: file paths, directories, or URLs to load via StrandsSkillsPlugin
-        agent_skill_ids = []
+        # Resolve registered skill IDs; if a SkillConfig has `path`, also route it
+        # through StrandsSkillsPlugin while keeping the ID exposed via SkillRetriever.
         agent_skill_locations = []
-        for s in agent_skill_mixed_ids:
-            if os.path.isdir(s) or os.path.isfile(s) or s.startswith("https://"):
-                agent_skill_locations.append(s)
-            else:
-                agent_skill_ids.append(s)
+        agent_skill_legacy_ids = []
+
+        if skill_retriever and agent_skill_ids:
+            for sid in agent_skill_ids:
+                skill = await skill_retriever.get_skill_async(sid)
+                if not skill:
+                    continue
+
+                if skill.path:
+                    agent_skill_locations.append(skill.path)
+                else:
+                    agent_skill_legacy_ids.append(sid)
 
         # Create StrandsSkillsPlugin if there are skill locations to load.
         # Plugin is None if no locations exist (backward compatible with skill ID-only setup).
@@ -215,10 +218,10 @@ class StrandsAgentRunnable(AgentRunnable):
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
                 plugins=[agent_skill_plugin] if agent_skill_plugin else None,
             )
-            if skill_retriever:
+            if skill_retriever and agent_skill_legacy_ids:
 
-                async def _extend_tools(skill: SkillConfig):
-                    for tool_id in skill.tool_ids or []:
+                async def _extend_tools(s: SkillConfig):
+                    for tool_id in s.tool_ids or []:
                         for t in await agent_tool_span.register_tool_async(tool_id):
                             agent.tool_registry.register_dynamic_tool(
                                 t.get_underlying()
@@ -226,7 +229,7 @@ class StrandsAgentRunnable(AgentRunnable):
 
                 agent_skill_tools = await agent_tool_span.register_tool_async(
                     skill_retriever.to_tool(
-                        skill_ids=list(agent_skill_ids) if agent_skill_ids else None,
+                        skill_ids=agent_skill_legacy_ids,
                         load_callback=_extend_tools,
                     )
                 )

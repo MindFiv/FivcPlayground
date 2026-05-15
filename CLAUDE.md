@@ -404,7 +404,22 @@ skills:
     resources:
       timeout: "300"
       memory_limit: "512MB"
+
+  # A registered skill can also delegate to an external location.
+  # When `path` is set, the other content fields below it are ignored
+  # and the skill is loaded via Strands' AgentSkills plugin.
+  external-skill:
+    description: "Loaded from disk or URL"
+    path: "/skills/external-skill"   # or "https://example.com/skill"
 ```
+
+`SkillConfig` fields:
+- `id` (required) — unique skill identifier
+- `description` (required) — human-readable description for semantic discovery
+- `path` (optional) — file path, directory, or `https://` URL to a `SKILL.md`. When set, the skill is routed to `StrandsSkillsPlugin` at agent run time and the fields below are ignored
+- `instructions` (optional) — instructions injected into agent context when the skill is loaded
+- `tool_ids` (optional) — tool IDs registered when the skill is loaded (via the callback pattern)
+- `resources` (optional) — reference materials (name → markdown content)
 
 ### Directory-Based Skill Loading
 
@@ -434,6 +449,7 @@ agent = await create_agent_async(
 - Entries matching `os.path.isdir()`, `os.path.isfile()`, or starting with `https://` are treated as skill locations
 - All other entries are treated as skill IDs (looked up via `SkillRetriever`)
 - Skill locations are loaded via `StrandsSkillsPlugin`; skill IDs are loaded via callback pattern (see below)
+- After classification, each remaining skill ID is resolved via `SkillRetriever.get_skill_async()`. If the resolved `SkillConfig` has a non-empty `path`, that path is **additionally** appended to the locations list and routed to `StrandsSkillsPlugin`. The ID stays in the retriever-facing list, so the skill remains discoverable through `skill_list()` and the callback.
 
 **Non-existent paths are treated as skill IDs** (to support forward references to remotely-registered skills)
 
@@ -513,14 +529,17 @@ The `AgentRunToolSpan.register_tool_async()` method handles dynamic tool registr
 
 ### Adding a New Skill
 1. Define skill configuration in `~/.fivcplayground/configs/skills.yaml`
-2. Specify `id`, `description`, `instructions`, and `tool_ids` (array of tool IDs)
+2. Specify `id`, `description`, and either:
+   - `path` (delegates to a directory or `https://` URL — fields below are ignored), or
+   - `instructions` and `tool_ids` (array of tool IDs) for an inline skill
 3. Optional: add `resources` dictionary for resource constraints/metadata
 4. SkillRetriever automatically indexes new skills for semantic search
-5. When agent loads a skill, the callback dynamically registers specified tools:
+5. When agent loads an inline skill, the callback dynamically registers specified tools:
    - Callback invoked with SkillConfig when skill is executed
    - Registers each tool_id via `AgentRunToolSpan.register_tool_async()`
    - Tools become available to agent for rest of execution
    - Deduplication prevents duplicate tool registration across multiple skills
+6. When agent loads a skill with `path` set, the path is forwarded to `StrandsSkillsPlugin` (Strands' AgentSkills) which reads `SKILL.md` and exposes the skill via the agent's system prompt
 
 Example:
 ```yaml
@@ -530,6 +549,10 @@ data-analyzer:
   tool_ids: ["calculator", "filesystem"]
   resources:
     timeout: "300"
+
+external-skill:
+  description: "Skill loaded from a directory"
+  path: "/skills/external-skill"   # or "https://example.com/skill"
 ```
 
 ### Debugging Agent Execution

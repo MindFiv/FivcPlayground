@@ -175,3 +175,26 @@ class TestFileSkillConfigRepository:
 
             retrieved = await repo.get_skill_config_async("analyst")
             assert retrieved.resources == {"formulas": "# Formulas\n- Mean: sum/count"}
+
+    @pytest.mark.asyncio
+    async def test_skill_with_path(self):
+        """Test storing and retrieving a skill that delegates to a path/URL."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo = FileSkillConfigRepository(output_dir=OutputDir(tmpdir))
+
+            skill = SkillConfig(
+                id="external",
+                description="External skill",
+                path="/skills/external",
+            )
+            await repo.update_skill_config_async(skill)
+
+            retrieved = await repo.get_skill_config_async("external")
+            assert retrieved is not None
+            assert retrieved.path == "/skills/external"
+            assert retrieved.instructions is None
+            assert retrieved.tool_ids is None
+
+            with open(repo.skills_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            assert data["external"]["path"] == "/skills/external"

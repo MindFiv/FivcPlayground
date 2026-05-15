@@ -6,6 +6,9 @@
 # Fields:
 #   id (required)           - Unique skill identifier
 #   description (required)  - Human-readable description for semantic discovery
+#   path (optional)         - File path, directory, or https:// URL to a SKILL.md.
+#                             When set, the skill is loaded via Strands' AgentSkills
+#                             plugin and the fields below are ignored.
 #   instructions (optional) - Instructions injected into agent context
 #   tool_ids (optional)     - Array of tool IDs to merge into agent tool set
 #   resources (optional)    - Dictionary of reference materials (name -> markdown content)

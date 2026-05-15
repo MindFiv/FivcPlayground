@@ -13,6 +13,10 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
+from fivcplayground.skills.types import SkillConfig
+
 
 class TestSkillLocationDetection:
     """Test the skill location vs. skill ID classification logic."""
@@ -334,3 +338,130 @@ class TestBackwardCompatibilityWithSkillIds:
             else:
                 agent_skill_ids.append(s)
         return agent_skill_ids, agent_skill_locations
+
+
+class _StubSkillRetriever:
+    """Minimal stand-in for SkillRetriever that maps id -> SkillConfig."""
+
+    def __init__(self, skills: dict[str, SkillConfig]):
+        self._skills = skills
+
+    async def get_skill_async(self, skill_id: str) -> SkillConfig | None:
+        return self._skills.get(skill_id)
+
+
+async def _resolve_path_bearing_skills(
+    agent_skill_ids: list[str],
+    agent_skill_locations: list[str],
+    skill_retriever: _StubSkillRetriever | None,
+) -> tuple[list[str], list[str]]:
+    """Mirror StrandsAgentRunnable.run_async() path-resolution branch.
+
+    Resolves any registered skill IDs whose SkillConfig has a `path` and
+    appends those paths to agent_skill_locations. agent_skill_ids is left
+    intact so the SkillRetriever still surfaces them via `skill_list()`.
+    """
+    if skill_retriever and agent_skill_ids:
+        for sid in agent_skill_ids:
+            skill = await skill_retriever.get_skill_async(sid)
+            if skill and skill.path:
+                agent_skill_locations.append(skill.path)
+    return agent_skill_ids, agent_skill_locations
+
+
+class TestSkillConfigPathRouting:
+    """Test that SkillConfig.path is routed into StrandsSkillsPlugin at run time."""
+
+    @staticmethod
+    def _classify(entries: set[str]) -> tuple[list[str], list[str]]:
+        agent_skill_ids: list[str] = []
+        agent_skill_locations: list[str] = []
+        for s in entries:
+            if os.path.isdir(s) or os.path.isfile(s) or s.startswith("https://"):
+                agent_skill_locations.append(s)
+            else:
+                agent_skill_ids.append(s)
+        return agent_skill_ids, agent_skill_locations
+
+    @pytest.mark.asyncio
+    async def test_path_bearing_skill_routed_to_plugin(self):
+        """A SkillConfig with `path` set adds the path to skill_locations."""
+        retriever = _StubSkillRetriever(
+            {
+                "external": SkillConfig(
+                    id="external",
+                    description="External skill",
+                    path="https://example.com/skills/external.tar.gz",
+                ),
+            }
+        )
+        ids, locations = self._classify({"external"})
+        ids, locations = await _resolve_path_bearing_skills(ids, locations, retriever)
+
+        assert locations == ["https://example.com/skills/external.tar.gz"]
+        # ID stays in the retriever-facing list so skill_list() still surfaces it.
+        assert ids == ["external"]
+
+    @pytest.mark.asyncio
+    async def test_inline_skill_unchanged(self):
+        """A SkillConfig without `path` does not contribute to skill_locations."""
+        retriever = _StubSkillRetriever(
+            {
+                "inline": SkillConfig(
+                    id="inline",
+                    description="Inline skill",
+                    instructions="Do stuff",
+                    tool_ids=["calculator"],
+                ),
+            }
+        )
+        ids, locations = self._classify({"inline"})
+        ids, locations = await _resolve_path_bearing_skills(ids, locations, retriever)
+
+        assert locations == []
+        assert ids == ["inline"]
+
+    @pytest.mark.asyncio
+    async def test_mixed_path_inline_and_raw_location(self):
+        """Path-bearing ID + inline ID + raw location all land correctly."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            retriever = _StubSkillRetriever(
+                {
+                    "with-path": SkillConfig(
+                        id="with-path",
+                        description="Path-bearing skill",
+                        path="/skills/with-path",
+                    ),
+                    "inline": SkillConfig(
+                        id="inline",
+                        description="Inline skill",
+                        tool_ids=["clock"],
+                    ),
+                }
+            )
+            ids, locations = self._classify({"with-path", "inline", tmpdir})
+            ids, locations = await _resolve_path_bearing_skills(
+                ids, locations, retriever
+            )
+
+            assert set(ids) == {"with-path", "inline"}
+            assert set(locations) == {tmpdir, "/skills/with-path"}
+
+    @pytest.mark.asyncio
+    async def test_no_retriever_no_resolution(self):
+        """Without a retriever, path-resolution is skipped (backward compatible)."""
+        ids, locations = self._classify({"external", "inline"})
+        ids, locations = await _resolve_path_bearing_skills(ids, locations, None)
+
+        assert set(ids) == {"external", "inline"}
+        assert locations == []
+
+    @pytest.mark.asyncio
+    async def test_unknown_skill_id_no_resolution(self):
+        """Skill IDs absent from the retriever are left in agent_skill_ids."""
+        retriever = _StubSkillRetriever({})  # empty
+        ids, locations = self._classify({"missing"})
+        ids, locations = await _resolve_path_bearing_skills(ids, locations, retriever)
+
+        assert ids == ["missing"]
+        assert locations == []

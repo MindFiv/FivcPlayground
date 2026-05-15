@@ -6,6 +6,10 @@ class SkillConfig(BaseModel):
 
     id: str = Field(..., description="Unique identifier for the skill")
     description: str = Field(..., description="Description for semantic discovery")
+    path: str | None = Field(
+        default=None,
+        description="Path/URL to the skill, ignore attributes below if path is set",
+    )
     instructions: str | None = Field(
         default=None,
         description="Instructions injected into agent context when skill is applied",

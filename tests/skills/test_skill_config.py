@@ -16,6 +16,7 @@ class TestSkillConfig:
         )
         assert config.id == "test-skill"
         assert config.description == "A test skill for testing"
+        assert config.path is None
         assert config.instructions is None
         assert config.tool_ids is None
         assert config.resources is None
@@ -25,27 +26,43 @@ class TestSkillConfig:
         config = SkillConfig(
             id="data-analyst",
             description="Skill for analyzing data",
+            path="/skills/data-analyst",
             instructions="You excel at analyzing structured data.",
             tool_ids=["calculator", "filesystem"],
             resources={"formulas": "# Common Formulas\n- Mean: sum/count"},
         )
         assert config.id == "data-analyst"
         assert config.description == "Skill for analyzing data"
+        assert config.path == "/skills/data-analyst"
         assert config.instructions == "You excel at analyzing structured data."
         assert config.tool_ids == ["calculator", "filesystem"]
         assert config.resources == {"formulas": "# Common Formulas\n- Mean: sum/count"}
+
+    def test_path_only_config(self):
+        """Test a SkillConfig that delegates to an external path/URL."""
+        config = SkillConfig(
+            id="external-skill",
+            description="Skill loaded from a directory",
+            path="https://example.com/skills/external.tar.gz",
+        )
+        assert config.path == "https://example.com/skills/external.tar.gz"
+        assert config.instructions is None
+        assert config.tool_ids is None
+        assert config.resources is None
 
     def test_serialization(self):
         """Test SkillConfig serialization to dict."""
         config = SkillConfig(
             id="web-researcher",
             description="Skill for web research",
+            path="/skills/web-researcher",
             instructions="Search multiple sources.",
             tool_ids=["playwright"],
         )
         data = config.model_dump(mode="json")
         assert data["id"] == "web-researcher"
         assert data["description"] == "Skill for web research"
+        assert data["path"] == "/skills/web-researcher"
         assert data["tool_ids"] == ["playwright"]
         assert data["instructions"] == "Search multiple sources."
         assert data["resources"] is None
@@ -55,6 +72,7 @@ class TestSkillConfig:
         data = {
             "id": "researcher",
             "description": "Research skill",
+            "path": "/skills/researcher",
             "instructions": "Be thorough.",
             "tool_ids": ["search", "filesystem"],
             "resources": {"ref": "Reference material"},
@@ -62,6 +80,7 @@ class TestSkillConfig:
         config = SkillConfig.model_validate(data)
         assert config.id == "researcher"
         assert config.description == "Research skill"
+        assert config.path == "/skills/researcher"
         assert config.tool_ids == ["search", "filesystem"]
         assert config.resources == {"ref": "Reference material"}
 
