@@ -2,14 +2,12 @@ from datetime import datetime
 from typing import Callable, List, Type, Dict
 from warnings import warn
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from google.adk.agents import Agent as AdkAgentUnderlying
 from google.adk.events import Event
 from google.adk.models import BaseLlm as AdkModelUnderlying
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
-
-# from google.adk.tools import FunctionTool
 from google.genai.types import Content, Part
 
 from fivcplayground.agents import (
@@ -94,6 +92,15 @@ async def _list_events(
     #         )
     #     )
     return agent_events
+
+
+# class AdkStructured(object):
+#
+#     def __init__(self):
+#         self.output = {}
+#
+#     def __call__(self, params: BaseModel):
+#         self.output = params.model_dump()
 
 
 class AdkAgentRunnable(AgentRunnable):
@@ -199,9 +206,6 @@ class AdkAgentRunnable(AgentRunnable):
                 else:
                     agent_skill_legacy_ids.append(sid)
 
-        agent_output = None
-        agent_output_structured = None
-
         async with (
             AgentRunToolSpan(
                 tool_retriever=tool_retriever,
@@ -214,6 +218,19 @@ class AdkAgentRunnable(AgentRunnable):
             ) as agent_run_session_span,
         ):
             agent_tools = [t.get_underlying() for t in agent_tool_span.tools]
+            agent_output = None
+            agent_output_structured = {}
+
+            if response_model:
+
+                def generate_structured_output(resp: response_model):
+                    """
+                    generate structured output from response object
+                    """
+                    agent_output_structured.update(resp.model_dump())
+
+                agent_tools.append(generate_structured_output)
+
             agent = Runner(
                 app_name="fivcplayground",
                 session_service=adk_session_service,
@@ -304,24 +321,9 @@ class AdkAgentRunnable(AgentRunnable):
                 agent_run.completed_at = datetime.now()
 
                 agent_reply = _get_content_text(agent_output) if agent_output else ""
-
-                # Fallback: if the model returned JSON text instead of calling the
-                # structured-output tool, try to parse it directly.
-                if response_model and not agent_output_structured and agent_reply:
-                    try:
-                        agent_output_structured = response_model.model_validate_json(
-                            agent_reply
-                        )
-                    except (ValidationError, ValueError):
-                        agent_output_structured = None
-
                 agent_run.reply = AgentRunContent(
                     text=agent_reply,
-                    structured=(
-                        agent_output_structured.model_dump(mode="json")
-                        if agent_output_structured
-                        else None
-                    ),
+                    structured=agent_output_structured or None,
                 )
 
                 event_callback(AgentRunEvent.FINISH, agent_run)
@@ -331,9 +333,10 @@ class AdkAgentRunnable(AgentRunnable):
             if not agent_run.reply:
                 return AgentRunContent(text="")
 
-            return (
-                agent_output_structured if agent_output_structured else agent_run.reply
-            )
+            if response_model and agent_output_structured:
+                return response_model(**agent_output_structured)
+
+            return agent_run.reply
 
 
 class AdkAgentBackend(AgentBackend):
