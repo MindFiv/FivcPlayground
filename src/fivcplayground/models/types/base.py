@@ -25,8 +25,8 @@ class ModelConfig(BaseModel):
     base_url: str | None = Field(
         default=None, description="Base URL for the model (if applicable)"
     )
-    temperature: float = Field(
-        default=0.5, description="Temperature for the model (if applicable)"
+    temperature: float | None = Field(
+        default=None, description="Temperature for the model (if applicable)"
     )
     max_tokens: int | None = Field(
         default=None, description="Maximum tokens for the model (if applicable)"

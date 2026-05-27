@@ -8,6 +8,7 @@ __all__ = [
     "ToolConfig",
     "ToolConfigRepository",
     "ToolRetriever",
+    "FunctionToolBundle",
 ]
 
 from fivcplayground.embeddings import (

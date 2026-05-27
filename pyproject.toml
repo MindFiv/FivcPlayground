@@ -42,9 +42,17 @@ strands = [
     "strands-agents[gemini]"
 ]
 
+# Google ADK agent backend
+adk = [
+    "google-adk",
+    "litellm"
+]
+
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
+    "google-adk",
+    "litellm",
     "strands-agents",
     "strands-agents[openai]",
     "strands-agents[ollama]",

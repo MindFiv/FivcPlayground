@@ -4,12 +4,14 @@ from typing import (
     List,
 )
 
-from mcp import StdioServerParameters, stdio_client
-from mcp.client.sse import sse_client
-from mcp.client.streamable_http import streamable_http_client
-from strands.tools import tool
-from strands.tools.mcp import MCPClient
-from strands.types.tools import AgentTool as StrandToolUnderling
+from google.adk.tools import FunctionTool, BaseTool as AdkToolUnderlying
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import (
+    StdioConnectionParams,
+    StdioServerParameters,
+    SseConnectionParams,
+    StreamableHTTPConnectionParams,
+)
 
 from fivcplayground.tools import (
     FunctionToolBundle,
@@ -23,58 +25,58 @@ from fivcplayground.tools.types import ToolConfigTransport
 from fivcplayground.utils import DynamicFunc
 
 
-class StrandsTool(Tool):
+class AdkTool(Tool):
     """Wrapper for strands tools"""
 
-    def __init__(self, raw_tool: StrandToolUnderling):
+    def __init__(self, raw_tool: AdkToolUnderlying):
         self._tool = raw_tool
 
     @property
     def name(self) -> str:
-        return self._tool.tool_name
+        return self._tool.name
 
     @property
     def description(self) -> str:
-        return self._tool.tool_spec.get("description") or ""
+        return self._tool.description
 
     def get_underlying(self) -> Any:
         return self._tool
 
 
-class StrandsToolBundleContext(ToolBundleContext):
+class AdkToolBundleContext(ToolBundleContext):
     """Context manager for strands tool bundles"""
 
     def __init__(self, tool_config: ToolConfig):
         if tool_config.transport == "stdio":
-            c = stdio_client(
-                StdioServerParameters(
+            params = StdioConnectionParams(
+                server_params=StdioServerParameters(
                     command=tool_config.command,
                     args=tool_config.args,
                     env=tool_config.env,
                 )
             )
         elif tool_config.transport == "sse":
-            c = sse_client(url=tool_config.url)
+            params = SseConnectionParams(url=tool_config.url)
         elif tool_config.transport == "streamable_http":
-            c = streamable_http_client(url=tool_config.url)
+            params = StreamableHTTPConnectionParams(url=tool_config.url)
         else:
             raise ValueError(f"Unsupported transport: {tool_config.transport}")
 
         self._bundle_name = tool_config.id
-        self._client = MCPClient(lambda: c)
+        self._client = McpToolset(
+            connection_params=params, tool_name_prefix=f"mcp__{self._bundle_name}__"
+        )
 
     async def __aenter__(self) -> List[Tool]:
         """Enter the context and return the list of tools."""
-        c = self._client.__enter__()
-        tools = c.list_tools_sync(prefix=f"mcp__{self._bundle_name}__")
-        return list(StrandsTool(t) for t in tools)
+        tools = await self._client.get_tools_with_prefix()
+        return list(AdkTool(t) for t in tools)
 
     async def __aexit__(self, exc_type, exc_value, traceback):
-        """Exit the context."""
-        self._client.__exit__(exc_type, exc_value, traceback)
+        await self._client.close()
 
 
-class StrandsToolBundle(ToolBundle):
+class AdkToolBundle(ToolBundle):
     """Wrapper for strands tool bundles"""
 
     def __init__(self, tool_config: ToolConfig):
@@ -95,13 +97,16 @@ class StrandsToolBundle(ToolBundle):
             """get description of tool bundle"""
             return self.description
 
-        return tool(name=self.name, description=self.description)(_func)
+        _func.__name__ = self.name
+        _func.__doc__ = self.description
+
+        return FunctionTool(_func)
 
     def setup(self) -> ToolBundleContext:
-        return StrandsToolBundleContext(self._tool_config)
+        return AdkToolBundleContext(self._tool_config)
 
 
-class StrandsToolBackend(ToolBackend):
+class AdkToolBackend(ToolBackend):
     """Tool backend for strands"""
 
     def create_tool(
@@ -111,12 +116,11 @@ class StrandsToolBackend(ToolBackend):
         tool_description: str | None = None,
     ) -> Tool:
         if tool_name and tool_description:
-            tool_underlying = tool(name=tool_name, description=tool_description)(
-                tool_func
-            )
-        else:
-            tool_underlying = tool(tool_func)
-        return StrandsTool(tool_underlying)
+            tool_func.__name__ = tool_name
+            tool_func.__doc__ = tool_description
+
+        tool_underlying = FunctionTool(tool_func)
+        return AdkTool(tool_underlying)
 
     def create_tool_bundle(self, tool_config: ToolConfig) -> ToolBundle:
         if tool_config.transport == ToolConfigTransport.FUNCTION:
@@ -132,4 +136,4 @@ class StrandsToolBackend(ToolBackend):
                 tool_backend=self,
                 tool_funcs=funcs,
             )
-        return StrandsToolBundle(tool_config)
+        return AdkToolBundle(tool_config)

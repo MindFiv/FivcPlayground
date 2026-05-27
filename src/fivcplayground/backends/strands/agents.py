@@ -243,7 +243,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 query=query or None,
                 started_at=datetime.now(),
             )
-            output = None
+            agent_output = None
             event_callback(AgentRunEvent.START, agent_run)
 
             try:
@@ -253,7 +253,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 ):
                     event = AgentRunEvent.START
                     if "result" in event_data:
-                        output = event_data["result"]
+                        agent_output = event_data["result"]
 
                     elif "data" in event_data:
                         event = AgentRunEvent.STREAM
@@ -306,7 +306,7 @@ class StrandsAgentRunnable(AgentRunnable):
 
             except Exception as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
-                output = await agent.invoke_async(prompt=error_msg)
+                agent_output = await agent.invoke_async(prompt=error_msg)
 
                 agent_run.status = AgentRunStatus.FAILED
 
@@ -314,10 +314,10 @@ class StrandsAgentRunnable(AgentRunnable):
                 agent_run.completed_at = datetime.now()
 
                 # Ensure reply is set and FINISH event is called even if an exception occurred
-                if isinstance(output, StrandsAgentResult):
-                    agent_run_reply_structured = output.structured_output
+                if isinstance(agent_output, StrandsAgentResult):
+                    agent_run_reply_structured = agent_output.structured_output
                     agent_run.reply = AgentRunContent(
-                        text=str(output),
+                        text=str(agent_output),
                         structured=(
                             agent_run_reply_structured.model_dump(mode="json")
                             if agent_run_reply_structured
@@ -325,7 +325,7 @@ class StrandsAgentRunnable(AgentRunnable):
                         ),
                     )
                 else:
-                    agent_run.error = f"Expected AgentResult, got {type(output)}"
+                    agent_run.error = f"Expected AgentResult, got {type(agent_output)}"
                     agent_run.status = AgentRunStatus.FAILED
 
                 event_callback(AgentRunEvent.FINISH, agent_run)

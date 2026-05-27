@@ -10,6 +10,7 @@ __all__ = [
 ]
 
 import asyncio
+import os
 
 import nest_asyncio
 import streamlit as st
@@ -24,30 +25,51 @@ from fivcplayground.backends.strands import (
     StrandsModelBackend,
     StrandsToolBackend,
 )
+from fivcplayground.backends.adk import (
+    AdkAgentBackend,
+    AdkModelBackend,
+    AdkToolBackend,
+)
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.labs.utils import ChatManager
 from fivcplayground.labs.views import (
     ChatView,
     ViewNavigation,
 )
+from fivcplayground.models.types.base import ModelBackend
 from fivcplayground.models.types.repositories import FileModelConfigRepository
 from fivcplayground.tools import create_builtin_tools_async, create_tool_retriever_async
+from fivcplayground.tools.types.base import ToolBackend
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
+from fivcplayground.agents.types.base import AgentBackend
 
 # Apply nest_asyncio to allow nested event loops in Streamlit context
 nest_asyncio.apply()
 
-agent_backend = StrandsAgentBackend()
+
+def _get_backends(
+    backend: str = "strands",
+) -> tuple[AgentBackend, ModelBackend, ToolBackend]:
+    """Get backend instances based on backend selection."""
+    if backend == "adk":
+        return AdkAgentBackend(), AdkModelBackend(), AdkToolBackend()
+    elif backend == "strands":
+        return StrandsAgentBackend(), StrandsModelBackend(), StrandsToolBackend()
+    else:
+        raise ValueError(f"Unknown backend: {backend}. Use 'strands' or 'adk'.")
+
+
+backend = os.getenv("FIVC_BACKEND", "strands")
+agent_backend, model_backend, tool_backend = _get_backends(backend)
+
 agent_run_repository = FileAgentRunRepository()
 agent_config_repository = FileAgentConfigRepository()
 
-model_backend = StrandsModelBackend()
 model_config_repository = FileModelConfigRepository()
 
 embedding_backend = ChromaEmbeddingBackend()
 embedding_config_repository = FileEmbeddingConfigRepository()
 
-tool_backend = StrandsToolBackend()
 tool_config_repository = FileToolConfigRepository()
 
 

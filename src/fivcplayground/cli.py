@@ -29,10 +29,18 @@ from fivcplayground.backends.strands import (
     StrandsModelBackend,
     StrandsToolBackend,
 )
+from fivcplayground.backends.adk import (
+    AdkModelBackend,
+    AdkToolBackend,
+    AdkAgentBackend,
+)
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
+from fivcplayground.models.types.base import ModelBackend
 from fivcplayground.models.types.repositories import FileModelConfigRepository
 from fivcplayground.tools import create_builtin_tools_async, create_tool_retriever_async
+from fivcplayground.tools.types.base import ToolBackend
 from fivcplayground.tools.types.repositories import FileToolConfigRepository
+from fivcplayground.agents.types.base import AgentBackend
 from fivcplayground.utils import OutputDir
 
 load_dotenv()
@@ -44,6 +52,21 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _get_backends(
+    backend: str = "strands",
+) -> tuple[ModelBackend, ToolBackend, AgentBackend]:
+    """Get backend instances based on backend selection.
+
+    Returns: (ModelBackend, ToolBackend, AgentBackend)
+    """
+    if backend == "adk":
+        return AdkModelBackend(), AdkToolBackend(), AdkAgentBackend()
+    elif backend == "strands":
+        return StrandsModelBackend(), StrandsToolBackend(), StrandsAgentBackend()
+    else:
+        raise ValueError(f"Unknown backend: {backend}. Use 'strands' or 'adk'.")
 
 
 @app.command()
@@ -64,11 +87,14 @@ def run(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
+    backend: str = typer.Option(
+        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+    ),
 ):
     """
     Run a FivcPlayground agent
     """
-    asyncio.run(_run_async(agent_name, query, output, dry_run, verbose))
+    asyncio.run(_run_async(agent_name, query, output, dry_run, verbose, backend))
 
 
 async def _run_async(
@@ -77,18 +103,21 @@ async def _run_async(
     output: Optional[Path],
     dry_run: bool,
     verbose: bool,
+    backend: str = "strands",
 ):
     """Async implementation of the run command"""
-    model_backend = StrandsModelBackend()
-    model_config_repository = FileModelConfigRepository()
+    try:
+        model_backend, tool_backend, agent_backend = _get_backends(backend)
+    except ValueError as e:
+        console.print(f"[red]❌ {e}[/red]")
+        raise typer.Exit(1)
 
-    tool_backend = StrandsToolBackend()
+    model_config_repository = FileModelConfigRepository()
     tool_config_repository = FileToolConfigRepository()
 
     embedding_backend = ChromaEmbeddingBackend()
     embedding_config_repository = FileEmbeddingConfigRepository()
 
-    agent_backend = StrandsAgentBackend()
     agent_config_repository = FileAgentConfigRepository()
 
     tools = await create_builtin_tools_async(tool_backend=tool_backend)
@@ -175,6 +204,9 @@ def web(
         "0.0.0.0", "--host", "-h", help="Host to bind the web interface to"
     ),
     debug: bool = typer.Option(False, "--debug", help="Run in debug mode"),
+    backend: str = typer.Option(
+        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+    ),
 ):
     """
     Launch the FivcPlayground web interface using Streamlit
@@ -192,6 +224,9 @@ def web(
 
         # Get the path to the labs module
         app_path = os.path.join(os.path.dirname(__file__), "labs", "__init__.py")
+
+        # Set backend environment variable
+        os.environ["FIVC_BACKEND"] = backend
 
         # Build streamlit command
         cmd = [
@@ -265,6 +300,9 @@ def setup(
         "--force",
         "-f",
         help="Overwrite existing configuration files without prompting",
+    ),
+    backend: str = typer.Option(
+        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
     ),
 ):
     """
@@ -368,10 +406,15 @@ def setup(
         console.print("5. Configure tools (tools.yaml)")
         console.print("\n[green]✅ Setup completed successfully![/green]")
 
+        try:
+            _, tool_backend, _ = _get_backends(backend)
+        except ValueError as e:
+            console.print(f"[red]❌ {e}[/red]")
+            raise typer.Exit(1)
+
         embedding_backend = ChromaEmbeddingBackend()
         embedding_config_repository = FileEmbeddingConfigRepository()
 
-        tool_backend = StrandsToolBackend()
         tool_config_repository = FileToolConfigRepository()
 
         tools = asyncio.run(create_builtin_tools_async(tool_backend=tool_backend))
