@@ -11,6 +11,7 @@ __all__ = [
     "AgentConfigRepository",
     "AgentRunRepository",
     "AgentRunSessionSpan",
+    "AgentRunSkillSpan",
     "AgentRunToolSpan",
     "BoundedAgentRunnable",
     "ParameterizedAgentRunnable",
@@ -37,5 +38,6 @@ from .runnables import (
 )
 from .spans import (
     AgentRunSessionSpan,
+    AgentRunSkillSpan,
     AgentRunToolSpan,
 )

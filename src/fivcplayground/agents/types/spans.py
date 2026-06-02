@@ -1,10 +1,14 @@
 from datetime import datetime
-from typing import List
+from typing import List, Callable
 
 from fivcplayground.tools import (
     Tool,
     ToolBundle,
     ToolRetriever,
+)
+from fivcplayground.skills import (
+    SkillConfig,
+    SkillRetriever,
 )
 
 from .base import (
@@ -121,6 +125,80 @@ class AgentRunToolSpan:
         self._tool_loaded.clear()
         self._tool_loaded_expanded.clear()
         self._tool_contexts.clear()
+
+
+class AgentRunSkillSpan:
+    """Context manager for skill setup and lifecycle management"""
+
+    def __init__(
+        self,
+        skill_retriever: SkillRetriever | None = None,
+        skill_ids: List[str] | None = None,
+        **kwargs,  # ignore additional kwargs
+    ):
+        self._skill_retriever = skill_retriever
+        self._skill_ids = skill_ids
+        self._skill_parsed_paths = []
+        self._skill_parsed_ids = []
+
+    def get_skill_paths(self) -> List[str]:
+        return self._skill_parsed_paths
+
+    def get_skill_ids(self) -> List[str]:
+        return self._skill_parsed_ids
+
+    async def register_skills_async(
+        self,
+        agent_tool_span: AgentRunToolSpan,
+        agent_tool_register: Callable[[Tool], None],
+    ) -> "AgentRunSkillSpan":
+        """Get tools for skills"""
+        if not self._skill_retriever:
+            return self
+
+        if not self._skill_parsed_ids:
+            return self
+
+        async def _extend_tools(s: SkillConfig):
+            for tool_id in s.tool_ids or []:
+                for t in await agent_tool_span.register_tool_async(tool_id):
+                    agent_tool_register(t)
+
+        agent_skill_tools = await agent_tool_span.register_tool_async(
+            self._skill_retriever.to_tool(
+                skill_ids=self._skill_parsed_ids,
+                load_callback=_extend_tools,
+            )
+        )
+        for tool in agent_skill_tools:
+            agent_tool_register(tool)
+
+        return self
+
+    async def __aenter__(self) -> "AgentRunSkillSpan":
+        if not self._skill_retriever:
+            return self
+
+        if not self._skill_ids:
+            return self
+
+        self._skill_parsed_paths.clear()
+        self._skill_parsed_ids.clear()
+
+        for sid in self._skill_ids:
+            skill = await self._skill_retriever.get_skill_async(sid)
+            if not skill:
+                continue
+
+            if skill.path:
+                self._skill_parsed_paths.append(skill.path)
+            else:
+                self._skill_parsed_ids.append(sid)
+
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 class AgentRunSessionSpan:

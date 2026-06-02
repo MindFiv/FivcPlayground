@@ -399,7 +399,9 @@ class TestAdkAgentRuntime:
         assert isinstance(result, AgentRunContent)
         assert "The answer is 4" in result.text
 
-    @pytest.mark.skip(reason="ADK structured output tool invocation needs real agent execution")
+    @pytest.mark.skip(
+        reason="ADK structured output tool invocation needs real agent execution"
+    )
     @pytest.mark.asyncio
     async def test_structured_output_parsing(self):
         """Test structured output is parsed from tool call."""

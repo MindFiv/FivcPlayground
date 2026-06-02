@@ -15,7 +15,6 @@ from strands.models import Model as StrandsModelUnderlying
 from strands.types.content import ContentBlock, Message
 from strands.types.tools import ToolResult, ToolUse
 
-# from strands.types.streaming import
 from fivcplayground.agents import (
     AgentBackend,
     AgentConfig,
@@ -28,13 +27,14 @@ from fivcplayground.agents import (
     AgentRunStatus,
     AgentRunToolCall,
     AgentRunToolSpan,
+    AgentRunSkillSpan,
 )
 from fivcplayground.models import (
     ModelBackend,
     ModelConfigRepository,
     create_model_async,
 )
-from fivcplayground.skills import SkillConfig, SkillRetriever
+from fivcplayground.skills import SkillRetriever
 from fivcplayground.tools import ToolRetriever
 
 
@@ -173,43 +173,28 @@ class StrandsAgentRunnable(AgentRunnable):
         agent_skill_ids = set(skill_ids) if skill_ids else set()
         agent_skill_ids.update(self._agent_config.skill_ids or [])
 
-        # Resolve registered skill IDs; if a SkillConfig has `path`, also route it
-        # through StrandsSkillsPlugin while keeping the ID exposed via SkillRetriever.
-        agent_skill_locations = []
-        agent_skill_legacy_ids = []
-
-        if skill_retriever and agent_skill_ids:
-            for sid in agent_skill_ids:
-                skill = await skill_retriever.get_skill_async(sid)
-                if not skill:
-                    continue
-
-                if skill.path:
-                    agent_skill_locations.append(skill.path)
-                else:
-                    agent_skill_legacy_ids.append(sid)
-
-        # Create StrandsSkillsPlugin if there are skill locations to load.
-        # Plugin is None if no locations exist (backward compatible with skill ID-only setup).
-        agent_skill_plugin = (
-            StrandsSkillsPlugin(
-                skills=agent_skill_locations,
-            )
-            if agent_skill_locations
-            else None
-        )
-
         async with (
             AgentRunToolSpan(
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
             ) as agent_tool_span,
+            AgentRunSkillSpan(
+                skill_retriever=skill_retriever,
+                skill_ids=list(agent_skill_ids),
+            ) as agent_skill_span,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
                 self.id,
             ) as agent_run_session_span,
         ):
+            agent_skill_plugin = (
+                StrandsSkillsPlugin(
+                    skills=agent_skill_span.get_skill_paths(),
+                )
+                if agent_skill_span.get_skill_paths()
+                else None
+            )
             agent = StrandsAgentUnderlying(
                 name=self.id,
                 model=self._agent_model,
@@ -218,23 +203,14 @@ class StrandsAgentRunnable(AgentRunnable):
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
                 plugins=[agent_skill_plugin] if agent_skill_plugin else None,
             )
-            if skill_retriever and agent_skill_legacy_ids:
 
-                async def _extend_tools(s: SkillConfig):
-                    for tool_id in s.tool_ids or []:
-                        for t in await agent_tool_span.register_tool_async(tool_id):
-                            agent.tool_registry.register_dynamic_tool(
-                                t.get_underlying()
-                            )
-
-                agent_skill_tools = await agent_tool_span.register_tool_async(
-                    skill_retriever.to_tool(
-                        skill_ids=agent_skill_legacy_ids,
-                        load_callback=_extend_tools,
-                    )
-                )
-                for tool in agent_skill_tools:
-                    agent.tool_registry.register_tool(tool.get_underlying())
+            # compatible with legacy skill logic
+            await agent_skill_span.register_skills_async(
+                agent_tool_span=agent_tool_span,
+                agent_tool_register=lambda t: agent.tool_registry.register_dynamic_tool(
+                    t.get_underlying()
+                ),
+            )
 
             # Create agent run
             agent_run = AgentRun(

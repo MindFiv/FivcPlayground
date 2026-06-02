@@ -8,6 +8,8 @@ from google.adk.events import Event
 from google.adk.models import BaseLlm as AdkModelUnderlying
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
 from google.genai.types import Content, Part
 
 from fivcplayground.agents import (
@@ -22,6 +24,7 @@ from fivcplayground.agents import (
     AgentRunStatus,
     AgentRunToolCall,
     AgentRunToolSpan,
+    AgentRunSkillSpan,
 )
 from fivcplayground.models import (
     ModelBackend,
@@ -92,15 +95,6 @@ async def _list_events(
     #         )
     #     )
     return agent_events
-
-
-# class AdkStructured(object):
-#
-#     def __init__(self):
-#         self.output = {}
-#
-#     def __call__(self, params: BaseModel):
-#         self.output = params.model_dump()
 
 
 class AdkAgentRunnable(AgentRunnable):
@@ -190,27 +184,15 @@ class AdkAgentRunnable(AgentRunnable):
         agent_skill_ids = set(skill_ids) if skill_ids else set()
         agent_skill_ids.update(self._agent_config.skill_ids or [])
 
-        # Resolve registered skill IDs; if a SkillConfig has `path`, also route it
-        # through StrandsSkillsPlugin while keeping the ID exposed via SkillRetriever.
-        agent_skill_locations = []
-        agent_skill_legacy_ids = []
-
-        if skill_retriever and agent_skill_ids:
-            for sid in agent_skill_ids:
-                skill = await skill_retriever.get_skill_async(sid)
-                if not skill:
-                    continue
-
-                if skill.path:
-                    agent_skill_locations.append(skill.path)
-                else:
-                    agent_skill_legacy_ids.append(sid)
-
         async with (
             AgentRunToolSpan(
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
             ) as agent_tool_span,
+            AgentRunSkillSpan(
+                skill_retriever=skill_retriever,
+                skill_ids=list(agent_skill_ids),
+            ) as agent_skill_span,
             AgentRunSessionSpan(
                 agent_run_repository,
                 agent_run_session_id,
@@ -231,7 +213,13 @@ class AdkAgentRunnable(AgentRunnable):
 
                 agent_tools.append(generate_structured_output)
 
-            agent = Runner(
+            agent_skills = [
+                load_skill_from_dir(s) for s in agent_skill_span.get_skill_paths()
+            ]
+            if agent_skills:
+                agent_tools.append(skill_toolset.SkillToolset(skills=agent_skills))
+
+            agent_runner = Runner(
                 app_name="fivcplayground",
                 session_service=adk_session_service,
                 agent=AdkAgentUnderlying(
@@ -239,6 +227,13 @@ class AdkAgentRunnable(AgentRunnable):
                     model=self._agent_model,
                     tools=agent_tools,
                     instruction=self._agent_config.system_prompt,
+                ),
+            )
+            # compatible with legacy skill logic
+            await agent_skill_span.register_skills_async(
+                agent_tool_span=agent_tool_span,
+                agent_tool_register=lambda t: agent_runner.agent.tools.append(
+                    t.get_underlying()
                 ),
             )
             # Create agent run
@@ -252,7 +247,7 @@ class AdkAgentRunnable(AgentRunnable):
             event_callback(AgentRunEvent.START, agent_run)
 
             try:
-                async for event_data in agent.run_async(
+                async for event_data in agent_runner.run_async(
                     user_id="tmp-user",
                     session_id=adk_session_id,
                     new_message=Content(role="user", parts=_to_parts(query)),
