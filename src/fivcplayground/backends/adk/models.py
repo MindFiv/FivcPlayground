@@ -36,4 +36,10 @@ class AdkModelBackend(ModelBackend):
             "api_key": model_config.api_key,
         }
         params = {k: v for k, v in params.items() if v is not None}
-        return AdkModel(LiteLlm(model=model_config.model, stream=True, **params))
+        return AdkModel(
+            LiteLlm(
+                model=f"{model_config.provider}/{model_config.model}",
+                stream=True,
+                **params,
+            )
+        )

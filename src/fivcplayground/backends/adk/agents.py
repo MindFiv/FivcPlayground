@@ -314,12 +314,14 @@ class AdkAgentRunnable(AgentRunnable):
 
             finally:
                 agent_run.completed_at = datetime.now()
-
-                agent_reply = _get_content_text(agent_output) if agent_output else ""
-                agent_run.reply = AgentRunContent(
-                    text=agent_reply,
-                    structured=agent_output_structured or None,
-                )
+                if not agent_run.reply:
+                    agent_reply = (
+                        _get_content_text(agent_output) if agent_output else ""
+                    )
+                    agent_run.reply = AgentRunContent(
+                        text=agent_reply,
+                        structured=agent_output_structured or None,
+                    )
 
                 event_callback(AgentRunEvent.FINISH, agent_run)
 
