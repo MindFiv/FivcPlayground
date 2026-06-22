@@ -22,10 +22,12 @@ class StrandsModel(Model):
 class StrandsModelBackend(ModelBackend):
     def create_model(self, model_config: ModelConfig) -> Model:
         if model_config.provider == "openai":
-            params = {
+            params: dict[str, Any] = {
                 "max_completion_tokens": model_config.max_tokens,
                 "temperature": model_config.temperature,
             }
+            if model_config.enable_thinking is not None:
+                params["extra_body"] = {"enable_thinking": model_config.enable_thinking}
             params = {k: v for k, v in params.items() if v is not None}
             return StrandsModel(
                 OpenAIModel(
@@ -38,7 +40,16 @@ class StrandsModelBackend(ModelBackend):
                 )
             )
         elif model_config.provider == "gemini":
-            from google.genai.types import HttpOptions
+            from google.genai.types import HttpOptions, ThinkingConfig
+
+            params: dict[str, Any] = {
+                "temperature": model_config.temperature,
+                "max_output_tokens": model_config.max_tokens,
+            }
+            if model_config.enable_thinking is not None:
+                params["thinkingConfig"] = ThinkingConfig(
+                    include_thoughts=model_config.enable_thinking
+                )
 
             return StrandsModel(
                 GeminiModel(
@@ -47,22 +58,20 @@ class StrandsModelBackend(ModelBackend):
                         "http_options": HttpOptions(base_url=model_config.base_url),
                     },
                     model_id=model_config.model,
-                    params={
-                        k: v
-                        for k, v in {
-                            "temperature": model_config.temperature,
-                            "max_output_tokens": model_config.max_tokens,
-                        }.items()
-                        if v is not None
-                    },
+                    params={k: v for k, v in params.items() if v is not None},
                 )
             )
         elif model_config.provider == "ollama":
+            additional_args = {}
+            if model_config.enable_thinking is not None:
+                additional_args["think"] = model_config.enable_thinking
+
             return StrandsModel(
                 OllamaModel(
                     model_config.base_url,
                     model_id=model_config.model,
                     temperature=model_config.temperature,
+                    **({"additional_args": additional_args} if additional_args else {}),
                 )
             )
         else:

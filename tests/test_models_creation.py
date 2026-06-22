@@ -182,6 +182,53 @@ class TestModelBackendCreation:
             call_kwargs = mock_openai.call_args[1]
             assert "max_completion_tokens" not in call_kwargs["params"]
             assert "max_tokens" not in call_kwargs["params"]
+            assert "extra_body" not in call_kwargs["params"]
+
+    def test_strands_backend_openai_applies_enable_thinking(self):
+        """Test that Strands OpenAI-compatible models receive thinking control."""
+        from fivcplayground.backends.strands.models import (
+            StrandsModelBackend,
+        )
+
+        model_config = ModelConfig(
+            id="reasoning",
+            provider="openai",
+            model="qwen-flash",
+            api_key="sk-test",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.strands.models.OpenAIModel") as mock_openai:
+            backend = StrandsModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_openai.call_args[1]
+            assert call_kwargs["params"]["extra_body"]["enable_thinking"] is False
+
+    def test_strands_backend_gemini_applies_enable_thinking(self):
+        """Test that Strands Gemini models receive native thinking config."""
+        from google.genai.types import ThinkingConfig
+
+        from fivcplayground.backends.strands.models import (
+            StrandsModelBackend,
+        )
+
+        model_config = ModelConfig(
+            id="gemini-reasoning",
+            provider="gemini",
+            model="gemini-2.5-flash",
+            api_key="sk-test",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.strands.models.GeminiModel") as mock_gemini:
+            backend = StrandsModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_gemini.call_args[1]
+            thinking_config = call_kwargs["params"]["thinkingConfig"]
+            assert isinstance(thinking_config, ThinkingConfig)
+            assert thinking_config.include_thoughts is False
 
     def test_strands_backend_ollama_uses_model_field(self):
         """Test that Strands backend uses model_config.model for Ollama."""
@@ -206,6 +253,86 @@ class TestModelBackendCreation:
             call_kwargs = mock_ollama.call_args[1]
             assert call_kwargs["model_id"] == "nomic-embed-text"
             assert call_kwargs["model_id"] != "ollama-config"
+
+    def test_strands_backend_ollama_applies_enable_thinking(self):
+        """Test that Strands Ollama models receive best-effort thinking control."""
+        from fivcplayground.backends.strands.models import (
+            StrandsModelBackend,
+        )
+
+        model_config = ModelConfig(
+            id="ollama-reasoning",
+            provider="ollama",
+            model="qwen3",
+            base_url="http://localhost:11434",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.strands.models.OllamaModel") as mock_ollama:
+            backend = StrandsModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_ollama.call_args[1]
+            assert call_kwargs["additional_args"]["think"] is False
+
+    def test_adk_backend_openai_applies_enable_thinking(self):
+        """Test that ADK OpenAI-compatible models receive thinking control."""
+        from fivcplayground.backends.adk.models import AdkModelBackend
+
+        model_config = ModelConfig(
+            id="reasoning",
+            provider="openai",
+            model="qwen-flash",
+            api_key="sk-test",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.adk.models.LiteLlm") as mock_litellm:
+            backend = AdkModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_litellm.call_args[1]
+            assert call_kwargs["extra_body"]["enable_thinking"] is False
+
+    def test_adk_backend_ollama_applies_enable_thinking(self):
+        """Test that ADK Ollama models receive best-effort thinking control."""
+        from fivcplayground.backends.adk.models import AdkModelBackend
+
+        model_config = ModelConfig(
+            id="ollama-reasoning",
+            provider="ollama",
+            model="qwen3",
+            base_url="http://localhost:11434",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.adk.models.LiteLlm") as mock_litellm:
+            backend = AdkModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_litellm.call_args[1]
+            assert call_kwargs["think"] is False
+
+    def test_adk_backend_anthropic_omits_enable_thinking(self):
+        """Test that ADK Anthropic models do not receive unsupported thinking kwargs."""
+        from fivcplayground.backends.adk.models import AdkModelBackend
+
+        model_config = ModelConfig(
+            id="anthropic-reasoning",
+            provider="anthropic",
+            model="claude-sonnet-4",
+            api_key="sk-test",
+            enable_thinking=False,
+        )
+
+        with patch("fivcplayground.backends.adk.models.LiteLlm") as mock_litellm:
+            backend = AdkModelBackend()
+            backend.create_model(model_config)
+
+            call_kwargs = mock_litellm.call_args[1]
+            assert "enable_thinking" not in call_kwargs
+            assert "extra_body" not in call_kwargs
+            assert "think" not in call_kwargs
 
     def test_model_config_id_vs_model_distinction(self):
         """Test that ModelConfig correctly distinguishes between id and model fields."""

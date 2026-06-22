@@ -29,12 +29,18 @@ class AdkModelBackend(ModelBackend):
         # print("----------------------llm")
         # print(model_config.model_dump_json())
 
-        params = {
+        params: dict[str, Any] = {
             "max_tokens": model_config.max_tokens,
             "temperature": model_config.temperature,
             "api_base": model_config.base_url,
             "api_key": model_config.api_key,
         }
+        if model_config.enable_thinking is not None:
+            if model_config.provider == "openai":
+                params["extra_body"] = {"enable_thinking": model_config.enable_thinking}
+            elif model_config.provider == "ollama":
+                params["think"] = model_config.enable_thinking
+
         params = {k: v for k, v in params.items() if v is not None}
         return AdkModel(
             LiteLlm(

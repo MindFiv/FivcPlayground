@@ -50,6 +50,7 @@ class TestFileModelConfigRepository:
                 base_url="https://api.openai.com/v1",
                 temperature=0.7,
                 max_tokens=2048,
+                enable_thinking=False,
             )
 
             # Save model config
@@ -67,6 +68,7 @@ class TestFileModelConfigRepository:
             assert retrieved_config.api_key == "sk-test-key"
             assert retrieved_config.temperature == 0.7
             assert retrieved_config.max_tokens == 2048
+            assert retrieved_config.enable_thinking is False
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_model(self):
@@ -200,6 +202,7 @@ class TestFileModelConfigRepository:
                 provider="test-provider",
                 api_key="test-key",
                 temperature=0.5,
+                enable_thinking=False,
             )
             await repo.update_model_config_async(model_config)
 
@@ -216,6 +219,7 @@ class TestFileModelConfigRepository:
             assert model_data["provider"] == "test-provider"
             assert model_data["api_key"] == "test-key"
             assert model_data["temperature"] == 0.5
+            assert model_data["enable_thinking"] is False
 
     @pytest.mark.asyncio
     async def test_corrupted_yaml_handling(self):
@@ -264,6 +268,7 @@ class TestFileModelConfigRepository:
             assert retrieved.base_url is None
             assert retrieved.temperature is None
             assert retrieved.max_tokens is None
+            assert retrieved.enable_thinking is None
 
     @pytest.mark.asyncio
     async def test_id_field_set_on_get(self):

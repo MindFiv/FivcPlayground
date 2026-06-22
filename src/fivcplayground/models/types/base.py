@@ -31,6 +31,10 @@ class ModelConfig(BaseModel):
     max_tokens: int | None = Field(
         default=None, description="Maximum tokens for the model (if applicable)"
     )
+    enable_thinking: bool | None = Field(
+        default=None,
+        description="Enable provider-supported thinking output when explicitly set.",
+    )
 
 
 class Model(ABC):
