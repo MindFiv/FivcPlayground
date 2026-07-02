@@ -3,6 +3,7 @@ __all__ = [
     "AgentRunSession",
     "AgentRun",
     "AgentRunToolCall",
+    "agent_run_chronological_sort_key",
     "AgentRunStatus",
     "AgentRunEvent",
     "AgentRunContent",
@@ -27,6 +28,7 @@ from .base import (
     AgentRunSession,
     AgentRunStatus,
     AgentRunToolCall,
+    agent_run_chronological_sort_key,
 )
 from .repositories.base import (
     AgentConfigRepository,

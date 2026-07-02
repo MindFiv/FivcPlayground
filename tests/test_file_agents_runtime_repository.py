@@ -476,7 +476,7 @@ class TestFileAgentsRuntimeRepository:
 
     @pytest.mark.asyncio
     async def test_list_agent_runtimes_chronological_order(self):
-        """Test that list_agent_runs returns runtimes in chronological order"""
+        """Test that list_agent_runs returns runtimes by started_at."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileAgentRunRepository(output_dir=output_dir)
@@ -487,22 +487,23 @@ class TestFileAgentsRuntimeRepository:
             session = AgentRunSession(agent_id=agent_id)
             await repo.update_agent_run_session_async(session)
 
-            # Create multiple runtimes with different timestamps
-            # Note: id is a timestamp string, so we create them with explicit values
             runtime1 = AgentRun(
                 agent_id=agent_id,
-                id="1000.0",  # Earliest
+                id="z-run",
                 status=AgentRunStatus.COMPLETED,
+                started_at=datetime(2024, 1, 1, 12, 0, 0),
             )
             runtime2 = AgentRun(
                 agent_id=agent_id,
-                id="2000.0",  # Middle
+                id="a-run",
                 status=AgentRunStatus.COMPLETED,
+                started_at=datetime(2024, 1, 1, 12, 1, 0),
             )
             runtime3 = AgentRun(
                 agent_id=agent_id,
-                id="3000.0",  # Latest
+                id="m-run",
                 status=AgentRunStatus.COMPLETED,
+                started_at=datetime(2024, 1, 1, 12, 2, 0),
             )
 
             # Save in random order using session_id
@@ -516,14 +517,52 @@ class TestFileAgentsRuntimeRepository:
             # Verify we got all 3
             assert len(runtimes) == 3
 
-            # Verify they are in chronological order (increasing id)
-            assert runtimes[0].id == "1000.0"
-            assert runtimes[1].id == "2000.0"
-            assert runtimes[2].id == "3000.0"
+            # Verify they are in chronological order, not id lexical order
+            assert [runtime.id for runtime in runtimes] == ["z-run", "a-run", "m-run"]
+            assert [runtime.started_at for runtime in runtimes] == [
+                datetime(2024, 1, 1, 12, 0, 0),
+                datetime(2024, 1, 1, 12, 1, 0),
+                datetime(2024, 1, 1, 12, 2, 0),
+            ]
 
-            # Verify the order is maintained
-            for i in range(len(runtimes) - 1):
-                assert runtimes[i].id < runtimes[i + 1].id
+    @pytest.mark.asyncio
+    async def test_list_agent_runtimes_uses_legacy_timestamp_id_fallback(self):
+        """Test list_agent_runs preserves legacy timestamp-id ordering."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentRunRepository(output_dir=output_dir)
+
+            agent_id = "test-agent-legacy-chronological"
+            session = AgentRunSession(agent_id=agent_id)
+            await repo.update_agent_run_session_async(session)
+
+            runtime1 = AgentRun(
+                agent_id=agent_id,
+                id="1000.0",
+                status=AgentRunStatus.COMPLETED,
+            )
+            runtime2 = AgentRun(
+                agent_id=agent_id,
+                id="2000.0",
+                status=AgentRunStatus.COMPLETED,
+            )
+            runtime3 = AgentRun(
+                agent_id=agent_id,
+                id="3000.0",
+                status=AgentRunStatus.COMPLETED,
+            )
+
+            await repo.update_agent_run_async(session.id, runtime2)
+            await repo.update_agent_run_async(session.id, runtime1)
+            await repo.update_agent_run_async(session.id, runtime3)
+
+            runtimes = await repo.list_agent_runs_async(session.id)
+
+            assert [runtime.id for runtime in runtimes] == [
+                "1000.0",
+                "2000.0",
+                "3000.0",
+            ]
 
     @pytest.mark.asyncio
     async def test_update_and_get_agent_session(self):

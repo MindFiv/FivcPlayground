@@ -1016,7 +1016,7 @@ wheels = [
 
 [[package]]
 name = "fivcplayground"
-version = "0.1.27"
+version = "0.1.29"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

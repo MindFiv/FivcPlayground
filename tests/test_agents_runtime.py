@@ -14,6 +14,7 @@ Tests the agent runtime data models including:
 import json
 import warnings
 from datetime import datetime
+from uuid import UUID
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -132,35 +133,28 @@ class TestAgentsRuntime:
             agent_id="custom-agent-id",
         )
 
-        # id should be a timestamp string
         assert isinstance(runtime.id, str)
+        assert UUID(runtime.id)
         assert runtime.agent_id == "custom-agent-id"
 
-    def test_agent_run_id_is_timestamp(self):
-        """Test that id is a timestamp string for chronological ordering."""
-        import time
-
-        # Create first runtime
+    def test_agent_run_id_defaults_to_uuid(self):
+        """Test that id defaults to a unique UUID string."""
         runtime1 = AgentRun(
             agent_id="agent-123",
         )
-
-        # Longer delay to ensure different timestamps
-        time.sleep(0.1)
-
-        # Create second runtime
         runtime2 = AgentRun(
             agent_id="agent-123",
         )
 
-        # Both should have timestamp-based id
-        # Verify they are numeric strings (timestamps)
-        assert runtime1.id.replace(".", "").isdigit()
-        assert runtime2.id.replace(".", "").isdigit()
+        assert UUID(runtime1.id)
+        assert UUID(runtime2.id)
+        assert runtime1.id != runtime2.id
 
-        # Verify they can be compared chronologically
-        # runtime2 should have a larger timestamp than runtime1
-        assert float(runtime2.id) > float(runtime1.id)
+    def test_agent_run_accepts_custom_id(self):
+        """Test that explicit run ids are preserved for compatibility."""
+        runtime = AgentRun(agent_id="agent-123", id="custom-run-id")
+
+        assert runtime.id == "custom-run-id"
 
     def test_runtime_status_transitions(self):
         """Test runtime status transitions."""

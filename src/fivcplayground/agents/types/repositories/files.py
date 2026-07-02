@@ -35,6 +35,7 @@ from typing import List, Optional
 import yaml
 
 from fivcplayground.agents.types import AgentRunSession
+from fivcplayground.agents.types.base import agent_run_chronological_sort_key
 from fivcplayground.agents.types.repositories.base import (
     AgentConfig,
     AgentConfigRepository,
@@ -462,7 +463,6 @@ class FileAgentRunRepository(AgentRunRepository):
             except (json.JSONDecodeError, ValueError) as e:
                 print(f"Error loading runtime from {run_file}: {e}")
 
-        # Sort by id (timestamp string) in increasing order
-        runtimes.sort(key=lambda r: r.id)
+        runtimes.sort(key=agent_run_chronological_sort_key)
 
         return runtimes

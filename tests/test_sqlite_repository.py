@@ -128,26 +128,36 @@ class TestAgentRuntimeOperations:
 
     @pytest.mark.asyncio
     async def test_list_agent_runtimes(self, temp_db):
-        """Test listing all runtimes for an agent."""
-        import asyncio
-
+        """Test listing all runtimes for an agent in chronological order."""
         agent = AgentRunSession(agent_id="test-agent")
         await temp_db.update_agent_run_session_async(agent)
 
-        # Create multiple runtimes with small delay to ensure unique timestamp IDs
-        runtime_ids = []
-        for i in range(3):
-            runtime = AgentRun(
-                agent_id="test-agent",
-                query=AgentRunContent(text=f"Query {i}"),
-            )
-            await temp_db.update_agent_run_async(agent.id, runtime)
-            runtime_ids.append(runtime.id)
-            await asyncio.sleep(0.01)
+        runtime1 = AgentRun(
+            id="z-run",
+            agent_id="test-agent",
+            query=AgentRunContent(text="Query 0"),
+            started_at=datetime(2024, 1, 1, 12, 0, 0),
+        )
+        runtime2 = AgentRun(
+            id="a-run",
+            agent_id="test-agent",
+            query=AgentRunContent(text="Query 1"),
+            started_at=datetime(2024, 1, 1, 12, 1, 0),
+        )
+        runtime3 = AgentRun(
+            id="m-run",
+            agent_id="test-agent",
+            query=AgentRunContent(text="Query 2"),
+            started_at=datetime(2024, 1, 1, 12, 2, 0),
+        )
+
+        await temp_db.update_agent_run_async(agent.id, runtime2)
+        await temp_db.update_agent_run_async(agent.id, runtime1)
+        await temp_db.update_agent_run_async(agent.id, runtime3)
 
         runtimes = await temp_db.list_agent_runs_async(agent.id)
         assert len(runtimes) == 3
-        assert set(r.id for r in runtimes) == set(runtime_ids)
+        assert [r.id for r in runtimes] == ["z-run", "a-run", "m-run"]
 
     @pytest.mark.asyncio
     async def test_delete_agent_runtime(self, temp_db):

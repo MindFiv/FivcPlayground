@@ -54,6 +54,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fivcplayground.agents.types import AgentRunSession
+from fivcplayground.agents.types.base import agent_run_chronological_sort_key
 from fivcplayground.agents.types.repositories import (
     AgentRun,
     AgentRunRepository,
@@ -472,7 +473,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
         """List all agent runtimes for a specific session with embedded tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(
-            "SELECT * FROM agent_runtimes WHERE session_id = ? ORDER BY agent_run_id",
+            "SELECT * FROM agent_runtimes WHERE session_id = ?",
             (session_id,),
         )
         rows = cursor.fetchall()
@@ -536,6 +537,8 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 runtimes.append(runtime)
             except (ValueError, json.JSONDecodeError) as e:
                 print(f"Error loading runtime {row['agent_run_id']}: {e}")
+
+        runtimes.sort(key=agent_run_chronological_sort_key)
 
         return runtimes
 

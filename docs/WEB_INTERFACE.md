@@ -192,12 +192,9 @@ src/fivcplayground/labs/
 - Structure:
   ```
   .fivcplayground/agents/
-  └── agent_<agent_id>/
-      ├── agent.json                    # Agent metadata
-      └── run_<timestamp>/
-          ├── run.json                  # Runtime data
-          └── tool_calls/
-              └── tool_call_<id>.json   # Tool call records
+  └── session_<session_id>/
+      ├── session.json                  # Agent session metadata
+      └── run_<agent_run_id>.json       # Runtime data with embedded tool calls
   ```
 
 ### Customization

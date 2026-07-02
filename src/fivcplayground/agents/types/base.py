@@ -165,8 +165,8 @@ class AgentRun(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     id: str = Field(
-        default_factory=lambda: str(datetime.now().timestamp()),
-        description="Unique run identifier (timestamp string for chronological ordering)",
+        default_factory=lambda: str(uuid4()),
+        description="Unique run identifier (auto-generated if not provided)",
     )
     agent_id: Optional[str] = Field(
         default=None, description="ID of the agent being executed"
@@ -239,6 +239,17 @@ class AgentRun(BaseModel):
     def failed_tool_calls(self) -> int:
         """Get number of failed tool calls"""
         return sum(1 for tc in self.tool_calls.values() if tc.status == "error")
+
+
+def agent_run_chronological_sort_key(agent_run: AgentRun) -> tuple[float, str]:
+    """Sort AgentRun values chronologically with legacy id fallback."""
+    if agent_run.started_at:
+        return (agent_run.started_at.timestamp(), agent_run.id)
+
+    try:
+        return (float(agent_run.id), agent_run.id)
+    except ValueError:
+        return (float("inf"), agent_run.id)
 
 
 class AgentRunnable(ABC):
