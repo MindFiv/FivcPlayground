@@ -1,5 +1,6 @@
+import re
 from datetime import datetime
-from typing import Callable, List, Type, cast
+from typing import Any, Callable, List, Type, cast
 from warnings import warn
 
 from pydantic import BaseModel
@@ -12,8 +13,9 @@ from strands import (
     AgentSkills as StrandsSkillsPlugin,
 )
 from strands.models import Model as StrandsModelUnderlying
+from strands.tools import PythonAgentTool
 from strands.types.content import ContentBlock, Message
-from strands.types.tools import ToolResult, ToolUse
+from strands.types.tools import ToolResult, ToolSpec, ToolUse
 
 from fivcplayground.agents import (
     AgentBackend,
@@ -36,6 +38,12 @@ from fivcplayground.models import (
 )
 from fivcplayground.skills import SkillRetriever
 from fivcplayground.tools import ToolRetriever
+
+
+_JSON_FENCE_PATTERN = re.compile(
+    r"(?:```|''')json\s*(?P<json>.*?)(?:```|''')",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
@@ -188,6 +196,44 @@ class StrandsAgentRunnable(AgentRunnable):
                 self.id,
             ) as agent_run_session_span,
         ):
+            agent_tools = [t.get_underlying() for t in agent_tool_span.tools]
+            agent_output_structured: dict[str, Any] = {}
+            if response_model:
+                tool_name = "generate_structured_output"
+                response_schema = response_model.model_json_schema()
+                response_schema.pop("title", None)
+
+                def generate_structured_output(
+                    tool_use: ToolUse, **kwargs
+                ) -> ToolResult:
+                    """
+                    generate structured output from response object
+                    """
+                    resp = response_model.model_validate(tool_use.get("input", {}))
+                    agent_output_structured.clear()
+                    agent_output_structured.update(resp.model_dump(mode="json"))
+                    return ToolResult(
+                        toolUseId=tool_use.get("toolUseId", tool_name),
+                        status="success",
+                        content=[{"text": "Structured output captured."}],
+                    )
+
+                agent_tools.append(
+                    PythonAgentTool(
+                        tool_name,
+                        ToolSpec(
+                            name=tool_name,
+                            description=(
+                                "Use this tool to provide the final structured "
+                                "response. Arguments must match the requested "
+                                "response schema."
+                            ),
+                            inputSchema={"json": response_schema},
+                        ),
+                        generate_structured_output,
+                    )
+                )
+
             agent_skill_plugin = (
                 StrandsSkillsPlugin(
                     skills=agent_skill_span.get_skill_paths(),
@@ -198,7 +244,7 @@ class StrandsAgentRunnable(AgentRunnable):
             agent = StrandsAgentUnderlying(
                 name=self.id,
                 model=self._agent_model,
-                tools=[t.get_underlying() for t in agent_tool_span.tools],
+                tools=agent_tools,
                 system_prompt=self._agent_config.system_prompt,
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
                 plugins=[agent_skill_plugin] if agent_skill_plugin else None,
@@ -225,7 +271,6 @@ class StrandsAgentRunnable(AgentRunnable):
             try:
                 async for event_data in agent.stream_async(
                     prompt=agent_messages,
-                    structured_output_model=response_model,
                 ):
                     event = AgentRunEvent.START
                     if "result" in event_data:
@@ -290,15 +335,61 @@ class StrandsAgentRunnable(AgentRunnable):
                 agent_run.completed_at = datetime.now()
 
                 # Ensure reply is set and FINISH event is called even if an exception occurred
+                agent_run_reply_structured = None
+                parse_error = None
                 if isinstance(agent_output, StrandsAgentResult):
-                    agent_run_reply_structured = agent_output.structured_output
+                    agent_reply = str(agent_output)
+                    if response_model:
+                        try:
+                            if agent_output_structured:
+                                agent_run_reply_structured = response_model(
+                                    **agent_output_structured
+                                )
+                            else:
+                                parse_errors = []
+                                try:
+                                    agent_run_reply_structured = (
+                                        response_model.model_validate_json(agent_reply)
+                                    )
+                                except ValueError as e:
+                                    parse_errors.append(f"whole reply: {e}")
+
+                                if not agent_run_reply_structured:
+                                    for match in _JSON_FENCE_PATTERN.finditer(
+                                        agent_reply
+                                    ):
+                                        try:
+                                            agent_run_reply_structured = (
+                                                response_model.model_validate_json(
+                                                    match.group("json").strip()
+                                                )
+                                            )
+                                            break
+                                        except ValueError as e:
+                                            parse_errors.append(f"fenced json: {e}")
+
+                                if not agent_run_reply_structured:
+                                    details = (
+                                        "; ".join(parse_errors)
+                                        if parse_errors
+                                        else "no JSON content found"
+                                    )
+                                    raise ValueError(
+                                        "Failed to parse structured output from "
+                                        f"agent reply: {details}"
+                                    )
+
+                                agent_output_structured.update(
+                                    agent_run_reply_structured.model_dump(mode="json")
+                                )
+                        except ValueError as e:
+                            parse_error = e
+                            agent_run.error = str(e)
+                            agent_run.status = AgentRunStatus.FAILED
+
                     agent_run.reply = AgentRunContent(
-                        text=str(agent_output),
-                        structured=(
-                            agent_run_reply_structured.model_dump(mode="json")
-                            if agent_run_reply_structured
-                            else None
-                        ),
+                        text=agent_reply,
+                        structured=agent_output_structured or None,
                     )
                 else:
                     agent_run.error = f"Expected AgentResult, got {type(agent_output)}"
@@ -308,6 +399,9 @@ class StrandsAgentRunnable(AgentRunnable):
 
                 # Save the final agent run state to the repository
                 await agent_run_session_span(agent_run)
+
+                if parse_error:
+                    raise parse_error
 
             if not agent_run.reply:
                 return AgentRunContent(text="")

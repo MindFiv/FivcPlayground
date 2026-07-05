@@ -18,9 +18,11 @@ from uuid import UUID
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from pydantic import BaseModel
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunContent,
+    AgentRunEvent,
     AgentRunStatus,
     AgentRunToolCall,
 )
@@ -795,6 +797,267 @@ class TestStrandsAgentUnknownToolCallHandling:
 
             # Verify the agent completed successfully despite receiving an unknown tool result
             assert result is not None
+
+
+class TestStrandsStructuredOutput:
+    """Tests for Strands structured output tool and fallback parsing."""
+
+    class AnswerResponse(BaseModel):
+        answer: int
+        confidence: float
+
+    def _make_result(self, text: str):
+        from strands.agent import AgentResult as StrandsAgentResult
+        from strands.telemetry.metrics import EventLoopMetrics
+
+        return StrandsAgentResult(
+            stop_reason="end_turn",
+            message={"role": "assistant", "content": [{"text": text}]},
+            metrics=EventLoopMetrics(),
+            state={},
+        )
+
+    def _make_agent(self):
+        from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+
+        agent_config = AgentConfig(
+            id="test-agent",
+            description="Test agent",
+            system_prompt="You are a test agent",
+        )
+        return StrandsAgentRunnable(agent_config, Mock())
+
+    @pytest.mark.asyncio
+    async def test_structured_response_model_does_not_use_strands_stream_parameter(
+        self,
+    ):
+        agent = self._make_agent()
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result('{"answer": 4, "confidence": 0.9}')}
+
+        mock_strands_agent.stream_async = Mock(side_effect=mock_stream)
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            result = await agent.run_async(
+                query="test",
+                response_model=self.AnswerResponse,
+            )
+
+        assert isinstance(result, self.AnswerResponse)
+        assert result.answer == 4
+        _, stream_kwargs = mock_strands_agent.stream_async.call_args
+        assert "structured_output_model" not in stream_kwargs
+
+    @pytest.mark.asyncio
+    async def test_registers_custom_structured_output_tool(self):
+        agent = self._make_agent()
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result('{"answer": 4, "confidence": 0.9}')}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            await agent.run_async(query="test", response_model=self.AnswerResponse)
+
+        _, agent_kwargs = mock_agent_class.call_args
+        tool_names = [getattr(t, "tool_name", None) for t in agent_kwargs["tools"]]
+        assert "generate_structured_output" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_tool_captured_structured_output_is_saved_and_returned(self):
+        agent = self._make_agent()
+        captured_run = None
+
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            structured_tool = next(
+                t
+                for t in mock_strands_agent._tools
+                if getattr(t, "tool_name", None) == "generate_structured_output"
+            )
+            async for _ in structured_tool.stream(
+                {
+                    "toolUseId": "structured-1",
+                    "name": "generate_structured_output",
+                    "input": {"answer": 4, "confidence": 0.9},
+                },
+                {},
+            ):
+                pass
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+
+            def make_mock_agent(*args, **kwargs):
+                mock_strands_agent._tools = kwargs["tools"]
+                return mock_strands_agent
+
+            mock_agent_class.side_effect = make_mock_agent
+
+            result = await agent.run_async(
+                query="test",
+                response_model=self.AnswerResponse,
+                event_callback=capture_callback,
+            )
+
+        assert isinstance(result, self.AnswerResponse)
+        assert result.answer == 4
+        assert captured_run.reply.structured == {"answer": 4, "confidence": 0.9}
+
+    @pytest.mark.asyncio
+    async def test_whole_reply_json_fallback_is_saved_and_returned(self):
+        agent = self._make_agent()
+        captured_run = None
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result('{"answer": 4, "confidence": 0.9}')}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            result = await agent.run_async(
+                query="test",
+                response_model=self.AnswerResponse,
+                event_callback=capture_callback,
+            )
+
+        assert isinstance(result, self.AnswerResponse)
+        assert result.answer == 4
+        assert captured_run.reply.structured == {"answer": 4, "confidence": 0.9}
+
+    @pytest.mark.asyncio
+    async def test_markdown_json_fallback_is_saved_and_returned(self):
+        agent = self._make_agent()
+        captured_run = None
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {
+                "result": self._make_result(
+                    "Here is the answer:\n```json\n"
+                    '{"answer": 4, "confidence": 0.9}\n'
+                    "```"
+                )
+            }
+
+        mock_strands_agent.stream_async = mock_stream
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            result = await agent.run_async(
+                query="test",
+                response_model=self.AnswerResponse,
+                event_callback=capture_callback,
+            )
+
+        assert isinstance(result, self.AnswerResponse)
+        assert result.answer == 4
+        assert captured_run.reply.structured == {"answer": 4, "confidence": 0.9}
+
+    @pytest.mark.asyncio
+    async def test_apostrophe_markdown_json_fallback_is_saved_and_returned(self):
+        agent = self._make_agent()
+        captured_run = None
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {
+                "result": self._make_result(
+                    "Here is the answer:\n'''json\n"
+                    '{"answer": 4, "confidence": 0.9}\n'
+                    "'''"
+                )
+            }
+
+        mock_strands_agent.stream_async = mock_stream
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            result = await agent.run_async(
+                query="test",
+                response_model=self.AnswerResponse,
+                event_callback=capture_callback,
+            )
+
+        assert isinstance(result, self.AnswerResponse)
+        assert result.answer == 4
+        assert captured_run.reply.structured == {"answer": 4, "confidence": 0.9}
+
+    @pytest.mark.asyncio
+    async def test_invalid_structured_output_marks_run_failed_and_raises(self):
+        agent = self._make_agent()
+        captured_run = None
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result("no json here")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            with pytest.raises(ValueError, match="Failed to parse structured output"):
+                await agent.run_async(
+                    query="test",
+                    response_model=self.AnswerResponse,
+                    event_callback=capture_callback,
+                )
+
+        assert captured_run.status == AgentRunStatus.FAILED
+        assert "Failed to parse structured output" in captured_run.error
 
 
 class TestAgentRunContentImageFiles:
