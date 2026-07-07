@@ -36,7 +36,7 @@ temp/
 .tmp/
 .coverage
 .fivcplayground/
+.worktrees/
 .spec-workflow/
 .sisyphus/
 .omo/
-

@@ -5,7 +5,7 @@ from typing import Callable, Awaitable
 from fivcplayground import embeddings
 from fivcplayground.skills.types import SkillConfig, SkillConfigRepository
 from fivcplayground.tools import ToolBackend
-from fivcplayground.tools.types import FunctionToolBundle
+from fivcplayground.tools.types import CallableToolBundle
 
 
 class SkillRetriever(object):
@@ -76,7 +76,7 @@ class SkillRetriever(object):
         self,
         skill_ids: list[str] | None = None,
         load_callback: LoadCallback | None = None,
-    ) -> FunctionToolBundle:
+    ) -> CallableToolBundle:
         """Convert the retriever to a tool bundle with skill_list and skill_load.
 
         Args:
@@ -87,7 +87,7 @@ class SkillRetriever(object):
                 agent_tool_span.register_tool_async() for skill.tool_ids
 
         Returns:
-            FunctionToolBundle with two functions:
+            CallableToolBundle with two functions:
             - skill_list() → JSON list of {id, description}
             - skill_load(skill_id) → JSON with full skill details, triggers callback if provided
 
@@ -129,9 +129,9 @@ class SkillRetriever(object):
 
             return json.dumps(skill.model_dump(mode="json"))
 
-        return FunctionToolBundle(
+        return CallableToolBundle(
             name="skills",
             description="Tools for listing and loading skills",
             tool_backend=self.tool_backend,
-            tool_funcs=[skill_list, skill_load],
+            tool_callables=[skill_list, skill_load],
         )

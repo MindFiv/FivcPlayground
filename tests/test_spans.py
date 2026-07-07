@@ -51,6 +51,26 @@ class TestRegisterToolAsync:
         assert "bundle_tool_2" in span._tool_loaded_expanded
 
     @pytest.mark.asyncio
+    async def test_register_tool_bundle_passes_context_to_setup(self):
+        """Test registering a ToolBundle passes runtime context to setup()."""
+        bundle_tool = Mock()
+        bundle_tool.name = "bundle_tool"
+
+        bundle = Mock(spec=ToolBundle)
+        bundle.name = "context_bundle"
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = [bundle_tool]
+        mock_context.__aexit__.return_value = None
+        bundle.setup = Mock(return_value=mock_context)
+
+        runtime_context = {"request_id": object()}
+        span = AgentRunToolSpan(context=runtime_context)
+        result = await span.register_tool_async(bundle)
+
+        assert len(result) == 1
+        bundle.setup.assert_called_once_with(context=runtime_context)
+
+    @pytest.mark.asyncio
     async def test_register_tool_deduplication(self):
         """Test that registering same tool twice returns empty list."""
         span = AgentRunToolSpan()

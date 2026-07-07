@@ -1,5 +1,7 @@
 __all__ = [
     "DefaultKwargs",
+    "DynamicCallable",
+    "DynamicClass",
     "DynamicFunc",
     "LazyValue",
     "OutputDir",
@@ -7,6 +9,8 @@ __all__ = [
 
 from fivcplayground.utils.types import (
     DefaultKwargs,
+    DynamicCallable,
+    DynamicClass,
     DynamicFunc,
     LazyValue,
     OutputDir,

@@ -829,6 +829,35 @@ class TestStrandsStructuredOutput:
         return StrandsAgentRunnable(agent_config, Mock())
 
     @pytest.mark.asyncio
+    async def test_run_async_passes_context_to_tool_span(self):
+        agent = self._make_agent()
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+        runtime_context = {"request_id": object()}
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            with patch(
+                "fivcplayground.backends.strands.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                mock_tool_span = AsyncMock()
+                mock_tool_span.__aenter__.return_value = mock_tool_span
+                mock_tool_span.__aexit__.return_value = None
+                mock_tool_span.tools = []
+                mock_tool_span_cls.return_value = mock_tool_span
+
+                await agent.run_async(query="test", context=runtime_context)
+
+        _, kwargs = mock_tool_span_cls.call_args
+        assert kwargs["context"] is runtime_context
+
+    @pytest.mark.asyncio
     async def test_structured_response_model_does_not_use_strands_stream_parameter(
         self,
     ):

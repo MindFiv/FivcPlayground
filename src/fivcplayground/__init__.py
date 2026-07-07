@@ -6,7 +6,7 @@ __all__ = [
     "__license__",
 ]
 
-__version__ = "0.1.31"
+__version__ = "0.1.32"
 __author__ = "Charlie Zhang"
 __email__ = "sunnypig2002@gmail.com"
 __license__ = "MIT"

@@ -73,7 +73,7 @@ class ToolBundle(Tool):
     """Tool bundle that groups multiple tools from the same MCP server."""
 
     @abstractmethod
-    def setup(self) -> ToolBundleContext:
+    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
         """set up the tool bundle."""
 
 

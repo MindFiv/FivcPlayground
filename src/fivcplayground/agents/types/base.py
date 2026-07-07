@@ -281,6 +281,7 @@ class AgentRunnable(ABC):
         skill_retriever: SkillRetriever | None = None,
         skill_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
+        context: dict[str, Any] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:

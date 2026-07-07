@@ -136,6 +136,7 @@ class StrandsAgentRunnable(AgentRunnable):
         skill_retriever: SkillRetriever | None = None,
         skill_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
+        context: dict[str, Any] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
@@ -151,6 +152,7 @@ class StrandsAgentRunnable(AgentRunnable):
             skill_retriever: Optional skill retriever for dynamic tool injection
             skill_ids: Runtime skill IDs (merged with config.skill_ids via set union)
             response_model: Structured output model (overrides config)
+            context: Runtime context passed to class tool constructors
             event_callback: Callback for execution events
             **kwargs: Additional arguments (ignored)
 
@@ -185,6 +187,7 @@ class StrandsAgentRunnable(AgentRunnable):
             AgentRunToolSpan(
                 tool_retriever=tool_retriever,
                 tool_ids=list(agent_tool_ids),
+                context=context,
             ) as agent_tool_span,
             AgentRunSkillSpan(
                 skill_retriever=skill_retriever,

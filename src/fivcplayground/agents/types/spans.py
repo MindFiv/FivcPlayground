@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Callable
+from typing import Any, List, Callable
 
 from fivcplayground.tools import (
     Tool,
@@ -29,10 +29,12 @@ class AgentRunToolSpan:
         self,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
+        context: dict[str, Any] | None = None,
         **kwargs,  # ignore additional kwargs
     ):
         self._tool_retriever = tool_retriever
         self._tool_ids = tool_ids
+        self._context = context
         self._tool_contexts = []
         self._tool_loaded = {}
         self._tool_loaded_expanded = {}
@@ -91,7 +93,7 @@ class AgentRunToolSpan:
             return []
 
         if isinstance(tool, ToolBundle):
-            tool_context = tool.setup()
+            tool_context = tool.setup(context=self._context)
             try:
                 tools_expanded = await tool_context.__aenter__()
                 tools_expanded = [

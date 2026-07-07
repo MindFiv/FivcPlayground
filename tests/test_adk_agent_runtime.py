@@ -99,6 +99,40 @@ class TestAdkAgentRuntime:
     """Test ADK agent runtime execution."""
 
     @pytest.mark.asyncio
+    async def test_run_async_passes_context_to_tool_span(self):
+        """Test runtime context is passed into AgentRunToolSpan."""
+        agent_config = _make_agent_config()
+        agent_model = MagicMock(spec=AdkModelUnderlying)
+        runnable = AdkAgentRunnable(agent_config, agent_model)
+
+        mock_runner = MagicMock(spec=Runner)
+        mock_event = _create_mock_event(text="Done", is_final=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        runtime_context = {"request_id": object()}
+
+        with patch(
+            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
+        ):
+            with patch(
+                "fivcplayground.backends.adk.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                with patch(
+                    "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
+                ) as mock_session_span_cls:
+                    mock_tool_span, mock_session_span = _create_mocks_for_run()
+                    mock_tool_span_cls.return_value = mock_tool_span
+                    mock_session_span_cls.return_value = mock_session_span
+
+                    await runnable.run_async(query="test", context=runtime_context)
+
+        _, kwargs = mock_tool_span_cls.call_args
+        assert kwargs["context"] is runtime_context
+
+    @pytest.mark.asyncio
     async def test_stream_event_detection(self):
         """Test STREAM event is emitted for text content."""
         agent_config = _make_agent_config()

@@ -8,6 +8,8 @@ __all__ = [
     "ToolConfig",
     "ToolConfigRepository",
     "ToolRetriever",
+    "CallableToolBundle",
+    "ClassToolBundle",
     "FunctionToolBundle",
 ]
 
@@ -18,6 +20,8 @@ from fivcplayground.embeddings import (
 )
 
 from .types import (
+    CallableToolBundle,
+    ClassToolBundle,
     FunctionToolBundle,
     Tool,
     ToolBackend,
@@ -52,17 +56,17 @@ async def create_builtin_tools_async(
     from fivcplayground.tools.shell import shell
 
     return [
-        FunctionToolBundle(
+        CallableToolBundle(
             name="auxiliary",
             description="Auxiliary tools like clock and calculator",
             tool_backend=tool_backend,
-            tool_funcs=[clock, calculator],
+            tool_callables=[clock, calculator],
         ),
-        FunctionToolBundle(
+        CallableToolBundle(
             name="filesystem",
             description="Tools for interacting with the filesystem",
             tool_backend=tool_backend,
-            tool_funcs=[
+            tool_callables=[
                 file_read,
                 file_write,
                 file_search,

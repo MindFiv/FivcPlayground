@@ -14,7 +14,7 @@ from google.adk.tools.mcp_tool.mcp_session_manager import (
 )
 
 from fivcplayground.tools import (
-    FunctionToolBundle,
+    CallableToolBundle,
     Tool,
     ToolBackend,
     ToolBundle,
@@ -22,7 +22,7 @@ from fivcplayground.tools import (
     ToolConfig,
 )
 from fivcplayground.tools.types import ToolConfigTransport
-from fivcplayground.utils import DynamicFunc
+from fivcplayground.utils import DynamicCallable
 
 
 class AdkTool(Tool):
@@ -102,7 +102,7 @@ class AdkToolBundle(ToolBundle):
 
         return FunctionTool(_func)
 
-    def setup(self) -> ToolBundleContext:
+    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
         return AdkToolBundleContext(self._tool_config)
 
 
@@ -116,6 +116,11 @@ class AdkToolBackend(ToolBackend):
         tool_description: str | None = None,
     ) -> Tool:
         if tool_name and tool_description:
+            original_tool_func = tool_func
+
+            def tool_func(*args, **kwargs):
+                return original_tool_func(*args, **kwargs)
+
             tool_func.__name__ = tool_name
             tool_func.__doc__ = tool_description
 
@@ -129,11 +134,11 @@ class AdkToolBackend(ToolBackend):
                     f"ToolConfig '{tool_config.id}' has transport 'function' "
                     "but 'functions' is None or empty."
                 )
-            funcs = [DynamicFunc(p) for p in tool_config.functions]
-            return FunctionToolBundle(
+            funcs = [DynamicCallable(p) for p in tool_config.functions]
+            return CallableToolBundle(
                 name=tool_config.id,
                 description=tool_config.description,
                 tool_backend=self,
-                tool_funcs=funcs,
+                tool_callables=funcs,
             )
         return AdkToolBundle(tool_config)

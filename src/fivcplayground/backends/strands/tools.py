@@ -12,7 +12,7 @@ from strands.tools.mcp import MCPClient
 from strands.types.tools import AgentTool as StrandToolUnderling
 
 from fivcplayground.tools import (
-    FunctionToolBundle,
+    CallableToolBundle,
     Tool,
     ToolBackend,
     ToolBundle,
@@ -20,7 +20,7 @@ from fivcplayground.tools import (
     ToolConfig,
 )
 from fivcplayground.tools.types import ToolConfigTransport
-from fivcplayground.utils import DynamicFunc
+from fivcplayground.utils import DynamicCallable
 
 
 class StrandsTool(Tool):
@@ -97,7 +97,7 @@ class StrandsToolBundle(ToolBundle):
 
         return tool(name=self.name, description=self.description)(_func)
 
-    def setup(self) -> ToolBundleContext:
+    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
         return StrandsToolBundleContext(self._tool_config)
 
 
@@ -125,11 +125,11 @@ class StrandsToolBackend(ToolBackend):
                     f"ToolConfig '{tool_config.id}' has transport 'function' "
                     "but 'functions' is None or empty."
                 )
-            funcs = [DynamicFunc(p) for p in tool_config.functions]
-            return FunctionToolBundle(
+            funcs = [DynamicCallable(p) for p in tool_config.functions]
+            return CallableToolBundle(
                 name=tool_config.id,
                 description=tool_config.description,
                 tool_backend=self,
-                tool_funcs=funcs,
+                tool_callables=funcs,
             )
         return StrandsToolBundle(tool_config)
