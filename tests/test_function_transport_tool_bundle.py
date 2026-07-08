@@ -23,30 +23,43 @@ async def async_configured_tool(value: str = "ok") -> str:
 
 
 class ContextClassTool:
+    """Return user id from runtime context."""
+
     def __init__(self, **context):
         self.context = context
 
     def __call__(self) -> str:
-        """Return the current user."""
+        """Do not use this __call__ docstring."""
         return self.context["user_id"]
 
 
 class MultiContextClassTool:
+    """Return multiple values from runtime context."""
+
     def __init__(self, **context):
         self.context = context
 
     def __call__(self) -> str:
-        """Return multiple context values."""
+        """Do not use this __call__ docstring."""
         return f"{self.context['user_id']}:{self.context['request_id']}"
 
 
 class AsyncContextClassTool:
+    """Return user id asynchronously from runtime context."""
+
     def __init__(self, **context):
         self.context = context
 
     async def __call__(self) -> str:
-        """Return the current user asynchronously."""
+        """Do not use this __call__ docstring."""
         return f"async:{self.context['user_id']}"
+
+
+class NoDocstringClassTool:
+    """Return a fixed value without a __call__ docstring."""
+
+    def __call__(self) -> str:
+        return "no-docstring"
 
 
 class NonCallableClassTool:
@@ -194,6 +207,7 @@ class TestCreateToolBundleFunctionTransport:
         async with bundle.setup(user_id="u-123") as tools:
             assert len(tools) == 1
             assert tools[0].name == "context_class_tool"
+            assert tools[0].description == "Return user id from runtime context."
             assert tools[0].get_underlying()() == "u-123"
 
     @pytest.mark.asyncio
@@ -212,6 +226,9 @@ class TestCreateToolBundleFunctionTransport:
         async with bundle.setup(user_id="u-123", request_id="r-456") as tools:
             assert len(tools) == 1
             assert tools[0].name == "multi_context_class_tool"
+            assert (
+                tools[0].description == "Return multiple values from runtime context."
+            )
             assert tools[0].get_underlying()() == "u-123:r-456"
 
     @pytest.mark.asyncio
@@ -289,6 +306,10 @@ class TestCreateToolBundleFunctionTransport:
         async with bundle.setup(user_id="u-123") as tools:
             assert len(tools) == 1
             assert tools[0].name == "async_context_class_tool"
+            assert (
+                tools[0].description
+                == "Return user id asynchronously from runtime context."
+            )
             result = tools[0].get_underlying()()
             assert await result == "async:u-123"
 
@@ -324,6 +345,30 @@ class TestCreateToolBundleFunctionTransport:
         assert [tool.name for tool in tools] == ["context_class_tool"]
         assert "ContextClassTool" not in {tool.name for tool in tools}
         assert tools[0].get_underlying()() == "u-123"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("BackendImpl", BackendImpls)
+    async def test_class_tool_without_call_docstring_keeps_configured_name(
+        self, BackendImpl
+    ):
+        backend = BackendImpl()
+        config = ToolConfig(
+            id="no_docstring_class_bundle",
+            description="A class tool without a __call__ docstring",
+            transport="function",
+            functions=[f"{__name__}.NoDocstringClassTool"],
+        )
+        bundle = backend.create_tool_bundle(config)
+
+        tool_context = bundle.setup()
+        async with tool_context as tools:
+            tool_names = [tool.name for tool in tools]
+
+        assert tool_names == ["no_docstring_class_tool"]
+        assert "__call__" not in tool_names
+        assert (
+            tools[0].description == "Return a fixed value without a __call__ docstring."
+        )
 
     @pytest.mark.parametrize("BackendImpl", BackendImpls)
     def test_functions_none_raises_value_error(self, BackendImpl):

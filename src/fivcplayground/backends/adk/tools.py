@@ -3,6 +3,7 @@ from typing import (
     Callable,
     List,
 )
+import inspect
 
 from google.adk.tools import FunctionTool, BaseTool as AdkToolUnderlying
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
@@ -115,14 +116,21 @@ class AdkToolBackend(ToolBackend):
         tool_name: str | None = None,
         tool_description: str | None = None,
     ) -> Tool:
-        if tool_name and tool_description:
+        if tool_name:
             original_tool_func = tool_func
 
-            def tool_func(*args, **kwargs):
-                return original_tool_func(*args, **kwargs)
+            if inspect.iscoroutinefunction(original_tool_func):
+
+                async def tool_func(*args, **kwargs):
+                    return await original_tool_func(*args, **kwargs)
+
+            else:
+
+                def tool_func(*args, **kwargs):
+                    return original_tool_func(*args, **kwargs)
 
             tool_func.__name__ = tool_name
-            tool_func.__doc__ = tool_description
+            tool_func.__doc__ = tool_description or ""
 
         tool_underlying = FunctionTool(tool_func)
         return AdkTool(tool_underlying)

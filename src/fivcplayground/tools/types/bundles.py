@@ -34,7 +34,7 @@ class CallableToolContext(ToolBundleContext):
                 raise ValueError(f"Class tool '{class_name}' must implement __call__.")
 
             tool_name = getattr(tool_class, "__name__", type(tool_instance).__name__)
-            tool_description = getattr(tool_instance.__call__, "__doc__", None) or ""
+            tool_description = getattr(tool_class, "__doc__", None) or ""
 
             if inspect.iscoroutinefunction(tool_instance.__call__):
 

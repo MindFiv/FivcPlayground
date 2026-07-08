@@ -110,8 +110,8 @@ class StrandsToolBackend(ToolBackend):
         tool_name: str | None = None,
         tool_description: str | None = None,
     ) -> Tool:
-        if tool_name and tool_description:
-            tool_underlying = tool(name=tool_name, description=tool_description)(
+        if tool_name:
+            tool_underlying = tool(name=tool_name, description=tool_description or "")(
                 tool_func
             )
         else:
