@@ -1,5 +1,6 @@
 from collections.abc import Callable
 import functools
+import inspect
 from typing import Any
 
 from .base import Tool, ToolBackend, ToolBundle, ToolBundleContext
@@ -32,12 +33,20 @@ class CallableToolContext(ToolBundleContext):
                 )
                 raise ValueError(f"Class tool '{class_name}' must implement __call__.")
 
-            tool_name = type(tool_instance).__name__
+            tool_name = getattr(tool_class, "__name__", type(tool_instance).__name__)
             tool_description = getattr(tool_instance.__call__, "__doc__", None) or ""
 
-            @functools.wraps(tool_instance.__call__)
-            def tool_func(*args, __tool_instance=tool_instance, **kwargs):
-                return __tool_instance(*args, **kwargs)
+            if inspect.iscoroutinefunction(tool_instance.__call__):
+
+                @functools.wraps(tool_instance.__call__)
+                async def tool_func(*args, __tool_instance=tool_instance, **kwargs):
+                    return await __tool_instance(*args, **kwargs)
+
+            else:
+
+                @functools.wraps(tool_instance.__call__)
+                def tool_func(*args, __tool_instance=tool_instance, **kwargs):
+                    return __tool_instance(*args, **kwargs)
 
             self._class_tools.append(
                 self._tool_backend.create_tool(

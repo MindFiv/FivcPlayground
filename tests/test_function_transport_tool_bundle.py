@@ -8,12 +8,18 @@ Covers:
 """
 
 import pytest
+from fivcplayground.agents.types.spans import AgentRunToolSpan
 from fivcplayground.backends.strands.tools import StrandsToolBackend, StrandsToolBundle
 from fivcplayground.tools.types import CallableToolBundle
 from fivcplayground.tools.types.base import ToolConfig
 from fivcplayground.utils import DynamicCallable
 
 BackendImpls = [StrandsToolBackend]
+
+
+async def async_configured_tool(value: str = "ok") -> str:
+    """Return an async value."""
+    return f"async:{value}"
 
 
 class ContextClassTool:
@@ -32,6 +38,15 @@ class MultiContextClassTool:
     def __call__(self) -> str:
         """Return multiple context values."""
         return f"{self.context['user_id']}:{self.context['request_id']}"
+
+
+class AsyncContextClassTool:
+    def __init__(self, **context):
+        self.context = context
+
+    async def __call__(self) -> str:
+        """Return the current user asynchronously."""
+        return f"async:{self.context['user_id']}"
 
 
 class NonCallableClassTool:
@@ -96,6 +111,10 @@ class TestDynamicCallable:
         dotpath = "fivcplayground.tools.clock.clock"
         func = DynamicCallable(dotpath)
         assert func._dotpath == dotpath
+
+    def test_class_name_is_snake_case(self):
+        func = DynamicCallable(f"{__name__}.ContextClassTool")
+        assert func.__name__ == "context_class_tool"
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +193,7 @@ class TestCreateToolBundleFunctionTransport:
         bundle = backend.create_tool_bundle(config)
         async with bundle.setup(user_id="u-123") as tools:
             assert len(tools) == 1
-            assert tools[0].name == "ContextClassTool"
+            assert tools[0].name == "context_class_tool"
             assert tools[0].get_underlying()() == "u-123"
 
     @pytest.mark.asyncio
@@ -192,7 +211,7 @@ class TestCreateToolBundleFunctionTransport:
         bundle = backend.create_tool_bundle(config)
         async with bundle.setup(user_id="u-123", request_id="r-456") as tools:
             assert len(tools) == 1
-            assert tools[0].name == "MultiContextClassTool"
+            assert tools[0].name == "multi_context_class_tool"
             assert tools[0].get_underlying()() == "u-123:r-456"
 
     @pytest.mark.asyncio
@@ -231,9 +250,80 @@ class TestCreateToolBundleFunctionTransport:
         assert isinstance(bundle, CallableToolBundle)
         async with bundle.setup(user_id="u-123") as tools:
             names = {tool.name for tool in tools}
-            assert names == {"clock", "ContextClassTool"}
-            class_tool = next(tool for tool in tools if tool.name == "ContextClassTool")
+            assert names == {"clock", "context_class_tool"}
+            class_tool = next(
+                tool for tool in tools if tool.name == "context_class_tool"
+            )
             assert class_tool.get_underlying()() == "u-123"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("BackendImpl", BackendImpls)
+    async def test_async_function_from_tool_config_remains_awaitable(self, BackendImpl):
+        backend = BackendImpl()
+        config = ToolConfig(
+            id="async_bundle",
+            description="An async function bundle",
+            transport="function",
+            functions=[f"{__name__}.async_configured_tool"],
+        )
+        bundle = backend.create_tool_bundle(config)
+        async with bundle.setup() as tools:
+            assert len(tools) == 1
+            assert tools[0].name == "async_configured_tool"
+            result = tools[0].get_underlying()(value="ok")
+            assert await result == "async:ok"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("BackendImpl", BackendImpls)
+    async def test_async_class_tool_from_tool_config_remains_awaitable(
+        self, BackendImpl
+    ):
+        backend = BackendImpl()
+        config = ToolConfig(
+            id="async_class_bundle",
+            description="An async class tool bundle",
+            transport="function",
+            functions=[f"{__name__}.AsyncContextClassTool"],
+        )
+        bundle = backend.create_tool_bundle(config)
+        async with bundle.setup(user_id="u-123") as tools:
+            assert len(tools) == 1
+            assert tools[0].name == "async_context_class_tool"
+            result = tools[0].get_underlying()()
+            assert await result == "async:u-123"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("BackendImpl", BackendImpls)
+    async def test_tool_span_expands_configured_class_tool_with_snake_case_name(
+        self, BackendImpl
+    ):
+        backend = BackendImpl()
+        config = ToolConfig(
+            id="class_bundle",
+            description="A stateful class bundle",
+            transport="function",
+            functions=[f"{__name__}.ContextClassTool"],
+        )
+
+        class ConfigBackedRetriever:
+            async def get_tool_async(self, name: str):
+                if name == "class_bundle":
+                    return backend.create_tool_bundle(config)
+                return None
+
+            def to_tool(self, dummy: bool = False):
+                raise AssertionError("dummy tool should not be needed")
+
+        async with AgentRunToolSpan(
+            tool_retriever=ConfigBackedRetriever(),
+            tool_ids=["class_bundle"],
+            context={"user_id": "u-123"},
+        ) as span:
+            tools = span.tools
+
+        assert [tool.name for tool in tools] == ["context_class_tool"]
+        assert "ContextClassTool" not in {tool.name for tool in tools}
+        assert tools[0].get_underlying()() == "u-123"
 
     @pytest.mark.parametrize("BackendImpl", BackendImpls)
     def test_functions_none_raises_value_error(self, BackendImpl):
