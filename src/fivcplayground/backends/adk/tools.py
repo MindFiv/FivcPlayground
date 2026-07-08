@@ -102,7 +102,7 @@ class AdkToolBundle(ToolBundle):
 
         return FunctionTool(_func)
 
-    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
+    def setup(self, **context: Any) -> ToolBundleContext:
         return AdkToolBundleContext(self._tool_config)
 
 

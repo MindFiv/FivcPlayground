@@ -68,7 +68,28 @@ class TestRegisterToolAsync:
         result = await span.register_tool_async(bundle)
 
         assert len(result) == 1
-        bundle.setup.assert_called_once_with(context=runtime_context)
+        bundle.setup.assert_called_once_with(**runtime_context)
+
+    @pytest.mark.asyncio
+    async def test_register_tool_bundle_with_empty_context_calls_setup_without_kwargs(
+        self,
+    ):
+        """Test registering a ToolBundle with no context calls setup() cleanly."""
+        bundle_tool = Mock()
+        bundle_tool.name = "bundle_tool"
+
+        bundle = Mock(spec=ToolBundle)
+        bundle.name = "empty_context_bundle"
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = [bundle_tool]
+        mock_context.__aexit__.return_value = None
+        bundle.setup = Mock(return_value=mock_context)
+
+        span = AgentRunToolSpan(context=None)
+        result = await span.register_tool_async(bundle)
+
+        assert len(result) == 1
+        bundle.setup.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_register_tool_deduplication(self):

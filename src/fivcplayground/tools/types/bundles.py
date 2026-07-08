@@ -90,7 +90,7 @@ class CallableToolBundle(ToolBundle):
     def get_underlying(self) -> Any:
         return self._underlying_tool.get_underlying()
 
-    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
+    def setup(self, **context: Any) -> ToolBundleContext:
         return CallableToolContext(
             tool_backend=self._tool_backend,
             tool_functions=self._tool_functions,

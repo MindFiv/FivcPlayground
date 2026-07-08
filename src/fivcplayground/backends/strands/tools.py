@@ -97,7 +97,7 @@ class StrandsToolBundle(ToolBundle):
 
         return tool(name=self.name, description=self.description)(_func)
 
-    def setup(self, context: dict[str, Any] | None = None) -> ToolBundleContext:
+    def setup(self, **context: Any) -> ToolBundleContext:
         return StrandsToolBundleContext(self._tool_config)
 
 

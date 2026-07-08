@@ -2,6 +2,8 @@ import functools
 import importlib
 from typing import Any
 
+from pydantic.alias_generators import to_snake
+
 
 def _load_dotted_attribute(dotpath: str) -> tuple[str, str, Any]:
     if "." not in dotpath:
@@ -33,7 +35,7 @@ class DynamicCallable(object):
             self.kind = "class"
             self._callable = target
             self._dotpath = dotpath
-            self.__name__ = target.__name__
+            self.__name__ = to_snake(target.__name__)
             self.__doc__ = target.__doc__
             return
 

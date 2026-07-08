@@ -93,7 +93,7 @@ class AgentRunToolSpan:
             return []
 
         if isinstance(tool, ToolBundle):
-            tool_context = tool.setup(context=self._context)
+            tool_context = tool.setup(**(self._context or {}))
             try:
                 tools_expanded = await tool_context.__aenter__()
                 tools_expanded = [

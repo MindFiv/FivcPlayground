@@ -25,6 +25,15 @@ class ContextClassTool:
         return self.context["user_id"]
 
 
+class MultiContextClassTool:
+    def __init__(self, **context):
+        self.context = context
+
+    def __call__(self) -> str:
+        """Return multiple context values."""
+        return f"{self.context['user_id']}:{self.context['request_id']}"
+
+
 class NonCallableClassTool:
     def __init__(self, **context):
         self.context = context
@@ -163,10 +172,28 @@ class TestCreateToolBundleFunctionTransport:
             functions=[f"{__name__}.ContextClassTool"],
         )
         bundle = backend.create_tool_bundle(config)
-        async with bundle.setup(context={"user_id": "u-123"}) as tools:
+        async with bundle.setup(user_id="u-123") as tools:
             assert len(tools) == 1
             assert tools[0].name == "ContextClassTool"
             assert tools[0].get_underlying()() == "u-123"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("BackendImpl", BackendImpls)
+    async def test_class_bundle_setup_passes_each_context_key_as_keyword(
+        self, BackendImpl
+    ):
+        backend = BackendImpl()
+        config = ToolConfig(
+            id="class_bundle",
+            description="A stateful class bundle",
+            transport="function",
+            functions=[f"{__name__}.MultiContextClassTool"],
+        )
+        bundle = backend.create_tool_bundle(config)
+        async with bundle.setup(user_id="u-123", request_id="r-456") as tools:
+            assert len(tools) == 1
+            assert tools[0].name == "MultiContextClassTool"
+            assert tools[0].get_underlying()() == "u-123:r-456"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("BackendImpl", BackendImpls)
@@ -182,7 +209,7 @@ class TestCreateToolBundleFunctionTransport:
         )
         bundle = backend.create_tool_bundle(config)
         with pytest.raises(ValueError, match="must implement __call__"):
-            async with bundle.setup(context={"user_id": "u-123"}):
+            async with bundle.setup(user_id="u-123"):
                 pass
 
     @pytest.mark.asyncio
@@ -202,7 +229,7 @@ class TestCreateToolBundleFunctionTransport:
         )
         bundle = backend.create_tool_bundle(config)
         assert isinstance(bundle, CallableToolBundle)
-        async with bundle.setup(context={"user_id": "u-123"}) as tools:
+        async with bundle.setup(user_id="u-123") as tools:
             names = {tool.name for tool in tools}
             assert names == {"clock", "ContextClassTool"}
             class_tool = next(tool for tool in tools if tool.name == "ContextClassTool")
