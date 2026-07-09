@@ -30,26 +30,27 @@ class TestGetClockTime:
     def test_default_format(self):
         """Test get_clock with 'time' mode and default format."""
         result = invoke_tool(clock, mode="time")
-        # Should match HH:MM:SS format
-        assert re.match(r"^\d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{2}:\d{2}:\d{2} UTC$", result)
 
     def test_custom_format_12hour(self):
         """Test get_clock with 'time' mode and 12-hour format."""
         result = invoke_tool(clock, mode="time", fmt="%I:%M %p")
-        # Should match HH:MM AM/PM format
-        assert re.match(r"^\d{2}:\d{2} (AM|PM)$", result)
+        assert re.match(r"^\d{2}:\d{2} (AM|PM) UTC\+00:00 \(UTC\)$", result)
 
     def test_custom_format_hm(self):
         """Test get_clock with 'time' mode and HH:MM format."""
         result = invoke_tool(clock, mode="time", fmt="%H:%M")
-        # Should match HH:MM format
-        assert re.match(r"^\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{2}:\d{2} UTC\+00:00 \(UTC\)$", result)
 
     def test_valid_format(self):
         """Test get_clock with 'time' mode and valid format."""
         result = invoke_tool(clock, mode="time", fmt="%H:%M:%S")
-        # Should still work with valid format
-        assert re.match(r"^\d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{2}:\d{2}:\d{2} UTC\+00:00 \(UTC\)$", result)
+
+    def test_custom_format_with_timezone_is_not_double_suffixed(self):
+        """Test custom time formats that include timezone are not changed."""
+        result = invoke_tool(clock, mode="time", fmt="%H:%M:%S %Z")
+        assert re.match(r"^\d{2}:\d{2}:\d{2} UTC$", result)
 
 
 class TestGetClockDate:
@@ -58,14 +59,12 @@ class TestGetClockDate:
     def test_default_format(self):
         """Test get_clock with 'date' mode and default format."""
         result = invoke_tool(clock, mode="date")
-        # Should match YYYY-MM-DD format
-        assert re.match(r"^\d{4}-\d{2}-\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2} UTC$", result)
 
     def test_custom_format_us(self):
         """Test get_clock with 'date' mode and US format."""
         result = invoke_tool(clock, mode="date", fmt="%m/%d/%Y")
-        # Should match MM/DD/YYYY format
-        assert re.match(r"^\d{2}/\d{2}/\d{4}$", result)
+        assert re.match(r"^\d{2}/\d{2}/\d{4} UTC\+00:00 \(UTC\)$", result)
 
     def test_custom_format_long(self):
         """Test get_clock with 'date' mode and long format."""
@@ -104,8 +103,7 @@ class TestGetClockDate:
     def test_valid_format_iso(self):
         """Test get_clock with 'date' mode and ISO format."""
         result = invoke_tool(clock, mode="date", fmt="%Y-%m-%d")
-        # Should match YYYY-MM-DD format
-        assert re.match(r"^\d{4}-\d{2}-\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2} UTC\+00:00 \(UTC\)$", result)
 
 
 class TestGetClockDateTime:
@@ -114,20 +112,28 @@ class TestGetClockDateTime:
     def test_default_format(self):
         """Test get_clock with 'datetime' mode and default format."""
         result = invoke_tool(clock, mode="datetime")
-        # Should match YYYY-MM-DD HH:MM:SS format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$", result)
 
     def test_custom_format_12hour(self):
         """Test get_clock with 'datetime' mode and 12-hour format."""
         result = invoke_tool(clock, mode="datetime", fmt="%Y-%m-%d %I:%M:%S %p")
-        # Should match YYYY-MM-DD HH:MM:SS AM/PM format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (AM|PM)$", result)
+        assert re.match(
+            r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (AM|PM) UTC\+00:00 \(UTC\)$",
+            result,
+        )
 
     def test_valid_format_iso(self):
         """Test get_clock with 'datetime' mode and ISO format."""
         result = invoke_tool(clock, mode="datetime", fmt="%Y-%m-%d %H:%M:%S")
-        # Should match YYYY-MM-DD HH:MM:SS format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(
+            r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC\+00:00 \(UTC\)$",
+            result,
+        )
+
+    def test_custom_format_with_numeric_timezone_is_not_double_suffixed(self):
+        """Test custom datetime formats that include numeric timezone are not changed."""
+        result = invoke_tool(clock, mode="datetime", fmt="%Y-%m-%d %H:%M:%S %z")
+        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \+0000$", result)
 
 
 class TestGetClockTimezone:
@@ -136,15 +142,12 @@ class TestGetClockTimezone:
     def test_timezone_format(self):
         """Test get_clock with 'timezone' mode returns valid format."""
         result = invoke_tool(clock, mode="timezone")
-        # Should contain UTC offset and timezone name
-        assert "UTC" in result
-        assert "(" in result and ")" in result
+        assert result == "UTC+00:00 (UTC)"
 
     def test_timezone_offset_format(self):
         """Test timezone offset is in correct format."""
         result = invoke_tool(clock, mode="timezone")
-        # Should match UTC±HH:MM (NAME) format
-        assert re.search(r"UTC[+-]\d{2}:\d{2}", result)
+        assert re.search(r"UTC[+-]\d{2}:\d{2} \(UTC\)", result)
 
 
 class TestGetClockTimeInTimezone:
@@ -153,20 +156,17 @@ class TestGetClockTimeInTimezone:
     def test_valid_timezone_newyork(self):
         """Test get_clock with 'time_in_tz' mode and America/New_York."""
         result = invoke_tool(clock, mode="time_in_tz", tz="America/New_York")
-        # Should match YYYY-MM-DD HH:MM:SS format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$", result)
 
     def test_valid_timezone_tokyo(self):
         """Test get_clock with 'time_in_tz' mode and Asia/Tokyo."""
         result = invoke_tool(clock, mode="time_in_tz", tz="Asia/Tokyo")
-        # Should match YYYY-MM-DD HH:MM:SS format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}$", result)
 
     def test_valid_timezone_london(self):
         """Test get_clock with 'time_in_tz' mode and Europe/London."""
         result = invoke_tool(clock, mode="time_in_tz", tz="Europe/London")
-        # Should match YYYY-MM-DD HH:MM:SS format
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$", result)
 
     def test_invalid_timezone(self):
         """Test get_clock with 'time_in_tz' mode and invalid timezone."""
@@ -188,8 +188,9 @@ class TestGetClockTimeInTimezone:
             tz="America/New_York",
             fmt="%I:%M %p",
         )
-        # Should match HH:MM AM/PM format
-        assert re.match(r"^\d{2}:\d{2} (AM|PM)$", result)
+        assert re.match(
+            r"^\d{2}:\d{2} (AM|PM) UTC[+-]\d{2}:\d{2} \([A-Z]{3,4}\)$", result
+        )
 
 
 class TestGetClockUnix:
@@ -240,8 +241,7 @@ class TestGetClockInfo:
     def test_time_info_timezone_format(self):
         """Test get_clock with 'info' mode contains valid timezone."""
         result = invoke_tool(clock, mode="info")
-        # Extract timezone part
-        tz_match = re.search(r"Timezone: (UTC[+-]\d{2}:\d{2})", result)
+        tz_match = re.search(r"Timezone: (UTC\+00:00 \(UTC\))", result)
         assert tz_match is not None
 
     def test_time_info_unix_format(self):
@@ -274,8 +274,7 @@ class TestClockToolIntegration:
     def test_default_mode(self):
         """Test that default mode is 'datetime'."""
         result = invoke_tool(clock)
-        # Should match YYYY-MM-DD HH:MM:SS format (datetime mode)
-        assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", result)
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$", result)
 
     @pytest.mark.parametrize("BackendClass", [StrandsToolBackend])
     def test_tool_has_name(self, BackendClass):
@@ -297,10 +296,6 @@ class TestClockToolIntegration:
         assert "mode" in description.lower()
 
     def test_invalid_mode(self):
-        """Test get_clock with invalid mode returns default behavior."""
-        # The clock function uses Literal type hint for mode validation
-        # At runtime, invalid modes will be passed through to the function
-        # which will use the default behavior (datetime mode)
+        """Test get_clock with invalid mode returns an error string."""
         result = invoke_tool(clock, mode="invalid_mode")
-        # Should return a string (default datetime format)
-        assert isinstance(result, str)
+        assert result.startswith("Error: Unknown mode")
