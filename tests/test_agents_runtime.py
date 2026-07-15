@@ -858,6 +858,73 @@ class TestStrandsStructuredOutput:
         assert kwargs["context"] is runtime_context
 
     @pytest.mark.asyncio
+    async def test_run_async_uses_provided_agent_run_id(self):
+        agent = self._make_agent()
+        mock_strands_agent = AsyncMock()
+        captured_runs = []
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            with patch(
+                "fivcplayground.backends.strands.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                mock_tool_span = AsyncMock()
+                mock_tool_span.__aenter__.return_value = mock_tool_span
+                mock_tool_span.__aexit__.return_value = None
+                mock_tool_span.tools = []
+                mock_tool_span_cls.return_value = mock_tool_span
+
+                await agent.run_async(
+                    query="test",
+                    agent_run_id="custom-run-id",
+                    event_callback=lambda _e, r: captured_runs.append(r),
+                )
+
+        assert captured_runs
+        assert all(r.id == "custom-run-id" for r in captured_runs)
+
+    @pytest.mark.asyncio
+    async def test_run_async_generates_agent_run_id_when_omitted(self):
+        agent = self._make_agent()
+        mock_strands_agent = AsyncMock()
+        captured_runs = []
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ):
+            with patch(
+                "fivcplayground.backends.strands.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                mock_tool_span = AsyncMock()
+                mock_tool_span.__aenter__.return_value = mock_tool_span
+                mock_tool_span.__aexit__.return_value = None
+                mock_tool_span.tools = []
+                mock_tool_span_cls.return_value = mock_tool_span
+
+                await agent.run_async(
+                    query="test",
+                    event_callback=lambda _e, r: captured_runs.append(r),
+                )
+
+        assert captured_runs
+        run_id = captured_runs[0].id
+        assert UUID(run_id)
+        assert all(r.id == run_id for r in captured_runs)
+
+    @pytest.mark.asyncio
     async def test_structured_response_model_does_not_use_strands_stream_parameter(
         self,
     ):

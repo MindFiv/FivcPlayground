@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from typing import Any, Callable, List, Type, cast
+from uuid import uuid4
 from warnings import warn
 
 from pydantic import BaseModel
@@ -131,6 +132,7 @@ class StrandsAgentRunnable(AgentRunnable):
         query: str | AgentRunContent = "",
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
+        agent_run_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
@@ -147,6 +149,7 @@ class StrandsAgentRunnable(AgentRunnable):
             query: User query string or AgentRunContent object
             agent_run_repository: Repository for persisting agent runs
             agent_run_session_id: Session ID for conversation context
+            agent_run_id: Optional explicit AgentRun ID; auto-generated UUID if omitted
             tool_retriever: Tool retrieval system for semantic tool search
             tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
             skill_retriever: Optional skill retriever for dynamic tool injection
@@ -263,6 +266,7 @@ class StrandsAgentRunnable(AgentRunnable):
 
             # Create agent run
             agent_run = AgentRun(
+                id=agent_run_id or str(uuid4()),
                 agent_id=self.id,
                 status=AgentRunStatus.EXECUTING,
                 query=query or None,

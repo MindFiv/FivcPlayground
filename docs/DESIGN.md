@@ -116,6 +116,8 @@ FivcPlayground includes a comprehensive runtime tracking system for agent execut
     └── run_<agent_run_id>.json       # Runtime execution data with embedded tool calls
 ```
 
+Callers may pass `agent_run_id` to `run_async()` to control the persistence key (`run_<agent_run_id>.json`). When omitted, a UUID is auto-generated. This is distinct from `agent_run_session_id`, which identifies the conversation/session.
+
 ---
 
 ## 🤖 Agent System

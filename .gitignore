@@ -9,6 +9,7 @@ __pycache__/
 .venv/
 venv/
 uv.lock
+uv.toml
 
 # IDEs
 .vscode/

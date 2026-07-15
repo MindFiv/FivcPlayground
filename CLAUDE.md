@@ -127,6 +127,12 @@ FivcPlayground is an intelligent multi-agent system with **pluggable backends**.
   - `evaluator` - Performance assessment
 - **Execution Flow**: Loads config → creates model → injects tools → streams execution
 - **Key Types**: `AgentRun` (execution record), `AgentRunToolCall` (tool invocation), `AgentRunStatus` (state)
+- **Run Identity (`agent_run_id`)**:
+  - `run_async(agent_run_id=...)` accepts an optional explicit AgentRun ID
+  - When omitted (or empty), a UUID is auto-generated
+  - Distinct from `agent_run_session_id`, which identifies the conversation/session
+  - Persisted runs are keyed as `run_<agent_run_id>.json` under the session directory
+  - Supported by both Strands and ADK backends
 - **Tool Configuration and Merging**:
   - Agents support two sources for tool configuration:
     1. **Agent Config** (`agent_config.tool_ids`) - Defined in YAML config

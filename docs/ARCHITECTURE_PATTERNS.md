@@ -208,6 +208,7 @@ print(result.name)   # "John Doe"
 print(result.email)  # "john@example.com"
 
 # Structured data is also persisted in agent_run.reply.structured
+# Pass agent_run_id to run_async() to control the persistence key; omit to auto-generate a UUID.
 agent_run = await repo.get_agent_run_async(session_id, result.id)
 assert agent_run.reply.structured == {
     "name": "John Doe",

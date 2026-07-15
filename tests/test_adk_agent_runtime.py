@@ -616,3 +616,82 @@ class TestAdkAgentRuntime:
                     )
 
         assert "world" in result.text
+
+    @pytest.mark.asyncio
+    async def test_run_async_uses_provided_agent_run_id(self):
+        """Test that an explicit agent_run_id is used for the AgentRun."""
+        agent_config = _make_agent_config()
+        agent_model = MagicMock(spec=AdkModelUnderlying)
+        runnable = AdkAgentRunnable(agent_config, agent_model)
+
+        mock_runner = MagicMock(spec=Runner)
+        mock_event = _create_mock_event(text="Done", is_final=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        captured_runs = []
+
+        with patch(
+            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
+        ):
+            with patch(
+                "fivcplayground.backends.adk.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                with patch(
+                    "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
+                ) as mock_session_span_cls:
+                    mock_tool_span, mock_session_span = _create_mocks_for_run()
+                    mock_tool_span_cls.return_value = mock_tool_span
+                    mock_session_span_cls.return_value = mock_session_span
+
+                    await runnable.run_async(
+                        query="test",
+                        agent_run_id="custom-run-id",
+                        event_callback=lambda _e, r: captured_runs.append(r),
+                    )
+
+        assert captured_runs
+        assert all(r.id == "custom-run-id" for r in captured_runs)
+
+    @pytest.mark.asyncio
+    async def test_run_async_generates_agent_run_id_when_omitted(self):
+        """Test that a UUID agent_run_id is generated when omitted."""
+        from uuid import UUID
+
+        agent_config = _make_agent_config()
+        agent_model = MagicMock(spec=AdkModelUnderlying)
+        runnable = AdkAgentRunnable(agent_config, agent_model)
+
+        mock_runner = MagicMock(spec=Runner)
+        mock_event = _create_mock_event(text="Done", is_final=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        captured_runs = []
+
+        with patch(
+            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
+        ):
+            with patch(
+                "fivcplayground.backends.adk.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                with patch(
+                    "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
+                ) as mock_session_span_cls:
+                    mock_tool_span, mock_session_span = _create_mocks_for_run()
+                    mock_tool_span_cls.return_value = mock_tool_span
+                    mock_session_span_cls.return_value = mock_session_span
+
+                    await runnable.run_async(
+                        query="test",
+                        event_callback=lambda _e, r: captured_runs.append(r),
+                    )
+
+        assert captured_runs
+        run_id = captured_runs[0].id
+        assert UUID(run_id)
+        assert all(r.id == run_id for r in captured_runs)
