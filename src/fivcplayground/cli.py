@@ -6,10 +6,7 @@ Command-line interface for runtime FivcPlayground agents and tools.
 """
 
 import asyncio
-import os
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -196,75 +193,6 @@ def clean():
 
 
 @app.command()
-def web(
-    port: int = typer.Option(
-        8501, "--port", "-p", help="Port to run the web interface on"
-    ),
-    host: str = typer.Option(
-        "0.0.0.0", "--host", "-h", help="Host to bind the web interface to"
-    ),
-    debug: bool = typer.Option(False, "--debug", help="Run in debug mode"),
-    backend: str = typer.Option(
-        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
-    ),
-):
-    """
-    Launch the FivcPlayground web interface using Streamlit
-    """
-    console.print(
-        Panel.fit(
-            Text("FivcPlayground Web Interface", style="bold green"),
-            subtitle="Starting Streamlit Application",
-        )
-    )
-
-    try:
-        console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
-
-        # Get the path to the labs module
-        app_path = os.path.join(os.path.dirname(__file__), "labs", "__init__.py")
-
-        # Set backend environment variable
-        os.environ["FIVC_BACKEND"] = backend
-
-        # Build streamlit command
-        cmd = [
-            sys.executable,
-            "-m",
-            "streamlit",
-            "run",
-            app_path,
-            "--server.port",
-            str(port),
-            "--server.address",
-            host,
-            "--server.headless",
-            "true",
-            "--browser.gatherUsageStats",
-            "false",
-        ]
-
-        if not debug:
-            cmd.extend(["--logger.level", "error"])
-
-        # Run streamlit
-        subprocess.run(cmd, check=True)
-
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Web interface stopped by user[/yellow]")
-    except subprocess.CalledProcessError as e:
-        console.print(f"[red]❌ Error starting web interface: {e}[/red]")
-        console.print(
-            "[yellow]Make sure Streamlit is installed: pip install streamlit[/yellow]"
-        )
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"[red]❌ Unexpected error: {e}[/red]")
-        raise typer.Exit(1)
-
-
-@app.command()
 def info():
     """
     Show information about FivcPlayground
@@ -284,7 +212,6 @@ def info():
     [bold]Usage Examples:[/bold]
     fivcplayground run Generic                                         # Interactive mode
     fivcplayground run Generic --query "What is machine learning?"     # Programmatic mode
-    fivcplayground web                                                 # Launch web interface
     fivcplayground clean                                               # Clean temporary files
     fivcplayground setup                                               # Initialize configuration
     fivcplayground info

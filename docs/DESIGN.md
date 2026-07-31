@@ -23,7 +23,6 @@ FivcPlayground is a multi-agent system built on the **Strands framework** that p
 
 - **Framework**: Strands (strands-agents) - Default backend
   - **Alternative**: LangChain (langchain-core) - Optional backend
-- **Web Interface**: Streamlit
 - **Vector Database**: ChromaDB
 - **LLM Support**: OpenAI, Ollama
 - **Tool Protocol**: MCP (Model Context Protocol)
@@ -53,7 +52,7 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    User Interface                        │
-│              (Streamlit Web / CLI)                       │
+│                      (CLI)                               │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
@@ -85,7 +84,6 @@ FivcPlayground follows a modular architecture with clear separation of concerns:
 | **Tools** | Tool management and retrieval system | `src/fivcplayground/tools/` |
 | **Models** | LLM model factories and providers | `src/fivcplayground/models/` |
 | **Tasks** | Task execution and orchestration | `src/fivcplayground/tasks/` |
-| **Labs** | Streamlit web interface | `src/fivcplayground/labs/` |
 | **Embeddings** | Vector database for semantic search | `src/fivcplayground/embeddings/` |
 | **Settings** | Configuration management | `src/fivcplayground/settings/` |
 | **Utils** | Utility functions and helpers | `src/fivcplayground/utils/` |
@@ -379,23 +377,14 @@ FivcPlayground includes these built-in tools:
 - Multi-agent coordination (Swarm)
 - Conversation management
 
-### 4. **Interactive Web Interface**
-- Multi-page navigation with Streamlit
-- Multiple concurrent chat sessions
-- Real-time streaming responses
-- Async execution support
-- Tool usage visualization
-- Persistent conversation history
-- Component-based UI architecture
-
-### 5. **Comprehensive Persistence**
+### 4. **Comprehensive Persistence**
 - File-based agent runtime storage
 - Complete execution history tracking
 - Tool call recording and replay
 - JSON-based human-readable format
 - Hierarchical directory organization
 
-### 6. **Extensible Architecture**
+### 5. **Extensible Architecture**
 - Plugin-based tool system
 - Custom agent creation with decorators
 - Multiple LLM provider support
@@ -460,61 +449,6 @@ FivcPlayground includes these built-in tools:
 5. Registration (if approved)
    ↓
 6. Monitoring & Optimization
-```
-
----
-
-## 🏗️ Web Application Architecture
-
-### Multi-Page Structure
-
-FivcPlayground's web interface uses Streamlit's navigation system for a modern multi-page experience:
-
-```
-Web Application
-├── Chats (Dynamic Pages)
-│   ├── New Chat (Create new conversation)
-│   └── Chat Pages (One per existing chat)
-└── Settings
-    └── Configuration & Management
-```
-
-### Component Hierarchy
-
-```
-app/__init__.py (Main Application)
-├── ChatManager (Multi-chat orchestration)
-│   └── Chat Instances (Individual conversations)
-│       ├── AgentRunRepository (Persistence)
-│       ├── ToolRetriever (Tool access)
-│       └── Agent Execution (Strands agents)
-├── Views (ViewBase implementations)
-│   ├── base.py (ViewBase, ViewNavigation)
-│   ├── ChatView.render(nav)
-│   ├── SettingsView.render(nav)
-│   └── TasksView.render(nav)
-└── Components (Reusable UI)
-    └── chat_message.render(runtime, container)
-```
-
-### Data Flow
-
-```
-User Input
-    ↓
-Chat View (views/chats.py)
-    ↓
-Chat.ask(query, on_event=callback)
-    ↓
-Agent Execution (async)
-    ↓
-Streaming Updates → on_event callback
-    ↓
-Component Rendering (chat_message)
-    ↓
-Repository Persistence (FileAgentRunRepository)
-    ↓
-UI Update (st.rerun)
 ```
 
 ---

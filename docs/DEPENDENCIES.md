@@ -90,7 +90,6 @@ pip install -e ".[langchain,chroma,dev]"
 |---------|---------|---------|
 | typer | >=0.12.3 | CLI framework |
 | rich | >=13.7.1 | Terminal formatting |
-| streamlit | >=1.49.1 | Web interface |
 | pydantic | >=2.7.0 | Data validation |
 | PyYAML | >=6.0.1 | Configuration files |
 | python-dotenv | >=1.0.1 | Environment variables |
@@ -290,10 +289,6 @@ uv export --format requirements-txt > requirements.txt
 FivcPlayground is built on the Strands framework:
 - `strands-agents>=1.9.1`: Core agent framework with async support
 - `strands-agents-tools>=0.2.8`: Built-in tools and MCP integration
-
-### Streamlit Version
-- Requires Streamlit 1.49.1+ for `st.navigation` support
-- Multi-page navigation is a core feature requiring this version
 
 ### Python Version
 - Minimum: Python 3.10

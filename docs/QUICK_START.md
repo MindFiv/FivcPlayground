@@ -9,7 +9,6 @@
 
 FivcPlayground now has:
 - ✅ Persistent MCP connections (tools stay connected)
-- ✅ Proper asyncio handling in Streamlit
 - ✅ Clean resource management
 - ✅ No more connection errors
 
@@ -39,22 +38,18 @@ uv run pytest tests/ -q
 
 ## Running the App
 
-### Start Streamlit
+### Run an Agent
 ```bash
 # Using the CLI (recommended)
-uv run fivcplayground web
+uv run fivcplayground run Generic --query "What is machine learning?"
 
-# Or using make
-make serve
-
-# Or directly with streamlit
-streamlit run src/fivcplayground/labs/__init__.py
+# Show available commands
+uv run fivcplayground --help
 ```
 
 ### Expected Behavior
-- ✅ App starts without errors
+- ✅ Agent runs without errors
 - ✅ MCP tools load successfully
-- ✅ Chat interface is responsive
 - ✅ Tools can be invoked without errors
 
 ---
@@ -116,12 +111,7 @@ App Shutdown
    - `retrieve_tools_async(query)` - Semantic search for tools
    - `list_tools_async()` - List all available tools
 
-2. **Streamlit Integration** - Lifecycle management
-   - `create_tool_retriever_async()` - Initialize tool retriever
-   - `nest_asyncio.apply()` - Asyncio patching
-   - Automatic resource cleanup
-
-3. **MCP Client** - Connection management
+2. **MCP Client** - Connection management
    - Persistent connections
    - Session reuse
    - Error handling
@@ -145,8 +135,8 @@ cat mcp.yml
 # Verify MCP servers
 ps aux | grep mcp
 
-# Check logs
-streamlit run src/fivcplayground/labs/__init__.py --logger.level=debug
+# Run an agent with verbose logging
+uv run fivcplayground run Generic --query "test" --verbose
 ```
 
 ### Issue: Tools not loading
@@ -192,7 +182,7 @@ top
 ping <mcp-server-host>
 
 # Restart MCP servers
-# Restart Streamlit app
+# Re-run the agent
 ```
 
 ---
@@ -215,7 +205,7 @@ uv run pytest tests/ --cov=src/fivcplayground
 ### Adding New Tools
 
 1. Configure MCP server in `configs/tools.yaml`
-2. Restart Streamlit app
+2. Re-run the agent
 3. Tools automatically load
 
 Example tool configuration:
@@ -232,12 +222,7 @@ my_server:
 ```bash
 # Enable debug logging
 export PYTHONPATH=/path/to/project
-python -c "
-import logging
-logging.basicConfig(level=logging.DEBUG)
-from fivcplayground.labs import main
-main()
-"
+uv run fivcplayground run Generic --query "test" --verbose
 ```
 
 ---
@@ -247,7 +232,6 @@ main()
 1. **Reuse connections** - Sessions stay open (automatic)
 2. **Batch operations** - Use tool bundles
 3. **Monitor resources** - Check system memory
-4. **Cache results** - Use Streamlit caching
 
 ---
 
@@ -311,7 +295,6 @@ asyncio.run(main())
 For more detailed information, see:
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and MCP connections
 - **[DESIGN.md](DESIGN.md)** - System design and components
-- **[WEB_INTERFACE.md](WEB_INTERFACE.md)** - Web interface guide
 - **[DEPENDENCIES.md](DEPENDENCIES.md)** - Dependency management
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - MCP implementation details
 
@@ -340,7 +323,6 @@ Include:
 
 - **FivcPlayground**: 0.1.0
 - **Python**: 3.10+
-- **Streamlit**: 1.49.1+
 - **nest-asyncio**: 1.6.0+
 - **langchain-mcp-adapters**: 0.1.11+
 

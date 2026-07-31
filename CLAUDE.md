@@ -39,12 +39,6 @@ make clean
 
 ### Running the Application
 ```bash
-# Start web interface (Streamlit)
-make serve
-
-# Development web mode with auto-reload
-make serve-dev
-
 # Run CLI agent
 uv run fivcplayground run Generic --query "Your question here"
 
@@ -66,16 +60,14 @@ FivcPlayground is an intelligent multi-agent system with **pluggable backends**.
 - **Agent-based execution** - Specialized agents for different task types
 - **Dynamic tool retrieval** - Semantic search-based tool selection
 - **Multiple backends** - Strands (primary), Google ADK, and extensible architecture
-- **Web UI** - Streamlit-based modern interface
 - **Streaming support** - Real-time response streaming and event callbacks
 
 ### Core Architecture Layers
 
 ```
 ┌─────────────────────────────────────────────────┐
-│   CLI / Web Interface (labs module)            │
+│   CLI Interface                                 │
 │   - Command-line interface (cli.py)             │
-│   - Streamlit web UI (labs/)                   │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -217,20 +209,7 @@ FivcPlayground is an intelligent multi-agent system with **pluggable backends**.
 - **Usage**: Tool description indexing for dynamic tool retrieval
 - **Configuration**: EmbeddingConfig specifies database path and collection names
 
-#### 5. Web Interface (`src/fivcplayground/labs/`)
-- **Architecture**:
-  - ViewNavigation (custom sidebar navigation replacing st.navigation)
-  - ChatView (per-conversation UI)
-  - ChatManager (conversation state and agent execution coordination)
-  - Components (ChatMessage rendering with thinking extraction, tool visualization)
-- **Key Features**:
-  - Real-time streaming with delta message handling
-  - Thinking extraction from XML tags (`<think>...</think>`)
-  - Tool call visualization with status and timing
-  - Multi-chat session support
-- **State Management**: Session-based with run.yml for view persistence
-
-#### 6. Backends (`src/fivcplayground/backends/`)
+#### 5. Backends (`src/fivcplayground/backends/`)
 
 **Strands Backend** (primary):
   - StrandsAgentRunnable - Agent execution wrapper
@@ -341,7 +320,6 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 - **Single-Process Only**: File-based repositories are not suitable for multi-server deployments
 - **Conversation Memory**: Hardcoded sliding window of 20 messages in `StrandsAgentRunnable`
 - **Tool Execution Context**: MCP protocol tools require external process management
-- **Streamlit Limitations**: Uses `nest_asyncio` to handle nested event loops in web UI
 
 ## Module Organization
 
@@ -350,7 +328,6 @@ Configuration files in `~/.fivcplayground/configs/` (YAML format):
 - **`src/fivcplayground/models/`** - LLM model factories and provider abstractions
 - **`src/fivcplayground/backends/`** - Backend implementations (Strands, LangChain, Chroma)
 - **`src/fivcplayground/embeddings/`** - Vector database for semantic search
-- **`src/fivcplayground/labs/`** - Streamlit web interface and components
 - **`src/fivcplayground/cli.py`** - Command-line interface entry point
 - **`src/fivcplayground/schemas.py`** - Pydantic data models
 - **`src/fivcplayground/settings.py`** - Configuration and environment management
@@ -383,7 +360,7 @@ Async tests are marked with `@pytest.mark.asyncio` decorator.
 
 ## Dependencies & Backend Selection
 
-- **Runtime**: Strands, Typer, Rich, Pydantic, Streamlit, python-dotenv
+- **Runtime**: Strands, Typer, Rich, Pydantic, python-dotenv
 - **Optional**: Chroma embeddings
 - **Dev**: pytest, pytest-asyncio, ruff
 
@@ -571,6 +548,5 @@ external-skill:
 
 Comprehensive docs in `docs/` directory:
 - **DESIGN.md** - System architecture deep dive
-- **WEB_INTERFACE.md** - Streamlit UI development guide
 - **DEPENDENCIES.md** - Installation and dependency management
 - **ARCHITECTURE_PATTERNS.md** - Design patterns and best practices

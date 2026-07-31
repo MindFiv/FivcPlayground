@@ -236,8 +236,7 @@ assert agent_run.reply.structured == {
 
 ```
 ┌─────────────────────────────────────┐
-│  Application Layer (app/)           │
-│  - Streamlit UI                     │
+│  Application Layer                  │
 │  - CLI commands                     │
 └─────────────────────────────────────┘
          ↓

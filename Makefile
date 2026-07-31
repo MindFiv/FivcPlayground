@@ -1,4 +1,4 @@
-.PHONY: help install install-min dev lint format test clean build publish serve sample info
+.PHONY: help install install-min dev lint format test clean build publish sample info
 
 # Default target
 help:
@@ -21,7 +21,6 @@ help:
 	@echo "  publish      - Publish package to PyPI"
 	@echo ""
 	@echo "Running:"
-	@echo "  serve        - Start Streamlit web interface"
 	@echo "  sample       - Run sample configuration (dry-run)"
 	@echo "  info         - Show system information"
 	@echo ""
@@ -80,14 +79,6 @@ publish: build
 	fi
 	uv run python -m twine upload dist/*
 	@echo "Package published successfully!"
-
-# Web interface targets
-serve:
-	@echo "Starting FivcPlayground web interface..."
-	@echo "Access at: http://localhost:8501"
-	@echo "Press Ctrl+C to stop"
-	uv run fivcplayground setup
-	uv run fivcplayground web
 
 # Utility targets
 sample:

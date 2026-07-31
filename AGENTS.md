@@ -14,7 +14,6 @@ fivcplayground/
 ├── backends/        # Pluggable backend implementations (strands, langchain)
 ├── embeddings/      # Vector database and embedding management
 ├── models/          # LLM model factories and providers
-├── plays/           # Streamlit web interface with component architecture
 ├── tasks/           # Task execution and workflow orchestration
 ├── tools/           # Tool management and retrieval system
 └── utils/           # Shared utilities (lazy evaluation, directories, args)
@@ -26,7 +25,6 @@ fivcplayground/
 | Agent creation | `agents/__init__.py` | Factory functions: `create_agent_async()` |
 | Model configuration | `models/types/repositories/` | File/SQLite based config storage |
 | Tool management | `tools/__init__.py` | Builtin tools and MCP integration |
-| Web interface | `plays/` | Streamlit app with custom navigation |
 | Backend switching | `backends/` | Strands (default) vs LangChain |
 | Task execution | `tasks/` | Briefing, assessing, planning agents |
 | Shared utilities | `utils/` | LazyValue, OutputDir, DefaultKwargs |
@@ -73,14 +71,12 @@ fivcplayground/
 ```bash
 # Development
 make install        # Install all dependencies
-make serve          # Start web interface (localhost:8501)
 make test           # Run pytest
 make lint           # Run ruff linting
 make format         # Format code with ruff
 
 # CLI
 fivcplayground run Generic --query "task"
-fivcplayground web
 fivcplayground clean
 ```
 
@@ -94,7 +90,6 @@ fivcplayground clean
 
 ### Critical Files
 - `agents/types/repositories/sqlite.py` (549 lines) - Largest file, needs refactoring
-- `plays/views/base.py` - Custom Streamlit navigation system
 - `utils/types/variables.py` - Lazy evaluation proxy pattern
 
 ### Development Workflow

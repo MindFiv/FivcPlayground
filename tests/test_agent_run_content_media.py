@@ -4,19 +4,15 @@ Tests for AgentRunContent images and files fields.
 Covers:
 - Repository persistence roundtrip (FileAgentRunRepository)
 - JSON file contents on disk verification
-- ChatMessage rendering (mocked Streamlit)
 """
 
-import base64
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock
 
 import pytest
 from fivcplayground.agents.types import AgentRun, AgentRunContent, AgentRunStatus
 from fivcplayground.agents.types.repositories.files import FileAgentRunRepository
-from fivcplayground.labs.components.chat_message import ChatMessage
 from fivcplayground.utils import OutputDir
 
 
@@ -137,82 +133,3 @@ class TestImagesFilesPersistence:
             assert retrieved.reply.structured == {"answer": 42}
             assert retrieved.reply.images[0] == ("image/webp", "d2VicA==")
             assert retrieved.reply.files[0] == ("text/csv", "Y3N2")
-
-
-# --- Chat Message Rendering Tests ---
-
-
-class TestChatMessageImageRendering:
-    """Test ChatMessage renders images from AgentRunContent."""
-
-    def test_render_message_with_images_calls_st_image(self):
-        """Rendering a message with images should call placeholder.image()."""
-        mock_placeholder = Mock()
-
-        content = AgentRunContent(
-            text="Here's an image",
-            images=[("image/png", base64.b64encode(b"fake-png-data").decode())],
-        )
-
-        ChatMessage.render_message(content, mock_placeholder)
-
-        mock_placeholder.image.assert_called_once()
-
-    def test_render_message_with_multiple_images(self):
-        """Multiple images should each trigger a placeholder.image() call."""
-        mock_placeholder = Mock()
-
-        content = AgentRunContent(
-            images=[
-                ("image/png", base64.b64encode(b"img1").decode()),
-                ("image/jpeg", base64.b64encode(b"img2").decode()),
-            ],
-        )
-
-        ChatMessage.render_message(content, mock_placeholder)
-
-        assert mock_placeholder.image.call_count == 2
-
-    def test_render_message_no_images_no_st_image_call(self):
-        """A message without images should not call placeholder.image()."""
-        mock_placeholder = Mock()
-
-        content = AgentRunContent(text="Just text, no images")
-        ChatMessage.render_message(content, mock_placeholder)
-
-        mock_placeholder.image.assert_not_called()
-
-    def test_render_message_with_files_shows_expander(self):
-        """Rendering a message with files should create an expander."""
-        mock_placeholder = Mock()
-        mock_expander = MagicMock()
-        mock_placeholder.expander.return_value.__enter__ = Mock(
-            return_value=mock_expander
-        )
-        mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
-
-        content = AgentRunContent(
-            files=[("application/pdf", base64.b64encode(b"pdf-data").decode())],
-        )
-
-        ChatMessage.render_message(content, mock_placeholder)
-
-        # Should have created an expander for the file
-        mock_placeholder.expander.assert_called()
-        expander_call_args = mock_placeholder.expander.call_args
-        assert "📎" in expander_call_args[0][0]
-
-    def test_render_message_images_and_text_both_rendered(self):
-        """Text and images should both be rendered when present together."""
-        mock_placeholder = Mock()
-
-        content = AgentRunContent(
-            text="Caption for the image",
-            images=[("image/png", base64.b64encode(b"img-data").decode())],
-        )
-
-        ChatMessage.render_message(content, mock_placeholder)
-
-        # Both text (via markdown) and image should be rendered
-        mock_placeholder.markdown.assert_called()
-        mock_placeholder.image.assert_called_once()

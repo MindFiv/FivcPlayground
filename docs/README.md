@@ -14,16 +14,6 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 - Core features and workflows
 - Technical implementation details
 
-#### [🌐 WEB_INTERFACE.md](WEB_INTERFACE.md)
-**Web Interface User Guide**
-- Getting started with the multi-page Streamlit interface
-- Multi-chat management and navigation
-- Feature overview and usage instructions
-- Component-based architecture guide
-- Development and customization guide
-- Persistence and storage details
-- Troubleshooting and integration
-
 #### [📦 DEPENDENCIES.md](DEPENDENCIES.md)
 **Dependency Management Guide**
 - Installation options (uv, pip, make)
@@ -53,17 +43,15 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 
 ### For Users
 1. **Installation**: Start with [DEPENDENCIES.md](DEPENDENCIES.md) for setup instructions
-2. **Getting Started**: Read [WEB_INTERFACE.md](WEB_INTERFACE.md) for web interface usage
-3. **Understanding the System**: Review [DESIGN.md](DESIGN.md) for architecture overview
-4. **Backend Selection**: See [BACKEND_SELECTION.md](BACKEND_SELECTION.md) to choose Strands or LangChain
+2. **Understanding the System**: Review [DESIGN.md](DESIGN.md) for architecture overview
+3. **Backend Selection**: See [BACKEND_SELECTION.md](BACKEND_SELECTION.md) to choose Strands or LangChain
 
 ### For Developers
 1. **Setup**: Start with [DEPENDENCIES.md](DEPENDENCIES.md) for development environment
 2. **Architecture**: Study [DESIGN.md](DESIGN.md) for system design and components
 3. **Patterns**: Review [ARCHITECTURE_PATTERNS.md](ARCHITECTURE_PATTERNS.md) for design patterns
-4. **Web Interface**: Review [WEB_INTERFACE.md](WEB_INTERFACE.md) for interface development
-5. **Backend Details**: Check [BACKEND_SELECTION.md](BACKEND_SELECTION.md) for backend architecture
-6. **Examples**: Check `../examples/` directory for code examples
+4. **Backend Details**: Check [BACKEND_SELECTION.md](BACKEND_SELECTION.md) for backend architecture
+5. **Examples**: Check `../examples/` directory for code examples
 
 ## 📖 Documentation Categories
 
@@ -72,28 +60,24 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 
 ### 🔧 Setup & Operations
 - **[DEPENDENCIES.md](DEPENDENCIES.md)**: Installation, dependency management, and troubleshooting
-- **[WEB_INTERFACE.md](WEB_INTERFACE.md)**: Streamlit web interface usage and development
 
 ### 🎯 By Use Case
 
 #### New Users
 1. Start with [DEPENDENCIES.md](DEPENDENCIES.md) for installation
-2. Launch the web interface following [WEB_INTERFACE.md](WEB_INTERFACE.md)
-3. Try example queries to understand capabilities
-4. Review [DESIGN.md](DESIGN.md) for system understanding
+2. Try example queries to understand capabilities
+3. Review [DESIGN.md](DESIGN.md) for system understanding
 
 #### Developers
 1. Set up development environment with [DEPENDENCIES.md](DEPENDENCIES.md)
 2. Study system architecture in [DESIGN.md](DESIGN.md)
 3. Explore agent and tool APIs
-4. Review web interface code in [WEB_INTERFACE.md](WEB_INTERFACE.md)
-5. Check `../examples/` for code samples
+4. Check `../examples/` for code samples
 
 #### System Administrators
 1. Review [DEPENDENCIES.md](DEPENDENCIES.md) for deployment requirements
 2. Configure LLM providers and API keys
 3. Set up MCP tools if needed
-4. Deploy web interface following [WEB_INTERFACE.md](WEB_INTERFACE.md)
 
 ## 🔗 Related Resources
 
@@ -127,7 +111,6 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 ### File Organization
 - **DESIGN.md** - System architecture and technical design
 - **DEPENDENCIES.md** - Installation and dependency management
-- **WEB_INTERFACE.md** - Web interface usage and development
 - **README.md** - Documentation index and navigation
 
 ### Updating Documentation
@@ -162,11 +145,8 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 ## 🆕 Recent Updates
 
 ### Version 0.1.0 (2025-10-16)
-- **Multi-Page Web Interface**: New navigation system with dynamic chat pages
-- **Chat Management**: ChatManager and Chat classes for multi-conversation support
 - **Agent Runtime System**: Comprehensive persistence with AgentRun models
 - **File-Based Storage**: FileAgentRunRepository for organized data storage
-- **Component Architecture**: Modular views, components, and managers
 - **Streaming Support**: Real-time response updates with async execution
 - **Tool Call Tracking**: Complete tool invocation history and visualization
 

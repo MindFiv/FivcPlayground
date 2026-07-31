@@ -11,7 +11,6 @@ FivcPlayground provides a flexible multi-agent system that can:
 - **Retrieve and use tools** dynamically based on task requirements
 - **Plan and execute** complex workflows with specialized agents
 - **Generate and optimize** tools autonomously
-- **Chat and assist** users through an interactive web interface
 
 ## 🚀 Quickstart
 
@@ -52,10 +51,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 ### Quick Start
 
 ```bash
-# Launch the web interface
-make serve
-
-# Or run an agent from CLI
+# Run an agent from CLI
 uv run fivcplayground run Generic --query "What is machine learning?"
 
 # Show available commands
@@ -71,7 +67,6 @@ src/fivcplayground/
 ├── backends/        # Backend implementations (langchain, strands)
 │   ├── langchain/   # LangChain backend
 │   └── strands/     # Strands backend
-├── plays/           # Streamlit web interface
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
 ├── models/          # LLM model factories and providers
@@ -128,33 +123,6 @@ fivcplayground info
 - **Engineer** - Develops and optimizes tools
 - **Evaluator** - Assesses performance and quality
 
-### Web Interface
-
-FivcPlayground includes a modern web interface built with Streamlit:
-
-```bash
-# Launch web interface (default: localhost:8501)
-fivcplayground web
-
-# Or using Make
-make serve
-
-# Development mode with auto-reload
-make serve-dev
-
-# Custom port and host
-fivcplayground web --port 8080 --host 0.0.0.0
-```
-
-**Features:**
-- 💬 **Interactive chat interface** - Natural conversation with agents
-- 🔄 **Async execution** - Non-blocking, responsive interface
-- 🛠️ **Tool integration** - Automatic tool selection and execution
-- 📝 **Conversation history** - Full session management
-- 🎨 **Modern UI** - Clean, intuitive Streamlit interface
-
-See [Web Interface Documentation](docs/WEB_INTERFACE.md) for detailed usage instructions.
-
 ## 🧰 Available Tools
 
 FivcPlayground includes built-in tools and supports MCP (Model Context Protocol) tools:
@@ -173,7 +141,6 @@ For comprehensive documentation, see the [docs/](docs/) directory:
 
 - **[System Design](docs/DESIGN.md)** - Architecture and design principles
 - **[Backend Selection Guide](docs/BACKEND_SELECTION.md)** - Switching between Strands and LangChain backends
-- **[Web Interface Guide](docs/WEB_INTERFACE.md)** - Complete web interface usage
 - **[Dependencies](docs/DEPENDENCIES.md)** - Installation and dependency management
 - **[Quick Start](docs/QUICK_START.md)** - Getting started with FivcPlayground
 - **[Documentation Index](docs/README.md)** - Complete documentation overview
