@@ -27,13 +27,19 @@ class TestAgentRunToolSpanListFlattening:
         mock_bundle.setup = Mock(return_value=mock_context)
 
         # Create a mock tool retriever that returns a mix of regular tools and bundles
-        mock_tool_retriever = AsyncMock()
-        mock_tool_retriever.list_tools_async = AsyncMock(
-            return_value=[mock_bundle, mock_tool3]
+        mock_tool_retriever = Mock()
+        mock_tool_retriever.get_tool_async = AsyncMock(
+            side_effect=lambda name: {
+                "my_bundle": mock_bundle,
+                "tool3": mock_tool3,
+            }.get(name)
         )
 
         # Create AgentRunToolSpan with the mock tool retriever
-        span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
+        span = AgentRunToolSpan(
+            tool_retriever=mock_tool_retriever,
+            tool_ids=["my_bundle", "tool3"],
+        )
 
         tool_span = await span.__aenter__()
         tools_expanded = tool_span.tools
@@ -79,13 +85,19 @@ class TestAgentRunToolSpanListFlattening:
         mock_bundle2.setup = Mock(return_value=mock_context2)
 
         # Create a mock tool retriever that returns multiple bundles
-        mock_tool_retriever = AsyncMock()
-        mock_tool_retriever.list_tools_async = AsyncMock(
-            return_value=[mock_bundle1, mock_bundle2]
+        mock_tool_retriever = Mock()
+        mock_tool_retriever.get_tool_async = AsyncMock(
+            side_effect=lambda name: {
+                "bundle1": mock_bundle1,
+                "bundle2": mock_bundle2,
+            }.get(name)
         )
 
         # Create AgentRunToolSpan with the mock tool retriever
-        span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
+        span = AgentRunToolSpan(
+            tool_retriever=mock_tool_retriever,
+            tool_ids=["bundle1", "bundle2"],
+        )
 
         tool_span = await span.__aenter__()
         tools_expanded = tool_span.tools
@@ -113,13 +125,19 @@ class TestAgentRunToolSpanListFlattening:
         mock_bundle.setup = Mock(return_value=mock_context)
 
         # Create a mock tool retriever that returns bundle and regular tool
-        mock_tool_retriever = AsyncMock()
-        mock_tool_retriever.list_tools_async = AsyncMock(
-            return_value=[mock_bundle, mock_tool]
+        mock_tool_retriever = Mock()
+        mock_tool_retriever.get_tool_async = AsyncMock(
+            side_effect=lambda name: {
+                "empty_bundle": mock_bundle,
+                "regular_tool": mock_tool,
+            }.get(name)
         )
 
         # Create AgentRunToolSpan with the mock tool retriever
-        span = AgentRunToolSpan(tool_retriever=mock_tool_retriever)
+        span = AgentRunToolSpan(
+            tool_retriever=mock_tool_retriever,
+            tool_ids=["empty_bundle", "regular_tool"],
+        )
 
         tool_span = await span.__aenter__()
         tools_expanded = tool_span.tools

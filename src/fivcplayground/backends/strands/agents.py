@@ -334,8 +334,8 @@ class StrandsAgentRunnable(AgentRunnable):
 
             except Exception as e:
                 error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
-                agent_output = await agent.invoke_async(prompt=error_msg)
-
+                # agent_output = await agent.invoke_async(prompt=error_msg)
+                agent_run.error = error_msg
                 agent_run.status = AgentRunStatus.FAILED
 
             finally:
@@ -399,7 +399,10 @@ class StrandsAgentRunnable(AgentRunnable):
                         structured=agent_output_structured or None,
                     )
                 else:
-                    agent_run.error = f"Expected AgentResult, got {type(agent_output)}"
+                    if not agent_run.error:
+                        agent_run.error = (
+                            f"Expected AgentResult, got {type(agent_output)}"
+                        )
                     agent_run.status = AgentRunStatus.FAILED
 
                 event_callback(AgentRunEvent.FINISH, agent_run)

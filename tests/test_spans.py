@@ -268,9 +268,7 @@ class TestGetToolsAsync:
         bundle.name = "playwright"
 
         tool_retriever = Mock()
-        tool_retriever.list_tools_async = AsyncMock(
-            return_value=[builtin_tool, bundle]
-        )
+        tool_retriever.list_tools_async = AsyncMock(return_value=[builtin_tool, bundle])
         tool_retriever.to_tool = Mock(return_value=Mock())
 
         span = AgentRunToolSpan(tool_retriever=tool_retriever, tool_ids=None)

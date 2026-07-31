@@ -798,6 +798,74 @@ class TestStrandsAgentUnknownToolCallHandling:
             # Verify the agent completed successfully despite receiving an unknown tool result
             assert result is not None
 
+    @pytest.mark.asyncio
+    async def test_stream_exception_records_friendly_error_without_secondary_invoke(
+        self,
+    ):
+        """Test that an exception during streaming records the friendly error
+        message on agent_run, marks it FAILED, and does NOT trigger a secondary
+        agent.invoke_async call (the old error-notification behavior was removed).
+        """
+        from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+
+        mock_model = Mock()
+        agent_config = AgentConfig(
+            id="test-agent",
+            name="Test Agent",
+            description="Test agent",
+            system_prompt="You are a test agent",
+        )
+        agent = StrandsAgentRunnable(agent_config, mock_model)
+
+        mock_strands_agent = AsyncMock()
+        # The secondary invoke must never happen now.
+        mock_strands_agent.invoke_async = AsyncMock(
+            side_effect=AssertionError("invoke_async should not be called")
+        )
+
+        async def mock_stream(*args, **kwargs):
+            yield {"data": "partial"}
+            raise RuntimeError("boom during streaming")
+
+        mock_strands_agent.stream_async = mock_stream
+
+        captured_run = None
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+            mock_agent_class.return_value = mock_strands_agent
+
+            mock_tool_retriever = Mock()
+            mock_tool = Mock()
+            mock_tool.get_underlying.return_value = Mock()
+            mock_tool_retriever.to_tool.return_value = mock_tool
+            mock_tool_retriever.retrieve_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
+            mock_tool_retriever.get_tool_async = AsyncMock(return_value=None)
+
+            result = await agent.run_async(
+                query="test",
+                tool_retriever=mock_tool_retriever,
+                event_callback=capture_callback,
+            )
+
+        # The friendly error message must survive the finally block (not be
+        # overwritten by "Expected AgentResult, got ...").
+        assert captured_run is not None
+        assert captured_run.status == AgentRunStatus.FAILED
+        assert "Kindly notify" in captured_run.error
+        assert "boom during streaming" in captured_run.error
+        # No reply is produced when streaming fails before completion.
+        assert result is not None
+        mock_strands_agent.invoke_async.assert_not_called()
+
 
 class TestStrandsStructuredOutput:
     """Tests for Strands structured output tool and fallback parsing."""
