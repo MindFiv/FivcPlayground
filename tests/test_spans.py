@@ -249,3 +249,70 @@ class TestRegisterToolAsync:
         names = [t.name for t in tools]
         expected = [f"tool_{i}" for i in range(5)]
         assert names == expected
+
+
+class TestGetToolsAsync:
+    """Test get_tools_async() tool loading behavior."""
+
+    @pytest.mark.asyncio
+    async def test_empty_tool_ids_filters_out_tool_bundles(self):
+        """Empty tool_ids should load builtin tools but NOT MCP ToolBundles.
+
+        Eagerly entering every configured MCP bundle would synchronously spawn a
+        subprocess per bundle inside the async event loop, pegging CPU/memory.
+        """
+        builtin_tool = Mock()
+        builtin_tool.name = "clock"
+
+        bundle = Mock(spec=ToolBundle)
+        bundle.name = "playwright"
+
+        tool_retriever = Mock()
+        tool_retriever.list_tools_async = AsyncMock(
+            return_value=[builtin_tool, bundle]
+        )
+        tool_retriever.to_tool = Mock(return_value=Mock())
+
+        span = AgentRunToolSpan(tool_retriever=tool_retriever, tool_ids=None)
+        tools = await span.get_tools_async()
+
+        loaded_names = {t.name for t in tools}
+        assert "clock" in loaded_names
+        assert "playwright" not in loaded_names
+        tool_retriever.list_tools_async.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_empty_tool_ids_falls_back_to_dummy_when_only_bundles(self):
+        """Empty tool_ids with only bundles available should fall back to dummy."""
+        bundle = Mock(spec=ToolBundle)
+        bundle.name = "chrome-devtools"
+
+        tool_retriever = Mock()
+        tool_retriever.list_tools_async = AsyncMock(return_value=[bundle])
+        dummy_tool = Mock()
+        tool_retriever.to_tool = Mock(return_value=dummy_tool)
+
+        span = AgentRunToolSpan(tool_retriever=tool_retriever, tool_ids=None)
+        tools = await span.get_tools_async()
+
+        assert tools == [dummy_tool]
+        tool_retriever.to_tool.assert_called_once_with(dummy=True)
+
+    @pytest.mark.asyncio
+    async def test_explicit_tool_ids_still_loads_bundle(self):
+        """Explicit tool_ids referencing a bundle should NOT filter it out."""
+        bundle = Mock(spec=ToolBundle)
+        bundle.name = "sequential-thinking"
+
+        tool_retriever = Mock()
+        tool_retriever.get_tool_async = AsyncMock(return_value=bundle)
+        tool_retriever.to_tool = Mock(return_value=Mock())
+
+        span = AgentRunToolSpan(
+            tool_retriever=tool_retriever, tool_ids=["sequential-thinking"]
+        )
+        tools = await span.get_tools_async()
+
+        assert tools == [bundle]
+        tool_retriever.get_tool_async.assert_awaited_once_with("sequential-thinking")
+        tool_retriever.list_tools_async.assert_not_called()

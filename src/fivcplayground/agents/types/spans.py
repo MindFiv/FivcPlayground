@@ -55,7 +55,14 @@ class AgentRunToolSpan:
                 for name in self._tool_ids
             ]
         else:
-            tools = await self._tool_retriever.list_tools_async()
+            # When no tool_ids are specified, load only lightweight builtin tools.
+            # Filter out ToolBundles (MCP servers): eagerly entering every configured
+            # MCP bundle would synchronously spawn a subprocess for each one inside
+            # the async event loop, blocking it and spiking CPU/memory to the point
+            # of crashing the process. Agents that need an MCP tool should declare it
+            # via tool_ids, or use the tool_retriever tool for on-demand discovery.
+            all_tools = await self._tool_retriever.list_tools_async()
+            tools = [t for t in all_tools if not isinstance(t, ToolBundle)]
         tools = [t for t in tools if t is not None]
         if not tools:
             tools = [self._tool_retriever.to_tool(dummy=True)]
