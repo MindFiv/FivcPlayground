@@ -233,9 +233,9 @@ class AdkAgentRunnable(AgentRunnable):
                     model=self._agent_model,
                     tools=agent_tools,
                     instruction=(
-                        None
-                        if self._agent_config.system_prompt is None
-                        else self._agent_config.system_prompt.format(**(context or {}))
+                        self._agent_config.system_prompt.format(**context)
+                        if self._agent_config.system_prompt is not None and context
+                        else self._agent_config.system_prompt
                     ),
                 ),
             )
