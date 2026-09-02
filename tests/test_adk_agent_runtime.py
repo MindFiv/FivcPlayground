@@ -136,7 +136,7 @@ class TestAdkAgentRuntime:
     async def test_run_async_renders_system_prompt_placeholders(self):
         """Test system_prompt placeholders are rendered before constructing ADK agent."""
         agent_config = _make_agent_config(
-            system_prompt="当前时间：{time}",
+            system_prompt="当前时间：${time}",
         )
         agent_model = MagicMock(spec=AdkModelUnderlying)
         runnable = AdkAgentRunnable(agent_config, agent_model)
@@ -178,7 +178,7 @@ class TestAdkAgentRuntime:
     async def test_run_async_skips_system_prompt_format_without_context(self):
         """Test system_prompt is left unformatted when context is omitted."""
         agent_config = _make_agent_config(
-            system_prompt="当前时间：{time}",
+            system_prompt="当前时间：${time}",
         )
         agent_model = MagicMock(spec=AdkModelUnderlying)
         runnable = AdkAgentRunnable(agent_config, agent_model)
@@ -211,7 +211,7 @@ class TestAdkAgentRuntime:
                         await runnable.run_async(query="你好")
 
         _, agent_kwargs = mock_adk_agent_cls.call_args
-        assert agent_kwargs["instruction"] == "当前时间：{time}"
+        assert agent_kwargs["instruction"] == "当前时间：${time}"
 
     @pytest.mark.asyncio
     async def test_stream_event_detection(self):

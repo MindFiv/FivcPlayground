@@ -1,4 +1,5 @@
 from datetime import datetime
+from string import Template
 from typing import Any, Callable, List, Type, Dict
 from uuid import uuid4
 from warnings import warn
@@ -233,7 +234,7 @@ class AdkAgentRunnable(AgentRunnable):
                     model=self._agent_model,
                     tools=agent_tools,
                     instruction=(
-                        self._agent_config.system_prompt.format(**context)
+                        Template(self._agent_config.system_prompt).substitute(**context)
                         if self._agent_config.system_prompt is not None and context
                         else self._agent_config.system_prompt
                     ),

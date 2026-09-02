@@ -934,7 +934,7 @@ class TestStrandsStructuredOutput:
             AgentConfig(
                 id="test-agent",
                 description="Test agent",
-                system_prompt="当前时间：{time}",
+                system_prompt="当前时间：${time}",
             ),
             Mock(),
         )
@@ -966,7 +966,7 @@ class TestStrandsStructuredOutput:
             AgentConfig(
                 id="test-agent",
                 description="Test agent",
-                system_prompt="当前时间：{time}",
+                system_prompt="当前时间：${time}",
             ),
             Mock(),
         )
@@ -984,7 +984,7 @@ class TestStrandsStructuredOutput:
             await agent.run_async(query="你好")
 
         _, agent_kwargs = mock_agent_class.call_args
-        assert agent_kwargs["system_prompt"] == "当前时间：{time}"
+        assert agent_kwargs["system_prompt"] == "当前时间：${time}"
 
     @pytest.mark.asyncio
     async def test_run_async_uses_provided_agent_run_id(self):
