@@ -926,6 +926,38 @@ class TestStrandsStructuredOutput:
         assert kwargs["context"] is runtime_context
 
     @pytest.mark.asyncio
+    async def test_run_async_renders_system_prompt_placeholders(self):
+        from fivcplayground.agents import AgentConfig
+        from fivcplayground.backends.strands.agents import StrandsAgentRunnable
+
+        agent = StrandsAgentRunnable(
+            AgentConfig(
+                id="test-agent",
+                description="Test agent",
+                system_prompt="当前时间：{time}",
+            ),
+            Mock(),
+        )
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying",
+            return_value=mock_strands_agent,
+        ) as mock_agent_class:
+            await agent.run_async(
+                query="你好",
+                context={"time": "2026-09-02 18:00"},
+            )
+
+        _, agent_kwargs = mock_agent_class.call_args
+        assert agent_kwargs["system_prompt"] == "当前时间：2026-09-02 18:00"
+
+    @pytest.mark.asyncio
     async def test_run_async_uses_provided_agent_run_id(self):
         agent = self._make_agent()
         mock_strands_agent = AsyncMock()

@@ -251,7 +251,11 @@ class StrandsAgentRunnable(AgentRunnable):
                 name=self.id,
                 model=self._agent_model,
                 tools=agent_tools,
-                system_prompt=self._agent_config.system_prompt,
+                system_prompt=(
+                    None
+                    if self._agent_config.system_prompt is None
+                    else self._agent_config.system_prompt.format(**(context or {}))
+                ),
                 conversation_manager=SlidingWindowConversationManager(window_size=20),
                 plugins=[agent_skill_plugin] if agent_skill_plugin else None,
             )

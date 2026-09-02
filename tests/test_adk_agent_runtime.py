@@ -133,6 +133,48 @@ class TestAdkAgentRuntime:
         assert kwargs["context"] is runtime_context
 
     @pytest.mark.asyncio
+    async def test_run_async_renders_system_prompt_placeholders(self):
+        """Test system_prompt placeholders are rendered before constructing ADK agent."""
+        agent_config = _make_agent_config(
+            system_prompt="当前时间：{time}",
+        )
+        agent_model = MagicMock(spec=AdkModelUnderlying)
+        runnable = AdkAgentRunnable(agent_config, agent_model)
+
+        mock_runner = MagicMock(spec=Runner)
+        mock_event = _create_mock_event(text="Done", is_final=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+
+        with patch(
+            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
+        ):
+            with patch(
+                "fivcplayground.backends.adk.agents.AdkAgentUnderlying"
+            ) as mock_adk_agent_cls:
+                with patch(
+                    "fivcplayground.backends.adk.agents.AgentRunToolSpan"
+                ) as mock_tool_span_cls:
+                    with patch(
+                        "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
+                    ) as mock_session_span_cls:
+                        mock_tool_span, mock_session_span = _create_mocks_for_run()
+                        mock_tool_span_cls.return_value = mock_tool_span
+                        mock_session_span_cls.return_value = mock_session_span
+                        mock_adk_agent_cls.return_value = MagicMock()
+
+                        await runnable.run_async(
+                            query="你好",
+                            context={"time": "2026-09-02 18:00"},
+                        )
+
+        _, agent_kwargs = mock_adk_agent_cls.call_args
+        assert agent_kwargs["instruction"] == "当前时间：2026-09-02 18:00"
+
+    @pytest.mark.asyncio
     async def test_stream_event_detection(self):
         """Test STREAM event is emitted for text content."""
         agent_config = _make_agent_config()

@@ -232,7 +232,11 @@ class AdkAgentRunnable(AgentRunnable):
                     name=self.id,
                     model=self._agent_model,
                     tools=agent_tools,
-                    instruction=self._agent_config.system_prompt,
+                    instruction=(
+                        None
+                        if self._agent_config.system_prompt is None
+                        else self._agent_config.system_prompt.format(**(context or {}))
+                    ),
                 ),
             )
             # compatible with legacy skill logic
