@@ -19,6 +19,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pydantic import BaseModel
+from strands.agent import AgentResult as StrandsAgentResult
+from strands.telemetry.metrics import EventLoopMetrics
 from fivcplayground.agents.types import (
     AgentRun,
     AgentRunContent,
@@ -26,6 +28,15 @@ from fivcplayground.agents.types import (
     AgentRunStatus,
     AgentRunToolCall,
 )
+
+
+def _make_agent_result(text: str) -> StrandsAgentResult:
+    return StrandsAgentResult(
+        stop_reason="end_turn",
+        message={"role": "assistant", "content": [{"text": text}]},
+        metrics=EventLoopMetrics(),
+        state={},
+    )
 
 
 class TestAgentsRuntimeToolCall:
@@ -545,7 +556,7 @@ class TestStrandsAgentUnknownToolCallHandling:
         mock_strands_agent = AsyncMock()
 
         # Simulate streaming events including a tool result for an unknown tool call
-        async def mock_stream():
+        async def mock_stream(*args, **kwargs):
             # First, send a message event with a tool result for an unknown tool call
             yield {
                 "message": {
@@ -561,9 +572,7 @@ class TestStrandsAgentUnknownToolCallHandling:
                 }
             }
             # Then send the final result
-            from strands.agent import AgentResult as StrandsAgentResult
-
-            yield {"result": StrandsAgentResult(text="Final response")}
+            yield {"result": _make_agent_result("Final response")}
 
         mock_strands_agent.stream_async = mock_stream
 
@@ -635,7 +644,7 @@ class TestStrandsAgentUnknownToolCallHandling:
         mock_strands_agent = AsyncMock()
 
         # Simulate streaming events with a normal tool call flow
-        async def mock_stream():
+        async def mock_stream(*args, **kwargs):
             # First, send a tool use event
             yield {
                 "message": {
@@ -665,9 +674,7 @@ class TestStrandsAgentUnknownToolCallHandling:
                 }
             }
             # Finally send the result
-            from strands.agent import AgentResult as StrandsAgentResult
-
-            yield {"result": StrandsAgentResult(text="The answer is 4")}
+            yield {"result": _make_agent_result("The answer is 4")}
 
         mock_strands_agent.stream_async = mock_stream
 
@@ -724,7 +731,7 @@ class TestStrandsAgentUnknownToolCallHandling:
         mock_strands_agent = AsyncMock()
 
         # Simulate streaming events with mixed known and unknown tool calls
-        async def mock_stream():
+        async def mock_stream(*args, **kwargs):
             # Register a known tool call
             yield {
                 "message": {
@@ -768,9 +775,7 @@ class TestStrandsAgentUnknownToolCallHandling:
                 }
             }
             # Send final result
-            from strands.agent import AgentResult as StrandsAgentResult
-
-            yield {"result": StrandsAgentResult(text="Done")}
+            yield {"result": _make_agent_result("Done")}
 
         mock_strands_agent.stream_async = mock_stream
 
@@ -799,13 +804,10 @@ class TestStrandsAgentUnknownToolCallHandling:
             assert result is not None
 
     @pytest.mark.asyncio
-    async def test_stream_exception_records_friendly_error_without_secondary_invoke(
+    async def test_stream_exception_emits_finish_then_raises(
         self,
     ):
-        """Test that an exception during streaming records the friendly error
-        message on agent_run, marks it FAILED, and does NOT trigger a secondary
-        agent.invoke_async call (the old error-notification behavior was removed).
-        """
+        """Test streaming exceptions still emit FINISH before propagation."""
         from fivcplayground.agents import AgentConfig
         from fivcplayground.backends.strands.agents import StrandsAgentRunnable
 
@@ -850,20 +852,19 @@ class TestStrandsAgentUnknownToolCallHandling:
             mock_tool_retriever.list_tools_async = AsyncMock(return_value=[])
             mock_tool_retriever.get_tool_async = AsyncMock(return_value=None)
 
-            result = await agent.run_async(
-                query="test",
-                tool_retriever=mock_tool_retriever,
-                event_callback=capture_callback,
-            )
+            with pytest.raises(RuntimeError, match="boom during streaming"):
+                await agent.run_async(
+                    query="test",
+                    tool_retriever=mock_tool_retriever,
+                    event_callback=capture_callback,
+                )
 
-        # The friendly error message must survive the finally block (not be
-        # overwritten by "Expected AgentResult, got ...").
+        # The failure snapshot survives the finally block and preserves the
+        # original error message for stream consumers.
         assert captured_run is not None
         assert captured_run.status == AgentRunStatus.FAILED
         assert "Kindly notify" in captured_run.error
         assert "boom during streaming" in captured_run.error
-        # No reply is produced when streaming fails before completion.
-        assert result is not None
         mock_strands_agent.invoke_async.assert_not_called()
 
 

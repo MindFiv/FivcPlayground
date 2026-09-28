@@ -116,6 +116,44 @@ FivcPlayground includes a comprehensive runtime tracking system for agent execut
 
 Callers may pass `agent_run_id` to `run_async()` to control the persistence key (`run_<agent_run_id>.json`). When omitted, a UUID is auto-generated. This is distinct from `agent_run_session_id`, which identifies the conversation/session.
 
+### Streaming Execution Contract
+
+`AgentRunnable.stream_async()` is the execution primary path and has no
+callback parameter because events are its observation interface. Native
+Strands and ADK runtimes consume their framework event streams inside
+`stream_async()`, manage tool and skill lifecycles, normalize domain
+events, maintain the mutable `AgentRun`, and persist the final run.
+
+```python
+async for event, run in agent.stream_async(
+    query="Draft a release note",
+    agent_run_repository=run_repository,
+    agent_run_session_id=session_id,
+):
+    render(event, run)
+```
+
+The event order is `START`, zero or more `STREAM`, `TOOL`, or `UPDATE`
+events, then exactly one `FINISH` event. Every yielded `AgentRun` is a
+deep copy (`model_copy(deep=True)`), so a consumer may retain a snapshot
+without later runtime mutations changing it. `FINISH` is emitted only
+after reply, structured output, status, error, duration, and persistence
+state have been finalized.
+
+Runtime exceptions are recorded on a `FAILED` snapshot, emitted as
+`FINISH`, and then re-raised to the caller. Invalid structured output
+raises `AgentStructuredOutputError` (a `ValueError`) after the same
+`FAILED`/`FINISH` sequence. Closing or cancelling the stream before
+completion closes the backend execution context and persists a `FAILED`
+run.
+
+`run_async()` does not own execution. It reduces `stream_async()` to the
+last `FINISH` snapshot and returns a Pydantic `BaseModel` when structured
+output is available, otherwise `AgentRunContent`. Its optional
+`event_callback` observes each reduced event and is therefore a
+`run_async()` feature, not part of the streaming contract. `run_async()`
+lets structured-output and runtime exceptions propagate.
+
 ---
 
 ## 🤖 Agent System

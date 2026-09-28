@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, Tuple
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Tuple
 from uuid import uuid4
 
 from jambo import SchemaConverter
@@ -241,15 +241,8 @@ class AgentRun(BaseModel):
         return sum(1 for tc in self.tool_calls.values() if tc.status == "error")
 
 
-def agent_run_chronological_sort_key(agent_run: AgentRun) -> tuple[float, str]:
-    """Sort AgentRun values chronologically with legacy id fallback."""
-    if agent_run.started_at:
-        return (agent_run.started_at.timestamp(), agent_run.id)
-
-    try:
-        return (float(agent_run.id), agent_run.id)
-    except ValueError:
-        return (float("inf"), agent_run.id)
+class AgentStructuredOutputError(ValueError):
+    """Raised when an agent reply cannot be parsed as structured output."""
 
 
 class AgentRunnable(ABC):
@@ -286,6 +279,23 @@ class AgentRunnable(ABC):
         **kwargs,  # ignore additional kwargs
     ) -> BaseModel:
         """Asynchronous execution of agent"""
+
+    @abstractmethod
+    async def stream_async(
+        self,
+        query: str | AgentRunContent = "",
+        agent_run_repository: Any = None,
+        agent_run_session_id: str | None = None,
+        agent_run_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        skill_retriever: SkillRetriever | None = None,
+        skill_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        context: dict[str, Any] | None = None,
+        **kwargs,  # ignore additional kwargs
+    ) -> AsyncIterator[tuple[AgentRunEvent, AgentRun]]:
+        """Stream asynchronous execution events."""
 
 
 class AgentBackend(ABC):

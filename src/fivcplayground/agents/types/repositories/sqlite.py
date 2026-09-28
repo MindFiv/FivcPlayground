@@ -54,13 +54,23 @@ from pathlib import Path
 from typing import List, Optional
 
 from fivcplayground.agents.types import AgentRunSession
-from fivcplayground.agents.types.base import agent_run_chronological_sort_key
 from fivcplayground.agents.types.repositories import (
     AgentRun,
     AgentRunRepository,
     AgentRunToolCall,
 )
 from fivcplayground.utils import OutputDir
+
+
+def _agent_run_chronological_sort_key(agent_run: AgentRun) -> tuple[float, str]:
+    """Sort AgentRun values chronologically with legacy id fallback."""
+    if agent_run.started_at:
+        return (agent_run.started_at.timestamp(), agent_run.id)
+
+    try:
+        return (float(agent_run.id), agent_run.id)
+    except ValueError:
+        return (float("inf"), agent_run.id)
 
 
 class SqliteAgentRunRepository(AgentRunRepository):
@@ -538,7 +548,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
             except (ValueError, json.JSONDecodeError) as e:
                 print(f"Error loading runtime {row['agent_run_id']}: {e}")
 
-        runtimes.sort(key=agent_run_chronological_sort_key)
+        runtimes.sort(key=_agent_run_chronological_sort_key)
 
         return runtimes
 

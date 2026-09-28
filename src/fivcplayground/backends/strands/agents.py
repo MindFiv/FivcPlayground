@@ -1,7 +1,8 @@
 import re
+import asyncio
 from datetime import datetime
 from string import Template
-from typing import Any, Callable, List, Type, cast
+from typing import Any, AsyncIterator, Callable, List, Type, cast
 from uuid import uuid4
 from warnings import warn
 
@@ -22,6 +23,7 @@ from strands.types.tools import ToolResult, ToolSpec, ToolUse
 from fivcplayground.agents import (
     AgentBackend,
     AgentConfig,
+    AgentStructuredOutputError,
     AgentRun,
     AgentRunContent,
     AgentRunEvent,
@@ -63,6 +65,13 @@ def _to_content_blocks(content: AgentRunContent) -> list[ContentBlock]:
     #     }))
 
     return blocks
+
+
+async def _aclose_async_iterator(events: AsyncIterator[Any]) -> None:
+    """Close an underlying stream when it exposes async-generator cleanup."""
+    aclose = getattr(events, "aclose", None)
+    if aclose is not None:
+        await aclose()
 
 
 async def _list_messages(
@@ -128,7 +137,7 @@ class StrandsAgentRunnable(AgentRunnable):
     def description(self) -> str:
         return self._agent_config.description
 
-    async def run_async(
+    async def stream_async(
         self,
         query: str | AgentRunContent = "",
         agent_run_repository: AgentRunRepository | None = None,
@@ -140,32 +149,10 @@ class StrandsAgentRunnable(AgentRunnable):
         skill_ids: List[str] | None = None,
         response_model: Type[BaseModel] | None = None,
         context: dict[str, Any] | None = None,
-        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
         **kwargs,  # ignore additional kwargs
-    ) -> BaseModel:
-        """
-        Execute agent asynchronously with streaming support.
-
-        Args:
-            query: User query string or AgentRunContent object
-            agent_run_repository: Repository for persisting agent runs
-            agent_run_session_id: Session ID for conversation context
-            agent_run_id: Optional explicit AgentRun ID; auto-generated UUID if omitted
-            tool_retriever: Tool retrieval system for semantic tool search
-            tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
-            skill_retriever: Optional skill retriever for dynamic tool injection
-            skill_ids: Runtime skill IDs (merged with config.skill_ids via set union)
-            response_model: Structured output model (overrides config)
-            context: Runtime context passed to class tool constructors
-            event_callback: Callback for execution events
-            **kwargs: Additional arguments (ignored)
-
-        Returns:
-            Structured output model instance or AgentRunContent
-
-        Notes:
-            - tool_ids are merged with config.tool_ids using set union
-        """
+    ) -> AsyncIterator[tuple[AgentRunEvent, AgentRun]]:
+        """Execute the agent and yield domain run events as they occur."""
+        del kwargs
         response_model = (
             response_model
             if response_model is not None
@@ -213,9 +200,7 @@ class StrandsAgentRunnable(AgentRunnable):
                 def generate_structured_output(
                     tool_use: ToolUse, **kwargs
                 ) -> ToolResult:
-                    """
-                    generate structured output from response object
-                    """
+                    """Generate a structured output object."""
                     resp = response_model.model_validate(tool_use.get("input", {}))
                     agent_output_structured.clear()
                     agent_output_structured.update(resp.model_dump(mode="json"))
@@ -261,7 +246,6 @@ class StrandsAgentRunnable(AgentRunnable):
                 plugins=[agent_skill_plugin] if agent_skill_plugin else None,
             )
 
-            # compatible with legacy skill logic
             await agent_skill_span.register_skills_async(
                 agent_tool_span=agent_tool_span,
                 agent_tool_register=lambda t: agent.tool_registry.register_dynamic_tool(
@@ -269,7 +253,6 @@ class StrandsAgentRunnable(AgentRunnable):
                 ),
             )
 
-            # Create agent run
             agent_run = AgentRun(
                 id=agent_run_id or str(uuid4()),
                 agent_id=self.id,
@@ -278,19 +261,29 @@ class StrandsAgentRunnable(AgentRunnable):
                 started_at=datetime.now(),
             )
             agent_output = None
-            event_callback(AgentRunEvent.START, agent_run)
+            runtime_error = None
 
+            snapshot = agent_run.model_copy(deep=True)
             try:
-                async for event_data in agent.stream_async(
-                    prompt=agent_messages,
-                ):
+                yield AgentRunEvent.START, snapshot
+            except (asyncio.CancelledError, GeneratorExit):
+                agent_run.status = AgentRunStatus.FAILED
+                agent_run.error = "Agent stream was cancelled before completion."
+                agent_run.completed_at = datetime.now()
+                await agent_run_session_span(agent_run)
+                raise
+
+            underlying_events = agent.stream_async(
+                prompt=agent_messages,
+            )
+            try:
+                async for event_data in underlying_events:
                     event = AgentRunEvent.START
                     if "result" in event_data:
                         agent_output = event_data["result"]
 
                     elif "data" in event_data:
                         event = AgentRunEvent.STREAM
-                        # delta contains delta message (incremental chunk), not accumulated text
                         agent_run.delta = AgentRunContent(text=event_data["data"])
 
                     elif "message" in event_data:
@@ -303,14 +296,13 @@ class StrandsAgentRunnable(AgentRunnable):
                                 event = AgentRunEvent.TOOL
                                 tool_use = cast(ToolUse, block["toolUse"])
                                 tool_use_id = tool_use.get("toolUseId")
-                                tool_call = AgentRunToolCall(
+                                agent_run.tool_calls[tool_use_id] = AgentRunToolCall(
                                     id=tool_use_id,
                                     tool_id=tool_use.get("name"),
                                     tool_input=tool_use.get("input"),
                                     started_at=datetime.now(),
                                     status=AgentRunStatus.EXECUTING,
                                 )
-                                agent_run.tool_calls[tool_use_id] = tool_call
 
                             if "toolResult" in block:
                                 event = AgentRunEvent.TOOL
@@ -319,7 +311,8 @@ class StrandsAgentRunnable(AgentRunnable):
                                 tool_call = agent_run.tool_calls.get(tool_use_id)
                                 if not tool_call:
                                     warn(
-                                        f"Tool result received for unknown tool call: {tool_use_id}",
+                                        "Tool result received for unknown tool call: "
+                                        f"{tool_use_id}",
                                         RuntimeWarning,
                                         stacklevel=2,
                                     )
@@ -330,102 +323,166 @@ class StrandsAgentRunnable(AgentRunnable):
                                 tool_call.completed_at = datetime.now()
 
                     if event != AgentRunEvent.START:
-                        event_callback(event, agent_run)
+                        snapshot = agent_run.model_copy(deep=True)
+                        yield event, snapshot
 
                     if event == AgentRunEvent.UPDATE:
                         await agent_run_session_span(agent_run)
 
                 agent_run.status = AgentRunStatus.COMPLETED
-
-            except Exception as e:
-                error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
-                # agent_output = await agent.invoke_async(prompt=error_msg)
-                agent_run.error = error_msg
+            except (asyncio.CancelledError, GeneratorExit):
                 agent_run.status = AgentRunStatus.FAILED
-
-            finally:
+                agent_run.error = "Agent stream was cancelled before completion."
                 agent_run.completed_at = datetime.now()
+                await agent_run_session_span(agent_run)
+                await _aclose_async_iterator(underlying_events)
+                raise
+            except Exception as e:
+                runtime_error = e
+                agent_run.error = (
+                    f"Kindly notify the error we've encountered now: {str(e)}"
+                )
+                agent_run.status = AgentRunStatus.FAILED
+            finally:
+                await _aclose_async_iterator(underlying_events)
 
-                # Ensure reply is set and FINISH event is called even if an exception occurred
-                agent_run_reply_structured = None
-                parse_error = None
-                if isinstance(agent_output, StrandsAgentResult):
-                    agent_reply = str(agent_output)
-                    if response_model:
-                        try:
-                            if agent_output_structured:
-                                agent_run_reply_structured = response_model(
-                                    **agent_output_structured
+            agent_run.completed_at = datetime.now()
+            structured_error = None
+            agent_run_reply_structured = None
+
+            if isinstance(agent_output, StrandsAgentResult):
+                agent_reply = str(agent_output)
+                if response_model:
+                    try:
+                        if agent_output_structured:
+                            agent_run_reply_structured = response_model(
+                                **agent_output_structured
+                            )
+                        else:
+                            parse_errors = []
+                            try:
+                                agent_run_reply_structured = (
+                                    response_model.model_validate_json(agent_reply)
                                 )
-                            else:
-                                parse_errors = []
+                            except ValueError as e:
+                                parse_errors.append(f"whole reply: {e}")
+
+                            for match in _JSON_FENCE_PATTERN.finditer(agent_reply):
                                 try:
                                     agent_run_reply_structured = (
-                                        response_model.model_validate_json(agent_reply)
+                                        response_model.model_validate_json(
+                                            match.group("json").strip()
+                                        )
                                     )
+                                    break
                                 except ValueError as e:
-                                    parse_errors.append(f"whole reply: {e}")
+                                    parse_errors.append(f"fenced json: {e}")
 
-                                if not agent_run_reply_structured:
-                                    for match in _JSON_FENCE_PATTERN.finditer(
-                                        agent_reply
-                                    ):
-                                        try:
-                                            agent_run_reply_structured = (
-                                                response_model.model_validate_json(
-                                                    match.group("json").strip()
-                                                )
-                                            )
-                                            break
-                                        except ValueError as e:
-                                            parse_errors.append(f"fenced json: {e}")
-
-                                if not agent_run_reply_structured:
-                                    details = (
-                                        "; ".join(parse_errors)
-                                        if parse_errors
-                                        else "no JSON content found"
-                                    )
-                                    raise ValueError(
-                                        "Failed to parse structured output from "
-                                        f"agent reply: {details}"
-                                    )
-
-                                agent_output_structured.update(
-                                    agent_run_reply_structured.model_dump(mode="json")
+                            if not agent_run_reply_structured:
+                                details = (
+                                    "; ".join(parse_errors)
+                                    if parse_errors
+                                    else "no JSON content found"
                                 )
-                        except ValueError as e:
-                            parse_error = e
-                            agent_run.error = str(e)
-                            agent_run.status = AgentRunStatus.FAILED
+                                raise AgentStructuredOutputError(
+                                    "Failed to parse structured output from "
+                                    f"agent reply: {details}"
+                                )
 
-                    agent_run.reply = AgentRunContent(
-                        text=agent_reply,
-                        structured=agent_output_structured or None,
-                    )
-                else:
-                    if not agent_run.error:
-                        agent_run.error = (
-                            f"Expected AgentResult, got {type(agent_output)}"
+                        agent_output_structured.update(
+                            agent_run_reply_structured.model_dump(mode="json")
                         )
-                    agent_run.status = AgentRunStatus.FAILED
+                    except AgentStructuredOutputError as e:
+                        structured_error = e
+                        agent_run.error = str(e)
+                        agent_run.status = AgentRunStatus.FAILED
 
-                event_callback(AgentRunEvent.FINISH, agent_run)
+                agent_run.reply = AgentRunContent(
+                    text=agent_reply,
+                    structured=agent_output_structured or None,
+                )
+            else:
+                if not agent_run.error:
+                    agent_run.error = f"Expected AgentResult, got {type(agent_output)}"
+                agent_run.status = AgentRunStatus.FAILED
 
-                # Save the final agent run state to the repository
-                await agent_run_session_span(agent_run)
+            await agent_run_session_span(agent_run)
+            snapshot = agent_run.model_copy(deep=True)
+            yield AgentRunEvent.FINISH, snapshot
 
-                if parse_error:
-                    raise parse_error
+            if structured_error:
+                raise structured_error
+            if runtime_error:
+                raise runtime_error
 
-            if not agent_run.reply:
-                return AgentRunContent(text="")
+    async def run_async(
+        self,
+        query: str | AgentRunContent = "",
+        agent_run_repository: AgentRunRepository | None = None,
+        agent_run_session_id: str | None = None,
+        agent_run_id: str | None = None,
+        tool_retriever: ToolRetriever | None = None,
+        tool_ids: List[str] | None = None,
+        skill_retriever: SkillRetriever | None = None,
+        skill_ids: List[str] | None = None,
+        response_model: Type[BaseModel] | None = None,
+        context: dict[str, Any] | None = None,
+        event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
+        **kwargs,  # ignore additional kwargs
+    ) -> BaseModel:
+        """
+        Execute agent asynchronously and return the final output.
 
-            return (
-                agent_run_reply_structured
-                if agent_run_reply_structured
-                else agent_run.reply
-            )
+        Args:
+            query: User query string or AgentRunContent object
+            agent_run_repository: Repository for persisting agent runs
+            agent_run_session_id: Session ID for conversation context
+            agent_run_id: Optional explicit AgentRun ID; auto-generated UUID if omitted
+            tool_retriever: Tool retrieval system for semantic tool search
+            tool_ids: Runtime tool IDs (merged with config.tool_ids via set union)
+            skill_retriever: Optional skill retriever for dynamic tool injection
+            skill_ids: Runtime skill IDs (merged with config.skill_ids via set union)
+            response_model: Structured output model (overrides config)
+            context: Runtime context passed to class tool constructors
+            event_callback: Callback for execution events
+            **kwargs: Additional arguments (ignored)
+
+        Returns:
+            Structured output model instance or AgentRunContent
+
+        Notes:
+            - tool_ids are merged with config.tool_ids using set union
+        """
+        response_model = (
+            response_model
+            if response_model is not None
+            else self._agent_config.response_model
+        )
+        final_run: AgentRun | None = None
+
+        async for _event, agent_run in self.stream_async(
+            query=query,
+            agent_run_repository=agent_run_repository,
+            agent_run_session_id=agent_run_session_id,
+            agent_run_id=agent_run_id,
+            tool_retriever=tool_retriever,
+            tool_ids=tool_ids,
+            skill_retriever=skill_retriever,
+            skill_ids=skill_ids,
+            response_model=response_model,
+            context=context,
+            **kwargs,
+        ):
+            event_callback(_event, agent_run)
+            final_run = agent_run
+
+        if final_run is None or not final_run.reply:
+            return AgentRunContent(text="")
+
+        if response_model and final_run.reply.structured:
+            return response_model.model_validate(final_run.reply.structured)
+
+        return final_run.reply
 
 
 class StrandsAgentBackend(AgentBackend):

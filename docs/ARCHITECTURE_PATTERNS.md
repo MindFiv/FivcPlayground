@@ -232,6 +232,44 @@ assert agent_run.reply.structured == {
 
 ## 📦 Component Organization
 
+### 6. Streaming Primary Path
+
+**Purpose**: Keep execution, domain-event normalization, lifecycle
+management, and persistence in one backend path while preserving a simple
+awaitable API for callers that only need a final result.
+
+```python
+# Observe progress
+async for event, run in agent.stream_async(
+    query="q",
+    agent_run_repository=run_repository,
+    agent_run_session_id=session_id,
+):
+    assert run is not previous_run
+
+# Reduce to the final result
+result = await agent.run_async(query="q")
+```
+
+`stream_async()` returns an async iterator of `(AgentRunEvent, AgentRun)`
+tuples and has no callback parameter: iteration is the observation
+mechanism. Every `AgentRun` is a deep snapshot. Backend implementations own
+the native runtime, tool/skill spans, state transitions, persistence, and
+error normalization. `run_async()` is deliberately a reduction wrapper,
+not a second execution implementation; it owns the optional
+`event_callback` and invokes it for each event consumed during reduction.
+
+This separation keeps streaming and non-streaming behavior aligned:
+event ordering is `START`, intermediate events, then `FINISH`; failures
+produce a persisted `FAILED` snapshot before the original exception
+propagates; and early stream closure is a cancellation that persists a
+`FAILED` run.
+
+Run ordering is intentionally not part of the public model API. File and
+SQLite repositories each keep a private chronological sort helper so the
+public `agents.types` surface stays small while repository implementations
+can account for storage-specific legacy identifiers.
+
 ### Layered Architecture
 
 ```
@@ -292,4 +330,3 @@ assert agent_run.reply.structured == {
 
 **Last Updated**: 2025-11-25
 **Version**: 0.1.0
-

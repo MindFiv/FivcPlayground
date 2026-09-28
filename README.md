@@ -123,6 +123,34 @@ fivcplayground info
 - **Engineer** - Develops and optimizes tools
 - **Evaluator** - Assesses performance and quality
 
+### Stream Agent Events
+
+`stream_async()` is the primary execution path. It yields `(event, run)`
+pairs while the agent executes, and each `run` is an independent deep
+snapshot:
+
+```python
+from fivcplayground.agents import AgentRunEvent
+
+async for event, run in agent.stream_async(
+    query="What is machine learning?",
+    agent_run_repository=agent_run_repository,
+    agent_run_session_id=session_id,
+):
+    if event is AgentRunEvent.STREAM:
+        print(run.delta.text, end="", flush=True)
+    elif event is AgentRunEvent.FINISH:
+        print(f"\nfinished: {run.status}")
+```
+
+Events arrive as `START`, zero or more `STREAM`/`TOOL`/`UPDATE` events,
+and finally `FINISH`. Runtime failures are reported on the `FINISH`
+snapshot before the original exception is re-raised. Closing or cancelling
+the stream before completion persists a `FAILED` run. `run_async()` is a
+small reduction wrapper that consumes the stream and returns the final
+`BaseModel` or `AgentRunContent`; its optional `event_callback` observes
+the stream while reduction is in progress.
+
 ## 🧰 Available Tools
 
 FivcPlayground includes built-in tools and supports MCP (Model Context Protocol) tools:

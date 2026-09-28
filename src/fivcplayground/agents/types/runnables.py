@@ -1,6 +1,8 @@
+from typing import AsyncIterator
+
 from pydantic import BaseModel
 
-from .base import AgentRunnable
+from .base import AgentRun, AgentRunEvent, AgentRunnable
 
 
 class BoundedAgentRunnable(AgentRunnable):
@@ -30,6 +32,14 @@ class BoundedAgentRunnable(AgentRunnable):
         for k, v in self._kwargs.items():
             kwargs.setdefault(k, v)
         return await self._runnable.run_async(**kwargs)
+
+    async def stream_async(
+        self, **kwargs
+    ) -> AsyncIterator[tuple[AgentRunEvent, AgentRun]]:
+        for k, v in self._kwargs.items():
+            kwargs.setdefault(k, v)
+        async for event, run in self._runnable.stream_async(**kwargs):
+            yield event, run
 
 
 class ParameterizedAgentRunnable(AgentRunnable):
@@ -63,3 +73,15 @@ class ParameterizedAgentRunnable(AgentRunnable):
         query_params["query"] = query
         kwargs["query"] = self._query_format.format(**query_params)
         return await self._runnable.run_async(**kwargs)
+
+    async def stream_async(
+        self,
+        query: str = "",
+        query_params: dict[str, str] | None = None,
+        **kwargs,
+    ) -> AsyncIterator[tuple[AgentRunEvent, AgentRun]]:
+        query_params = query_params or {}
+        query_params["query"] = query
+        kwargs["query"] = self._query_format.format(**query_params)
+        async for event, run in self._runnable.stream_async(**kwargs):
+            yield event, run

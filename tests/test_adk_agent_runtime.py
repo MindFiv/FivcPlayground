@@ -332,11 +332,50 @@ class TestAdkAgentRuntime:
                     mock_session_span_cls.return_value = mock_session_span
 
                     await runnable.run_async(
-                        query="test", event_callback=capture_callback
+                        query="Final answer", event_callback=capture_callback
                     )
 
         assert AgentRunEvent.UPDATE in events_emitted
         assert AgentRunEvent.FINISH in events_emitted
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self):
+        """Test error handling when agent raises exception."""
+        agent_config = _make_agent_config()
+        agent_model = MagicMock(spec=AdkModelUnderlying)
+        runnable = AdkAgentRunnable(agent_config, agent_model)
+
+        mock_runner = MagicMock(spec=Runner)
+        mock_runner.run_async = AsyncMock(side_effect=RuntimeError("Agent failed"))
+
+        captured_run = None
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
+        ):
+            with patch(
+                "fivcplayground.backends.adk.agents.AgentRunToolSpan"
+            ) as mock_tool_span_cls:
+                with patch(
+                    "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
+                ) as mock_session_span_cls:
+                    mock_tool_span, mock_session_span = _create_mocks_for_run()
+                    mock_tool_span_cls.return_value = mock_tool_span
+                    mock_session_span_cls.return_value = mock_session_span
+
+                    with pytest.raises(RuntimeError, match="Agent failed"):
+                        await runnable.run_async(
+                            query="test", event_callback=capture_callback
+                        )
+
+        assert captured_run is not None
+        assert captured_run.status == AgentRunStatus.FAILED
+        assert "unexpected errors" in captured_run.error.lower()
 
     @pytest.mark.asyncio
     async def test_tool_call_tracking(self):
@@ -583,44 +622,6 @@ class TestAdkAgentRuntime:
         assert isinstance(result, ContactInfo)
         assert result.name == "John Doe"
         assert result.email == "john@example.com"
-
-    @pytest.mark.asyncio
-    async def test_error_handling(self):
-        """Test error handling when agent raises exception."""
-        agent_config = _make_agent_config()
-        agent_model = MagicMock(spec=AdkModelUnderlying)
-        runnable = AdkAgentRunnable(agent_config, agent_model)
-
-        mock_runner = MagicMock(spec=Runner)
-        mock_runner.run_async = AsyncMock(side_effect=RuntimeError("Agent failed"))
-
-        captured_run = None
-
-        def capture_callback(event, run):
-            nonlocal captured_run
-            if event == AgentRunEvent.FINISH:
-                captured_run = run
-
-        with patch(
-            "fivcplayground.backends.adk.agents.Runner", return_value=mock_runner
-        ):
-            with patch(
-                "fivcplayground.backends.adk.agents.AgentRunToolSpan"
-            ) as mock_tool_span_cls:
-                with patch(
-                    "fivcplayground.backends.adk.agents.AgentRunSessionSpan"
-                ) as mock_session_span_cls:
-                    mock_tool_span, mock_session_span = _create_mocks_for_run()
-                    mock_tool_span_cls.return_value = mock_tool_span
-                    mock_session_span_cls.return_value = mock_session_span
-
-                    await runnable.run_async(
-                        query="test", event_callback=capture_callback
-                    )
-
-        assert captured_run is not None
-        assert captured_run.status == AgentRunStatus.FAILED
-        assert "unexpected errors" in captured_run.error.lower()
 
     @pytest.mark.asyncio
     async def test_empty_output_handling(self):

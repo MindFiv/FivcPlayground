@@ -14,6 +14,7 @@ __all__ = [
     "AgentRunSessionSpan",
     "AgentRunToolSpan",
     "AgentRunSkillSpan",
+    "AgentStructuredOutputError",
     "BoundedAgentRunnable",
     "ParameterizedAgentRunnable",
 ]
@@ -39,6 +40,7 @@ from .types import (
     AgentRunToolCall,
     AgentRunToolSpan,
     AgentRunSkillSpan,
+    AgentStructuredOutputError,
     BoundedAgentRunnable,
     ParameterizedAgentRunnable,
 )

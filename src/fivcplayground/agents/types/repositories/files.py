@@ -35,7 +35,6 @@ from typing import List, Optional
 import yaml
 
 from fivcplayground.agents.types import AgentRunSession
-from fivcplayground.agents.types.base import agent_run_chronological_sort_key
 from fivcplayground.agents.types.repositories.base import (
     AgentConfig,
     AgentConfigRepository,
@@ -43,6 +42,17 @@ from fivcplayground.agents.types.repositories.base import (
     AgentRunRepository,
 )
 from fivcplayground.utils import OutputDir
+
+
+def _agent_run_chronological_sort_key(agent_run: AgentRun) -> tuple[float, str]:
+    """Sort AgentRun values chronologically with legacy id fallback."""
+    if agent_run.started_at:
+        return (agent_run.started_at.timestamp(), agent_run.id)
+
+    try:
+        return (float(agent_run.id), agent_run.id)
+    except ValueError:
+        return (float("inf"), agent_run.id)
 
 
 class FileAgentConfigRepository(AgentConfigRepository):
@@ -463,6 +473,6 @@ class FileAgentRunRepository(AgentRunRepository):
             except (json.JSONDecodeError, ValueError) as e:
                 print(f"Error loading runtime from {run_file}: {e}")
 
-        runtimes.sort(key=agent_run_chronological_sort_key)
+        runtimes.sort(key=_agent_run_chronological_sort_key)
 
         return runtimes
