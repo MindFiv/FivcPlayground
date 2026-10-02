@@ -18,7 +18,7 @@ from uuid import UUID
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from strands.agent import AgentResult as StrandsAgentResult
 from strands.telemetry.metrics import EventLoopMetrics
 from fivcplayground.agents.types import (
@@ -1284,6 +1284,95 @@ class TestStrandsStructuredOutput:
 
         assert captured_run.status == AgentRunStatus.FAILED
         assert "Failed to parse structured output" in captured_run.error
+
+    @pytest.mark.asyncio
+    async def test_omitted_optional_strings_persist_failed_before_raise(self):
+        """Tool success must not leave the run executing when revalidation fails.
+
+        Jambo builds non-required strings as ``str = None``. Omitting them
+        validates, ``model_dump`` writes null, and ``Model(**dump)`` raises
+        ``ValidationError``. That error has to be stored as failed before it
+        propagates.
+        """
+        from fivcplayground.agents import AgentConfig
+
+        response_model = AgentConfig(
+            id="fortune",
+            response_format={
+                "title": "Fortune",
+                "type": "object",
+                "properties": {
+                    "流年": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "学业": {"type": "string"},
+                                "子女": {"type": "string"},
+                            },
+                        },
+                    }
+                },
+                "required": ["流年"],
+            },
+        ).response_model
+        assert response_model is not None
+        agent = self._make_agent()
+        captured_run = None
+        tool_results = []
+        mock_strands_agent = AsyncMock()
+
+        async def mock_stream(*args, **kwargs):
+            structured_tool = next(
+                tool
+                for tool in mock_strands_agent._tools
+                if getattr(tool, "tool_name", None) == "generate_structured_output"
+            )
+            async for event in structured_tool.stream(
+                {
+                    "toolUseId": "structured-1",
+                    "name": "generate_structured_output",
+                    "input": {"流年": [{}]},
+                },
+                {},
+            ):
+                tool_results.append(event)
+            yield {"result": self._make_result("Done")}
+
+        mock_strands_agent.stream_async = mock_stream
+        span = AsyncMock()
+        span.__aenter__.return_value = span
+        span.__aexit__.return_value = None
+
+        def capture_callback(event, run):
+            nonlocal captured_run
+            if event == AgentRunEvent.FINISH:
+                captured_run = run
+
+        with patch(
+            "fivcplayground.backends.strands.agents.StrandsAgentUnderlying"
+        ) as mock_agent_class:
+
+            def make_mock_agent(*args, **kwargs):
+                mock_strands_agent._tools = kwargs["tools"]
+                return mock_strands_agent
+
+            mock_agent_class.side_effect = make_mock_agent
+            with patch(
+                "fivcplayground.backends.strands.agents.AgentRunSessionSpan",
+                return_value=span,
+            ):
+                with pytest.raises(ValidationError, match="string_type"):
+                    await agent.run_async(
+                        query="test",
+                        response_model=response_model,
+                        event_callback=capture_callback,
+                    )
+
+        assert tool_results[-1].tool_result["status"] == "success"
+        assert captured_run is not None
+        assert captured_run.status == AgentRunStatus.FAILED
+        assert span.call_args.args[0].status == AgentRunStatus.FAILED
 
 
 class TestAgentRunContentImageFiles:

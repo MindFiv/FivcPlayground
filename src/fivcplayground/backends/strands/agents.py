@@ -392,7 +392,7 @@ class StrandsAgentRunnable(AgentRunnable):
                         agent_output_structured.update(
                             agent_run_reply_structured.model_dump(mode="json")
                         )
-                    except AgentStructuredOutputError as e:
+                    except ValueError as e:
                         structured_error = e
                         agent_run.error = str(e)
                         agent_run.status = AgentRunStatus.FAILED
