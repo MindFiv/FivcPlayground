@@ -84,7 +84,7 @@ Welcome to the FivcPlayground documentation! This directory contains comprehensi
 ### Main Project
 - **[../README.md](../README.md)**: Main project README with quick start guide
 - **[../pyproject.toml](../pyproject.toml)**: Project dependencies and configuration
-- **[../Makefile](../Makefile)**: Common development commands
+- **[../pyproject.toml](../pyproject.toml)**: Task definitions via taskipy
 
 ### Code Examples
 - **[../examples/agents/](../examples/agents/)**: Agent usage examples

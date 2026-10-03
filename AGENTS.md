@@ -70,10 +70,10 @@ fivcplayground/
 ## COMMANDS
 ```bash
 # Development
-make install        # Install all dependencies
-make test           # Run pytest
-make lint           # Run ruff linting
-make format         # Format code with ruff
+task install        # Install all dependencies
+task test           # Run pytest
+task lint           # Run ruff linting
+task format         # Format code with ruff
 
 # CLI
 fivcplayground run Generic --query "task"

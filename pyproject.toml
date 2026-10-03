@@ -47,11 +47,17 @@ adk = [
     "litellm"
 ]
 
+# Pydantic AI agent backend
+pydantic_ai = [
+    "pydantic-ai-slim[openai,mcp]>=2.54,<3"
+]
+
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
     "google-adk",
     "litellm",
+    "pydantic-ai-slim[openai,mcp]>=2.54,<3",
     "strands-agents",
     "strands-agents[openai]",
     "strands-agents[ollama]",
@@ -67,6 +73,7 @@ dev = [
     "ruff>=0.4.0,<0.6",
     "build>=1.0.0",
     "twine>=4.0.0",
+    "taskipy>=1.12",
 ]
 
 [project.scripts]
@@ -113,3 +120,19 @@ addopts = [
 markers = [
     "asyncio: marks tests as async (deselect with '-m \"not asyncio\"')",
 ]
+
+[tool.taskipy.tasks]
+install = { cmd = "uv sync --extra all --extra dev", help = "Install all dependencies" }
+install-min = { cmd = "uv sync", help = "Install minimal runtime dependencies" }
+dev = { cmd = "task install", help = "Install development dependencies" }
+format = { cmd = "uv run ruff format src tests", help = "Format code with Ruff" }
+lint = { cmd = "uv run ruff check src tests", help = "Run Ruff linting" }
+check = { cmd = "task format && task lint", help = "Run all code quality checks" }
+test = { cmd = "uv run python -m pytest -q", help = "Run tests with pytest" }
+test-cov = { cmd = "uv run python -m pytest --cov=src/fivcplayground --cov-report=term-missing", help = "Run tests with coverage" }
+clean = { cmd = "uv run python scripts/clean_caches.py", help = "Remove build and cache artifacts" }
+build = { cmd = "task clean && task dev && uv run python -m build", help = "Build wheel and source distributions" }
+publish = { cmd = "task build && uv run python -m twine upload dist/*", help = "Build and publish to PyPI" }
+sample = { cmd = "uv run fivcplayground run Generic --query \"What is machine learning?\" --dry-run", help = "Run the sample agent in dry-run mode" }
+info = { cmd = "uv run fivcplayground info", help = "Show system information" }
+all = { cmd = "task install && task check && task test", help = "Run the full development workflow" }

@@ -18,19 +18,6 @@ from rich.text import Text
 
 from fivcplayground.agents import create_agent_async
 from fivcplayground.agents.types.repositories import FileAgentConfigRepository
-from fivcplayground.backends.chroma import (
-    ChromaEmbeddingBackend,
-)
-from fivcplayground.backends.strands import (
-    StrandsAgentBackend,
-    StrandsModelBackend,
-    StrandsToolBackend,
-)
-from fivcplayground.backends.adk import (
-    AdkModelBackend,
-    AdkToolBackend,
-    AdkAgentBackend,
-)
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.base import ModelBackend
 from fivcplayground.models.types.repositories import FileModelConfigRepository
@@ -59,11 +46,37 @@ def _get_backends(
     Returns: (ModelBackend, ToolBackend, AgentBackend)
     """
     if backend == "adk":
+        from fivcplayground.backends.adk import (
+            AdkAgentBackend,
+            AdkModelBackend,
+            AdkToolBackend,
+        )
+
         return AdkModelBackend(), AdkToolBackend(), AdkAgentBackend()
     elif backend == "strands":
+        from fivcplayground.backends.strands import (
+            StrandsAgentBackend,
+            StrandsModelBackend,
+            StrandsToolBackend,
+        )
+
         return StrandsModelBackend(), StrandsToolBackend(), StrandsAgentBackend()
+    elif backend == "pydantic_ai":
+        from fivcplayground.backends.pydantic_ai import (
+            PydanticAIAgentBackend,
+            PydanticAIModelBackend,
+            PydanticAIToolBackend,
+        )
+
+        return (
+            PydanticAIModelBackend(),
+            PydanticAIToolBackend(),
+            PydanticAIAgentBackend(),
+        )
     else:
-        raise ValueError(f"Unknown backend: {backend}. Use 'strands' or 'adk'.")
+        raise ValueError(
+            f"Unknown backend: {backend}. Use 'strands', 'adk', or 'pydantic_ai'."
+        )
 
 
 @app.command()
@@ -85,7 +98,10 @@ def run(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
     backend: str = typer.Option(
-        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+        "strands",
+        "--backend",
+        "-b",
+        help="Backend to use: 'strands', 'adk', or 'pydantic_ai'",
     ),
 ):
     """
@@ -111,6 +127,8 @@ async def _run_async(
 
     model_config_repository = FileModelConfigRepository()
     tool_config_repository = FileToolConfigRepository()
+
+    from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 
     embedding_backend = ChromaEmbeddingBackend()
     embedding_config_repository = FileEmbeddingConfigRepository()
@@ -229,7 +247,10 @@ def setup(
         help="Overwrite existing configuration files without prompting",
     ),
     backend: str = typer.Option(
-        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+        "strands",
+        "--backend",
+        "-b",
+        help="Backend to use: 'strands', 'adk', or 'pydantic_ai'",
     ),
 ):
     """
@@ -338,6 +359,8 @@ def setup(
         except ValueError as e:
             console.print(f"[red]❌ {e}[/red]")
             raise typer.Exit(1)
+
+        from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 
         embedding_backend = ChromaEmbeddingBackend()
         embedding_config_repository = FileEmbeddingConfigRepository()

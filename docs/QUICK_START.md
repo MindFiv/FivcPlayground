@@ -24,8 +24,8 @@ cd /path/to/fivcplayground
 # Install dependencies using uv (recommended)
 uv sync
 
-# Or using make
-make install
+# Or using taskipy
+task install
 ```
 
 ### 2. Verify Installation
@@ -333,4 +333,3 @@ Include:
 ✅ **Production Ready**
 
 All systems operational. Ready for deployment.
-

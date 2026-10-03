@@ -22,10 +22,10 @@ FivcPlayground provides a flexible multi-agent system that can:
 
 ```bash
 # Install with uv (recommended)
-make install        # runtime + dev dependencies
+task install        # runtime + dev dependencies
 
 # Or minimal installation
-make install-min    # runtime only
+task install-min    # runtime only
 
 # Or with pip
 pip install -e .

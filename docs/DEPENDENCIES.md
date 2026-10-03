@@ -40,18 +40,18 @@ uv sync --extra all
 uv sync --extra dev
 ```
 
-### 2. Using Make (Convenient)
-We provide convenient Make targets:
+### 2. Using taskipy (Convenient)
+We provide convenient task commands:
 
 ```bash
 # Basic installation (core only)
-make install
+task install
 
 # Minimal installation (runtime only)
-make install-min
+task install-min
 
 # Development installation
-make dev
+task dev
 ```
 
 ### 3. Using pip (Traditional)
@@ -281,7 +281,7 @@ uv export --format requirements-txt > requirements.txt
 - Keep `uv.lock` in version control for reproducible builds
 - Test in clean environments before releases
 - Use package managers (uv, pip) instead of manually editing pyproject.toml
-- Run `make install` for consistent development setup
+- Run `task install` for consistent development setup
 
 ## 📝 Dependency Notes
 
