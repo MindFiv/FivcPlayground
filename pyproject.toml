@@ -19,7 +19,7 @@ dependencies = [
     "PyYAML>=6.0.1",
     "python-dotenv>=1.0.1",
     "pydantic>=2.7.0",
-    "jambo>=0.1.0",
+    "jambo>=0.1.0,<0.2.0",
     "nest-asyncio>=1.6.0",
     # Transitive dependencies (required by other packages)
     "httpx>=0.28.1", # Required by: langgraph-sdk, langsmith, mcp, ollama, openai, python-fasthtml
@@ -35,27 +35,27 @@ chroma = [
 
 # Strands agent backend
 strands = [
-    "strands-agents",
-    "strands-agents[openai]",
-    "strands-agents[ollama]",
-    "strands-agents[gemini]"
+    "strands-agents>=1.57.0",
+    "strands-agents[openai]>=1.57.0",
+    "strands-agents[ollama]>=1.57.0",
+    "strands-agents[gemini]>=1.57.0"
 ]
 
 # Google ADK agent backend
 adk = [
     "google-adk",
-    "litellm"
+    "litellm>=1.104.0"
 ]
 
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
     "google-adk",
-    "litellm",
-    "strands-agents",
-    "strands-agents[openai]",
-    "strands-agents[ollama]",
-    "strands-agents[gemini]"
+    "litellm>=1.104.0",
+    "strands-agents>=1.57.0",
+    "strands-agents[openai]>=1.57.0",
+    "strands-agents[ollama]>=1.57.0",
+    "strands-agents[gemini]>=1.57.0"
 ]
 
 # Development dependencies
