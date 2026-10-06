@@ -151,6 +151,10 @@ class AgentRunSession(BaseModel):
         description="Unique session identifier (auto-generated if not provided)",
     )
     agent_id: str = Field(..., description="Unique agent identifier")
+    context: dict[str, Any] = Field(
+        default_factory=dict,
+        description="JSON-compatible context associated with the session",
+    )
     description: str | None = Field(
         default=None, description="Description of agent's purpose and capabilities"
     )

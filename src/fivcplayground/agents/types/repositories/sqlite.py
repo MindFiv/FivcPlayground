@@ -8,6 +8,7 @@ Database Schema:
     agents:
         - id (INTEGER PRIMARY KEY)
         - agent_id (TEXT UNIQUE NOT NULL)
+        - context (TEXT JSON)
         - system_prompt (TEXT)
         - description (TEXT)
         - started_at (TIMESTAMP)
@@ -124,6 +125,7 @@ class SqliteAgentRunRepository(AgentRunRepository):
                 id INTEGER PRIMARY KEY,
                 session_id TEXT UNIQUE,
                 agent_id TEXT NOT NULL,
+                context TEXT,
                 system_prompt TEXT,
                 description TEXT,
                 started_at TIMESTAMP,
@@ -198,6 +200,18 @@ class SqliteAgentRunRepository(AgentRunRepository):
             # If migration fails, continue - the column might already be renamed
             pass
 
+        # Migration: Add context column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("PRAGMA table_info(agents)")
+            columns = cursor.fetchall()
+            column_names = [col[1] for col in columns]
+
+            if "context" not in column_names:
+                cursor.execute("ALTER TABLE agents ADD COLUMN context TEXT")
+        except Exception:
+            # If migration fails, continue - the column might already exist
+            pass
+
         # Create indexes for common queries
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_agents_agent_id ON agents(agent_id)"
@@ -234,12 +248,13 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute(
             """
             INSERT OR IGNORE INTO agents
-            (session_id, agent_id, description, started_at)
-            VALUES (?, ?, ?, ?)
+            (session_id, agent_id, context, description, started_at)
+            VALUES (?, ?, ?, ?, ?)
         """,
             (
                 session_id,
                 agent_id,
+                json.dumps(agent_data.get("context") or {}),
                 agent_data.get("description"),
                 agent_data.get("started_at"),
             ),
@@ -249,10 +264,11 @@ class SqliteAgentRunRepository(AgentRunRepository):
         cursor.execute(
             """
             UPDATE agents
-            SET description = ?, started_at = ?
+            SET context = ?, description = ?, started_at = ?
             WHERE session_id = ?
         """,
             (
+                json.dumps(agent_data.get("context") or {}),
                 agent_data.get("description"),
                 agent_data.get("started_at"),
                 session_id,
@@ -272,10 +288,12 @@ class SqliteAgentRunRepository(AgentRunRepository):
             return None
 
         try:
+            context = json.loads(row["context"]) if row["context"] else {}
             return AgentRunSession.model_validate(
                 {
                     "id": row["session_id"],
                     "agent_id": row["agent_id"],
+                    "context": context,
                     "description": row["description"],
                     "started_at": row["started_at"],
                 }
@@ -293,9 +311,12 @@ class SqliteAgentRunRepository(AgentRunRepository):
         agents = []
         for row in rows:
             try:
+                context = json.loads(row["context"]) if row["context"] else {}
                 agent = AgentRunSession.model_validate(
                     {
+                        "id": row["session_id"],
                         "agent_id": row["agent_id"],
+                        "context": context,
                         "description": row["description"],
                         "started_at": row["started_at"],
                     }
