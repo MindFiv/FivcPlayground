@@ -1,8 +1,8 @@
 # FivcPlayground
 
-An intelligent agent ecosystem built on **Strands** for autonomous tool generation, task assessment, and dynamic agent orchestration.
+An intelligent agent ecosystem for autonomous tool generation, task assessment, and dynamic agent orchestration.
 
-> **🔄 Dual Backend Support**: FivcPlayground supports both **Strands** (default) and **LangChain** backends. See [Backend Selection Guide](docs/BACKEND_SELECTION.md) for details on switching backends.
+> **🔄 Pluggable Backends**: FivcPlayground supports **Strands** (default), **Google ADK**, and the optional real-time **Pipecat** backend. See [Backend Selection Guide](docs/BACKEND_SELECTION.md).
 
 ## 🎯 Overview
 
@@ -64,8 +64,9 @@ uv run fivcplayground --help
 src/fivcplayground/
 ├── agents/          # Agent creation and management
 │   └── types/       # Agent retriever and creator types
-├── backends/        # Backend implementations (langchain, strands)
-│   ├── langchain/   # LangChain backend
+├── backends/        # Backend implementations (strands, adk, pipecat)
+│   ├── adk/         # Google ADK backend
+│   ├── pipecat/     # Optional real-time/text pipeline backend
 │   └── strands/     # Strands backend
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
@@ -105,6 +106,10 @@ fivcplayground run Generic --query "What is machine learning?"
 # Run different agent types
 fivcplayground run Companion --query "Tell me a joke"
 fivcplayground run Consultant --query "How should I approach this task?"
+
+# Select an installed optional backend
+fivcplayground run Generic --backend adk --query "What is machine learning?"
+fivcplayground run Generic --backend pipecat --query "What is machine learning?"
 
 # Clean temporary files
 fivcplayground clean
@@ -168,7 +173,7 @@ Configure MCP servers in `configs/mcp.yaml` to add additional tools dynamically.
 For comprehensive documentation, see the [docs/](docs/) directory:
 
 - **[System Design](docs/DESIGN.md)** - Architecture and design principles
-- **[Backend Selection Guide](docs/BACKEND_SELECTION.md)** - Switching between Strands and LangChain backends
+- **[Backend Selection Guide](docs/BACKEND_SELECTION.md)** - Strands, Google ADK, and Pipecat
 - **[Dependencies](docs/DEPENDENCIES.md)** - Installation and dependency management
 - **[Quick Start](docs/QUICK_START.md)** - Getting started with FivcPlayground
 - **[Documentation Index](docs/README.md)** - Complete documentation overview

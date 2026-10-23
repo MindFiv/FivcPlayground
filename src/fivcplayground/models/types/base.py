@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ModelConfig(BaseModel):
@@ -35,6 +35,23 @@ class ModelConfig(BaseModel):
         default=None,
         description="Enable provider-supported thinking output when explicitly set.",
     )
+
+    extra: dict[str, Any] | None = Field(
+        default=None,
+        description="Backend-specific, serializable model service configuration.",
+    )
+
+    @model_validator(mode="after")
+    def validate_extra_does_not_override_canonical_fields(self):
+        extra = self.extra or {}
+        canonical = set(type(self).model_fields)
+        conflicts = sorted(canonical.intersection(extra))
+        if conflicts:
+            raise ValueError(
+                "extra must not override canonical ModelConfig fields: "
+                + ", ".join(conflicts)
+            )
+        return self
 
 
 class Model(ABC):

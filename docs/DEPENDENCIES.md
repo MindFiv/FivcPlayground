@@ -24,14 +24,14 @@ uv sync
 # With ChromaDB embedding backend
 uv sync --extra chroma
 
-# With LangChain agent backend
-uv sync --extra langchain
-
 # With Strands agent backend
 uv sync --extra strands
 
 # With Google ADK agent backend
 uv sync --extra adk
+
+# With Pipecat backend (Python 3.11+)
+uv sync --extra pipecat
 
 # With everything (all backends + embeddings)
 uv sync --extra all
@@ -64,14 +64,14 @@ pip install -e .
 # With ChromaDB embedding backend
 pip install -e ".[chroma]"
 
-# With LangChain agent backend
-pip install -e ".[langchain]"
-
 # With Strands agent backend
 pip install -e ".[strands]"
 
 # With Google ADK agent backend
 pip install -e ".[adk]"
+
+# With Pipecat backend (Python 3.11+)
+pip install -e ".[pipecat]"
 
 # With everything (all backends + embeddings)
 pip install -e ".[all]"
@@ -79,8 +79,8 @@ pip install -e ".[all]"
 # With development dependencies
 pip install -e ".[dev]"
 
-# Combined installation (e.g., LangChain + ChromaDB + dev)
-pip install -e ".[langchain,chroma,dev]"
+# Combined installation (e.g., Pipecat + ChromaDB + dev)
+pip install -e ".[pipecat,chroma,dev]"
 ```
 
 ## 📦 Dependency Categories
@@ -103,17 +103,10 @@ pip install -e ".[langchain,chroma,dev]"
 | chromadb | >=1.1.0 | Vector database for embeddings |
 | langchain-text-splitters | >=0.3.11 | Text chunking for embeddings |
 
-### LangChain Agent Backend (`[langchain]`)
-| Package | Version | Purpose |
-|---------|---------|---------|
-| langchain | >=1.2.0 | LangChain framework |
-| langchain-core | >=1.2.0 | LangChain core abstractions |
-| langchain-community | >=0.4.1 | LangChain community integrations |
-| langchain-openai | >=1.0.0 | LangChain OpenAI integration |
-| langgraph | >=1.0.5 | LangChain graph framework |
-| langchain-mcp-adapters | >=0.2.1 | MCP tool integration for LangChain |
-| langchain-ollama | >=1.0.0 | LangChain Ollama integration |
-| langchain-text-splitters | >=0.3.11 | Text processing utilities |
+### Pipecat Agent Backend (`[pipecat]`)
+| Package | Version | Python | Purpose |
+|---------|---------|--------|---------|
+| pipecat-ai[mcp] | >=1.13.0,<2 | >=3.11 | Pipeline worker, services, and MCP integration |
 
 ### Strands Agent Backend (`[strands]`)
 | Package | Version | Purpose |
@@ -128,7 +121,7 @@ pip install -e ".[langchain,chroma,dev]"
 ### Convenience Groups
 | Group | Contents | Purpose |
 |-------|----------|---------|
-| `[all]` | ChromaDB, Google ADK, Strands, all model providers | Complete installation with everything |
+| `[all]` | ChromaDB, Google ADK, Pipecat, Strands, all model providers | Complete installation with everything |
 | `[dev]` | Testing and development tools | Development and testing |
 
 ### Development Dependencies (`[dev]`)
@@ -158,10 +151,10 @@ FivcPlayground supports multiple agent frameworks and embedding backends. Instal
 - Google's AI agent framework
 - Install with: `pip install ".[adk]"`
 
-#### LangChain Backend
-- Uses `langchain-core` framework
-- Broader ecosystem integration
-- Install with: `pip install ".[langchain]"`
+#### Pipecat Backend
+- Uses `pipecat-ai` pipeline workers and services
+- Supports text runs and transport-backed real-time pipelines
+- Install with: `pip install ".[pipecat]"`
 
 ### Embedding Backends
 
@@ -183,9 +176,9 @@ agent_backend = StrandsAgentBackend()
 from fivcplayground.backends.adk import AdkAgentBackend
 agent_backend = AdkAgentBackend()
 
-# Using LangChain agent backend
-from fivcplayground.backends.langchain import LangchainAgentBackend
-agent_backend = LangchainAgentBackend()
+# Using Pipecat agent backend
+from fivcplayground.backends.pipecat.agents import PipecatAgentBackend
+agent_backend = PipecatAgentBackend()
 
 # Using ChromaDB embedding backend
 from fivcplayground.backends.chroma import ChromaEmbeddingBackend
@@ -204,8 +197,8 @@ pip install -e ".[strands,chroma]"
 # Google ADK agent + ChromaDB embeddings
 pip install -e ".[adk,chroma]"
 
-# LangChain agent + ChromaDB embeddings
-pip install -e ".[langchain,chroma]"
+# Pipecat agent + ChromaDB embeddings
+pip install -e ".[pipecat,chroma]"
 
 # Everything (all backends + embeddings)
 pip install -e ".[all]"

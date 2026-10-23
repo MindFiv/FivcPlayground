@@ -45,6 +45,10 @@ class AgentConfig(BaseModel):
     response_format: Dict[str, Any] | None = Field(
         default=None, description="Response format for the agent in JSON Schema format"
     )
+    extra: Dict[str, Any] | None = Field(
+        default=None,
+        description="Backend-specific, serializable agent runtime configuration.",
+    )
 
     @property
     def response_model(self) -> Type[BaseModel] | None:
@@ -270,9 +274,6 @@ class AgentRunnable(ABC):
     @abstractmethod
     async def run_async(
         self,
-        query: str | AgentRunContent = "",
-        # agent_run_repository: 'AgentRunRepository' | None = None,
-        # agent_run_session_id: str | None = None,
         tool_retriever: ToolRetriever | None = None,
         tool_ids: List[str] | None = None,
         skill_retriever: SkillRetriever | None = None,
@@ -280,23 +281,13 @@ class AgentRunnable(ABC):
         response_model: Type[BaseModel] | None = None,
         context: dict[str, Any] | None = None,
         event_callback: Callable[[AgentRunEvent, AgentRun], None] = lambda e, r: None,
-        **kwargs,  # ignore additional kwargs
+        **kwargs,  # backend-specific parameters, including query where supported
     ) -> BaseModel:
         """Asynchronous execution of agent"""
 
     @abstractmethod
     async def stream_async(
         self,
-        query: str | AgentRunContent = "",
-        agent_run_repository: Any = None,
-        agent_run_session_id: str | None = None,
-        agent_run_id: str | None = None,
-        tool_retriever: ToolRetriever | None = None,
-        tool_ids: List[str] | None = None,
-        skill_retriever: SkillRetriever | None = None,
-        skill_ids: List[str] | None = None,
-        response_model: Type[BaseModel] | None = None,
-        context: dict[str, Any] | None = None,
         **kwargs,  # ignore additional kwargs
     ) -> AsyncIterator[tuple[AgentRunEvent, AgentRun]]:
         """Stream asynchronous execution events."""

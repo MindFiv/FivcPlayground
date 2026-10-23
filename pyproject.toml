@@ -47,11 +47,17 @@ adk = [
     "litellm>=1.104.0"
 ]
 
+# Pipecat real-time voice and pipeline backend
+pipecat = [
+    "pipecat-ai[mcp]>=1.13.0,<2; python_version>='3.11'",
+]
+
 # All backends and embedding support
 all = [
     "chromadb>=1.1.0",
     "google-adk",
     "litellm>=1.104.0",
+    "pipecat-ai[mcp]>=1.13.0,<2; python_version>='3.11'",
     "strands-agents>=1.57.0",
     "strands-agents[openai]>=1.57.0",
     "strands-agents[ollama]>=1.57.0",

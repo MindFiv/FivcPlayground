@@ -18,19 +18,6 @@ from rich.text import Text
 
 from fivcplayground.agents import create_agent_async
 from fivcplayground.agents.types.repositories import FileAgentConfigRepository
-from fivcplayground.backends.chroma import (
-    ChromaEmbeddingBackend,
-)
-from fivcplayground.backends.strands import (
-    StrandsAgentBackend,
-    StrandsModelBackend,
-    StrandsToolBackend,
-)
-from fivcplayground.backends.adk import (
-    AdkModelBackend,
-    AdkToolBackend,
-    AdkAgentBackend,
-)
 from fivcplayground.embeddings.types.repositories import FileEmbeddingConfigRepository
 from fivcplayground.models.types.base import ModelBackend
 from fivcplayground.models.types.repositories import FileModelConfigRepository
@@ -59,11 +46,37 @@ def _get_backends(
     Returns: (ModelBackend, ToolBackend, AgentBackend)
     """
     if backend == "adk":
+        from fivcplayground.backends.adk import (
+            AdkAgentBackend,
+            AdkModelBackend,
+            AdkToolBackend,
+        )
+
         return AdkModelBackend(), AdkToolBackend(), AdkAgentBackend()
+    elif backend == "pipecat":
+        from fivcplayground.backends.pipecat.agents import PipecatAgentBackend
+        from fivcplayground.backends.pipecat.models import PipecatModelBackend
+        from fivcplayground.backends.pipecat.tools import PipecatToolBackend
+
+        try:
+            return PipecatModelBackend(), PipecatToolBackend(), PipecatAgentBackend()
+        except ImportError as e:
+            raise ValueError(
+                "Pipecat backend requires Python 3.11+ and "
+                "the optional 'pipecat' dependency group"
+            ) from e
     elif backend == "strands":
+        from fivcplayground.backends.strands import (
+            StrandsAgentBackend,
+            StrandsModelBackend,
+            StrandsToolBackend,
+        )
+
         return StrandsModelBackend(), StrandsToolBackend(), StrandsAgentBackend()
     else:
-        raise ValueError(f"Unknown backend: {backend}. Use 'strands' or 'adk'.")
+        raise ValueError(
+            f"Unknown backend: {backend}. Use 'strands', 'adk', or 'pipecat'."
+        )
 
 
 @app.command()
@@ -85,7 +98,10 @@ def run(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
     backend: str = typer.Option(
-        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+        "strands",
+        "--backend",
+        "-b",
+        help="Backend to use: 'strands', 'adk', or 'pipecat'",
     ),
 ):
     """
@@ -103,6 +119,8 @@ async def _run_async(
     backend: str = "strands",
 ):
     """Async implementation of the run command"""
+    from fivcplayground.backends.chroma import ChromaEmbeddingBackend
+
     try:
         model_backend, tool_backend, agent_backend = _get_backends(backend)
     except ValueError as e:
@@ -163,10 +181,20 @@ async def _run_async(
         return
 
     try:
-        agent_result = await agent_runnable.run_async(
-            query=query,
-            tool_retriever=tool_retriever,
-        )
+        if backend == "pipecat":
+            from io import StringIO
+
+            from fivcplayground.backends.pipecat.transports import StdioTransport
+
+            agent_result = await agent_runnable.run_async(
+                transport=StdioTransport(input_stream=StringIO(query + "\n")),
+                tool_retriever=tool_retriever,
+            )
+        else:
+            agent_result = await agent_runnable.run_async(
+                query=query,
+                tool_retriever=tool_retriever,
+            )
         print(agent_result.model_dump_json())
         console.print("[green]✅ Agent completed successfully![/green]")
     except Exception as e:
@@ -229,7 +257,10 @@ def setup(
         help="Overwrite existing configuration files without prompting",
     ),
     backend: str = typer.Option(
-        "strands", "--backend", "-b", help="Backend to use: 'strands' or 'adk'"
+        "strands",
+        "--backend",
+        "-b",
+        help="Backend to use: 'strands', 'adk', or 'pipecat'",
     ),
 ):
     """
@@ -332,6 +363,8 @@ def setup(
         console.print("4. Configure embeddings (embeddings.yaml)")
         console.print("5. Configure tools (tools.yaml)")
         console.print("\n[green]✅ Setup completed successfully![/green]")
+
+        from fivcplayground.backends.chroma import ChromaEmbeddingBackend
 
         try:
             _, tool_backend, _ = _get_backends(backend)

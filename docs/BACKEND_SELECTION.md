@@ -1,130 +1,84 @@
 # Backend Selection Guide
 
-FivcPlayground supports two agent frameworks: **Strands** (default) and **LangChain** (alternative). This guide explains how to choose and switch between them.
+FivcPlayground has explicit model, tool, and agent backend implementations. **Strands** is the default CLI backend; **Google ADK** is an alternative text backend; **Pipecat** is an optional backend for transport-backed real-time pipelines (and CLI text via stdio).
 
-## 🎯 Quick Comparison
+## Backend Matrix
 
-| Feature | Strands | LangChain |
-|---------|---------|-----------|
-| **Status** | Default | Alternative |
-| **Framework** | strands-agents | langchain-core |
-| **Agent Orchestration** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Ecosystem** | Focused | Broad |
-| **Tool Integration** | Native | Via adapters |
-| **Performance** | Optimized | General-purpose |
-| **Learning Curve** | Moderate | Moderate |
+| Backend | Extra | Python | Best for |
+|---------|-------|--------|----------|
+| Strands | `strands` | 3.10+ | Default text agents and native tool orchestration |
+| Google ADK | `adk` | 3.10+ | Alternative text agents in Google's ADK runtime |
+| Pipecat | `pipecat` | 3.11+ | Transport-backed voice/realtime pipelines; CLI text via stdio |
 
-## 🚀 Switching Backends
-
-Backend selection is done explicitly when creating backend instances. Both backends are available and can be used simultaneously in different parts of your application.
-
-### Using Strands Backend (Default)
-
-```python
-from fivcplayground.backends.strands import (
-    StrandsAgentBackend,
-    StrandsModelBackend,
-    StrandsToolBackend,
-)
-
-agent_backend = StrandsAgentBackend()
-model_backend = StrandsModelBackend()
-tool_backend = StrandsToolBackend()
-```
-
-### Using LangChain Backend
-
-```python
-from fivcplayground.backends.langchain import (
-    LangchainAgentBackend,
-    LangchainModelBackend,
-    LangchainToolBackend,
-)
-
-agent_backend = LangchainAgentBackend()
-model_backend = LangchainModelBackend()
-tool_backend = LangchainToolBackend()
-```
-
-### Verify Dependencies
-
-Both backends are installed by default. Verify with:
+## Select A Backend
 
 ```bash
-# Check Strands
-python -c "import strands; print('Strands OK')"
-
-# Check LangChain
-python -c "import langchain_core; print('LangChain OK')"
+uv sync --extra pipecat
+fivcplayground run Generic --backend pipecat --query "What is machine learning?"
 ```
 
-## 📋 When to Use Each Backend
-
-### Use **Strands** if:
-- You want the default, tested configuration
-- You need optimized agent orchestration
-- You're building multi-agent systems
-- You want the best performance for agents
-
-### Use **LangChain** if:
-- You need broader ecosystem integration
-- You want to use LangChain-specific tools
-- You're integrating with LangChain projects
-- You need specific LangChain features
-
-## 🔧 Implementation Details
-
-### Backend Architecture
-
-Each backend is implemented as a separate module with consistent interfaces:
-
-- **Agents**: `src/fivcplayground/backends/langchain/agents.py` and `src/fivcplayground/backends/strands/agents.py`
-- **Models**: `src/fivcplayground/backends/langchain/models.py` and `src/fivcplayground/backends/strands/models.py`
-- **Tools**: `src/fivcplayground/backends/langchain/tools.py` and `src/fivcplayground/backends/strands/tools.py`
-
-### Using Multiple Backends
-
-You can use different backends for different components in the same application:
+CLI `--query` seeds a `StdioTransport` with a `StringIO` (one line, then EOF). Programmatically, omit `transport` to use real stdin/stdout, or pass a live transport (WebSocket, etc.):
 
 ```python
-from fivcplayground.backends.strands import StrandsAgentBackend
-from fivcplayground.backends.langchain import LangchainModelBackend
+from fivcplayground.backends.pipecat.agents import PipecatAgentBackend
+from fivcplayground.backends.pipecat.models import PipecatModelBackend
+from fivcplayground.backends.pipecat.tools import PipecatToolBackend
+from fivcplayground.backends.pipecat.transports import StdioTransport
+from pipecat.serializers.protobuf import ProtobufFrameSerializer
+from pipecat.transports.websocket.fastapi import (
+    FastAPIWebsocketParams,
+    FastAPIWebsocketTransport,
+)
 
-# Use Strands for agents
-agent_backend = StrandsAgentBackend()
+model_backend = PipecatModelBackend()
+tool_backend = PipecatToolBackend()
+agent_backend = PipecatAgentBackend()
 
-# Use LangChain for models
-model_backend = LangchainModelBackend()
+# Text session (stdin/stdout); stt/tts are ignored when transport is None/StdioTransport defaulting
+await agent.run_async()  # transport=None → StdioTransport()
+
+# Or seed one query like the CLI:
+from io import StringIO
+await agent.run_async(transport=StdioTransport(input_stream=StringIO("Hello\n")))
+
+# Voice / websocket session:
+transport = FastAPIWebsocketTransport(
+    websocket=websocket,
+    params=FastAPIWebsocketParams(
+        audio_in_enabled=True,
+        audio_out_enabled=True,
+        add_wav_header=False,
+        serializer=ProtobufFrameSerializer(),
+    ),
+)
+await agent.run_async(transport=transport, stt=stt, tts=tts)
 ```
 
-## ⚠️ Important Notes
+## Pipecat Runtime Settings
 
-1. **Both backends are always installed** - No additional installation needed
-2. **Explicit selection** - Backend is selected when creating backend instances
-3. **No restart required** - You can switch backends by creating new instances
-4. **Data compatibility** - Agent runs and configurations are compatible across backends
-5. **No data loss** - Using different backends doesn't affect stored data
-6. **Flexible architecture** - Different components can use different backends simultaneously
+Serializable backend settings live under `extra`. Canonical fields remain first-class; `extra` is interpreted by the selected backend and is not logged by default.
 
-## 🐛 Troubleshooting
-
-### Import errors
-- Run `uv sync` to ensure all dependencies are installed
-- Check Python version (3.10+)
-- Verify no conflicting installations
-- Ensure you're importing from the correct backend module
-
-### Backend not available
-- Verify the backend module exists: `from fivcplayground.backends.{backend_name} import ...`
-- Check that all dependencies are installed for the backend you're using
-
-### Performance issues
-- Strands backend is optimized for agents
-- LangChain backend is general-purpose
-- Consider using Strands for agent-heavy workloads
-
+```yaml
+# models.yaml
+pipecat-chat:
+  provider: openai
+  model: gpt-4o-mini
+  api_key: ${OPENAI_API_KEY}
+  extra:
+    organization: org_...
+    default_headers:
+      X-Environment: dev
 ---
+# agents.yaml
+voice-agent:
+  model_id: pipecat-chat
+  extra:
+    pipeline_params:
+      enable_metrics: true
+      enable_usage_metrics: true
+    idle_timeout_secs: 120
+```
 
-**Last Updated**: 2025-11-25
-**Version**: 0.1.0
+When `transport` is `None`, a text `StdioTransport` is used and `stt` / `tts` are ignored. For non-stdio transports, optional `stt` / `tts` processors are injected into the pipeline. Transports, STT, and TTS are non-serializable runtime objects and never belong in `extra`.
 
+Turn transcripts are persisted via aggregator event handlers (`on_user_turn_stopped`, `on_assistant_turn_stopped`) into `AgentRun` records when a session repository is supplied. Tool calls are not recorded on `AgentRun`.
