@@ -1,7 +1,7 @@
 """Transport lifecycle and run-session tests for the Pipecat agent adapter."""
 
 from io import StringIO
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, create_autospec, patch
 
 import pytest
 from fivcplayground.agents import (
@@ -20,6 +20,8 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMAssistantAggregator,
     LLMUserAggregator,
 )
+from pipecat.services.stt_service import STTService
+from pipecat.services.tts_service import TTSService
 
 
 def _passthrough_event_handler(name):
@@ -72,7 +74,8 @@ class TestPipecatAgentRunnable:
     @pytest.mark.asyncio
     async def test_none_transport_uses_stdio_and_ignores_stt_tts(self):
         agent = self.make_agent()
-        stt, tts = Mock(name="stt"), Mock(name="tts")
+        stt = create_autospec(STTService, instance=True)
+        tts = create_autospec(TTSService, instance=True)
 
         with (
             patch(
@@ -103,7 +106,8 @@ class TestPipecatAgentRunnable:
     async def test_runs_transport_pipeline_until_runner_completes(self):
         agent = self.make_agent()
         transport = _mock_transport()
-        stt, tts = Mock(), Mock()
+        stt = create_autospec(STTService, instance=True)
+        tts = create_autospec(TTSService, instance=True)
 
         with (
             patch(

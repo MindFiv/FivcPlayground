@@ -33,8 +33,9 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
     LLMUserAggregatorParams,
 )
-from pipecat.processors.frame_processor import FrameProcessor
 from pipecat.services.llm_service import FunctionCallParams
+from pipecat.services.stt_service import STTService
+from pipecat.services.tts_service import TTSService
 from pipecat.transports.base_transport import BaseTransport
 from pipecat.turns.user_start import TranscriptionUserTurnStartStrategy
 from pipecat.turns.user_stop import ExternalUserTurnStopStrategy
@@ -134,8 +135,8 @@ class PipecatAgentRunnable(AgentRunnable):
     async def run_async(
         self,
         transport: BaseTransport | None = None,
-        stt: FrameProcessor | None = None,
-        tts: FrameProcessor | None = None,
+        stt: STTService | None = None,
+        tts: TTSService | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
         agent_run_id: str | None = None,

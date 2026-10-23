@@ -51,6 +51,8 @@ transport = FastAPIWebsocketTransport(
         serializer=ProtobufFrameSerializer(),
     ),
 )
+# Pass concrete STTService / TTSService subclasses (e.g. Deepgram, Cartesia),
+# not bare FrameProcessors.
 await agent.run_async(transport=transport, stt=stt, tts=tts)
 ```
 
@@ -79,6 +81,6 @@ voice-agent:
     idle_timeout_secs: 120
 ```
 
-When `transport` is `None`, a text `StdioTransport` is used and `stt` / `tts` are ignored. For non-stdio transports, optional `stt` / `tts` processors are injected into the pipeline. Transports, STT, and TTS are non-serializable runtime objects and never belong in `extra`.
+When `transport` is `None`, a text `StdioTransport` is used and `stt` / `tts` are ignored. For non-stdio transports, optional `STTService` / `TTSService` instances are injected into the pipeline. Transports, STT, and TTS are non-serializable runtime objects and never belong in `extra`.
 
 Turn transcripts are persisted via aggregator event handlers (`on_user_turn_stopped`, `on_assistant_turn_stopped`) into `AgentRun` records when a session repository is supplied. Tool calls are not recorded on `AgentRun`.
