@@ -4,11 +4,12 @@ FivcPlayground has explicit model, tool, and agent backend implementations. **St
 
 ## Backend Matrix
 
-| Backend | Extra | Python | Best for |
-|---------|-------|--------|----------|
-| Strands | `strands` | 3.10+ | Default text agents and native tool orchestration |
-| Google ADK | `adk` | 3.10+ | Alternative text agents in Google's ADK runtime |
-| Pipecat | `pipecat` | 3.11+ | Transport-backed voice/realtime pipelines; CLI text via stdio |
+| Backend | Extra | Best for |
+|---------|-------|----------|
+| Strands | `strands` | Default text agents and native tool orchestration |
+| Google ADK | `adk` | Alternative text agents in Google's ADK runtime |
+| Pipecat | `pipecat` | Transport-backed voice/realtime pipelines; CLI text via stdio |
+| DashScope | `dashscope` | Qwen Audio STT/TTS (`SpeechRecognizer` / `SpeechSynthesizer`) |
 
 ## Select A Backend
 
@@ -17,18 +18,15 @@ uv sync --extra pipecat
 fivcplayground run Generic --backend pipecat --query "What is machine learning?"
 ```
 
-CLI `--query` seeds a `StdioTransport` with a `StringIO` (one line, then EOF). Programmatically, omit `transport` to use real stdin/stdout, or pass a live transport (WebSocket, etc.):
+CLI `--query` seeds a `StdioTransport` with a `StringIO` (one line, then EOF). Programmatically, omit `transport` to use real stdin/stdout, or pass a live transport (local mic/speakers, WebSocket, etc.):
 
 ```python
 from fivcplayground.backends.pipecat.agents import PipecatAgentBackend
 from fivcplayground.backends.pipecat.models import PipecatModelBackend
 from fivcplayground.backends.pipecat.tools import PipecatToolBackend
 from fivcplayground.backends.pipecat.transports import StdioTransport
-from pipecat.serializers.protobuf import ProtobufFrameSerializer
-from pipecat.transports.websocket.fastapi import (
-    FastAPIWebsocketParams,
-    FastAPIWebsocketTransport,
-)
+from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
 
 model_backend = PipecatModelBackend()
 tool_backend = PipecatToolBackend()
@@ -41,20 +39,39 @@ await agent.run_async()  # transport=None → StdioTransport()
 from io import StringIO
 await agent.run_async(transport=StdioTransport(input_stream=StringIO("Hello\n")))
 
-# Voice / websocket session:
-transport = FastAPIWebsocketTransport(
-    websocket=websocket,
-    params=FastAPIWebsocketParams(
-        audio_in_enabled=True,
-        audio_out_enabled=True,
-        add_wav_header=False,
-        serializer=ProtobufFrameSerializer(),
-    ),
+# Local mic/speaker full-duplex voice (see examples/pipecat_qwen_voice/):
+transport = LocalAudioTransport(
+    LocalAudioTransportParams(audio_in_enabled=True, audio_out_enabled=True)
 )
-# Pass concrete STTService / TTSService subclasses (e.g. Deepgram, Cartesia),
-# not bare FrameProcessors.
-await agent.run_async(transport=transport, stt=stt, tts=tts)
+# Pass SpeechRecognizer / SpeechSynthesizer from backends.dashscope
+# (e.g. DashScopeSpeechRecognizer / DashScopeSpeechSynthesizer),
+# plus vad for segmented STT. Pipecat STT/TTS adapters wrap them internally.
+await agent.run_async(
+    transport=transport,
+    stt=stt,
+    tts=tts,
+    vad=SileroVADAnalyzer(),
+)
 ```
+
+### Qwen local voice example
+
+End-to-end local microphone/speaker demo with Alibaba Cloud Qwen Audio:
+
+- Example: [`examples/pipecat_qwen_voice/`](../examples/pipecat_qwen_voice/) (`run_local.py` + README)
+- STT/TTS: `backends.dashscope` (`DashScopeSpeechRecognizer` / `DashScopeSpeechSynthesizer`); Pipecat only adapts them into the pipeline
+- Models: `qwen-audio-3.1-asr-flash-streaming` / `qwen-audio-3.1-tts-flash` (voice `longanhuan_v3.1`)
+- Requires `DASHSCOPE_API_KEY`, PortAudio (`brew install portaudio` on macOS), and `uv sync --extra pipecat --extra dashscope`
+
+```bash
+uv run python examples/pipecat_qwen_voice/run_local.py
+
+# Opt-in live e2e (speak one turn into the mic):
+DASHSCOPE_API_KEY=... PIPECAT_LOCAL_AUDIO_E2E=1 \
+  uv run pytest -m e2e tests/backends/test_pipecat_qwen_voice_local_e2e.py -v
+```
+
+Default pytest runs exclude `e2e` (`-m "not e2e"`).
 
 ## Pipecat Runtime Settings
 
@@ -81,6 +98,6 @@ voice-agent:
     idle_timeout_secs: 120
 ```
 
-When `transport` is `None`, a text `StdioTransport` is used and `stt` / `tts` are ignored. For non-stdio transports, optional `STTService` / `TTSService` instances are injected into the pipeline. Transports, STT, and TTS are non-serializable runtime objects and never belong in `extra`.
+When `transport` is `None`, a text `StdioTransport` is used and `stt` / `tts` are ignored. For non-stdio transports, optional `SpeechRecognizer` / `SpeechSynthesizer` instances are wrapped as Pipecat `STTService` / `TTSService` and injected into the pipeline. Transports and speech objects are non-serializable runtime objects and never belong in `extra`.
 
 Turn transcripts are persisted via aggregator event handlers (`on_user_turn_stopped`, `on_assistant_turn_stopped`) into `AgentRun` records when a session repository is supplied. Tool calls are not recorded on `AgentRun`.

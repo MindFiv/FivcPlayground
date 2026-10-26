@@ -322,7 +322,7 @@ Include:
 ## Version Info
 
 - **FivcPlayground**: 0.1.0
-- **Python**: 3.10+
+- **Python**: 3.11+
 - **nest-asyncio**: 1.6.0+
 - **langchain-mcp-adapters**: 0.1.11+
 

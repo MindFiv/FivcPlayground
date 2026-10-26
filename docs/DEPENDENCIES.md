@@ -30,8 +30,11 @@ uv sync --extra strands
 # With Google ADK agent backend
 uv sync --extra adk
 
-# With Pipecat backend (Python 3.11+)
+# With Pipecat backend
 uv sync --extra pipecat
+
+# With DashScope speech backend
+uv sync --extra dashscope
 
 # With everything (all backends + embeddings)
 uv sync --extra all
@@ -70,8 +73,11 @@ pip install -e ".[strands]"
 # With Google ADK agent backend
 pip install -e ".[adk]"
 
-# With Pipecat backend (Python 3.11+)
+# With Pipecat backend
 pip install -e ".[pipecat]"
+
+# With DashScope speech backend
+pip install -e ".[dashscope]"
 
 # With everything (all backends + embeddings)
 pip install -e ".[all]"
@@ -79,8 +85,8 @@ pip install -e ".[all]"
 # With development dependencies
 pip install -e ".[dev]"
 
-# Combined installation (e.g., Pipecat + ChromaDB + dev)
-pip install -e ".[pipecat,chroma,dev]"
+# Combined installation (e.g., Pipecat + DashScope + ChromaDB + dev)
+pip install -e ".[pipecat,dashscope,chroma,dev]"
 ```
 
 ## 📦 Dependency Categories
@@ -104,9 +110,16 @@ pip install -e ".[pipecat,chroma,dev]"
 | langchain-text-splitters | >=0.3.11 | Text chunking for embeddings |
 
 ### Pipecat Agent Backend (`[pipecat]`)
-| Package | Version | Python | Purpose |
-|---------|---------|--------|---------|
-| pipecat-ai[mcp] | >=1.13.0,<2 | >=3.11 | Pipeline worker, services, and MCP integration |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| pipecat-ai[mcp,local,silero] | >=1.13.0,<2 | Pipeline worker, MCP, local mic/speaker (PyAudio), Silero VAD |
+
+Local audio also needs the system PortAudio library (macOS: `brew install portaudio`).
+
+### DashScope Speech Backend (`[dashscope]`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| dashscope | >=1.24.0 | Alibaba Cloud DashScope SDK for `backends.dashscope` Qwen Audio STT/TTS |
 
 ### Strands Agent Backend (`[strands]`)
 | Package | Version | Purpose |
@@ -121,7 +134,7 @@ pip install -e ".[pipecat,chroma,dev]"
 ### Convenience Groups
 | Group | Contents | Purpose |
 |-------|----------|---------|
-| `[all]` | ChromaDB, Google ADK, Pipecat, Strands, all model providers | Complete installation with everything |
+| `[all]` | ChromaDB, Google ADK, Pipecat, DashScope, Strands, all model providers | Complete installation with everything |
 | `[dev]` | Testing and development tools | Development and testing |
 
 ### Development Dependencies (`[dev]`)
@@ -155,6 +168,12 @@ FivcPlayground supports multiple agent frameworks and embedding backends. Instal
 - Uses `pipecat-ai` pipeline workers and services
 - Supports text runs and transport-backed real-time pipelines
 - Install with: `pip install ".[pipecat]"`
+
+#### DashScope Speech Backend
+- Uses the DashScope SDK for Qwen Audio STT/TTS
+- Implements `SpeechRecognizer` / `SpeechSynthesizer` in `backends.dashscope`
+- Install with: `pip install ".[dashscope]"`
+- For local Qwen voice demos, also install `[pipecat]`
 
 ### Embedding Backends
 
@@ -228,7 +247,7 @@ pip install -e ".[all,dev]"
 ## 🔍 Troubleshooting
 
 ### Common Issues
-1. **Python version**: FivcPlayground requires Python 3.10+
+1. **Python version**: FivcPlayground requires Python 3.11+
 2. **UV installation**: Install uv from https://astral.sh/uv/
 3. **Virtual environment**: UV automatically manages virtual environments
 
@@ -284,7 +303,7 @@ FivcPlayground is built on the Strands framework:
 - `strands-agents-tools>=0.2.8`: Built-in tools and MCP integration
 
 ### Python Version
-- Minimum: Python 3.10
+- Minimum: Python 3.11
 - Recommended: Python 3.11 or 3.12
 - Uses modern Python features (type hints, async/await, pattern matching)
 

@@ -28,19 +28,29 @@ class PipecatModelBackend(ModelBackend):
             }
 
         if model_config.provider == "openai":
-            return PipecatModel(
-                OpenAILLMService(
-                    api_key=model_config.api_key,
-                    base_url=model_config.base_url,
-                    settings=OpenAILLMService.Settings(
-                        model=model_config.model,
-                        temperature=model_config.temperature,
-                        max_completion_tokens=model_config.max_tokens,
-                        extra=extra_settings,
-                    ),
-                    **(model_config.extra or {}),
-                )
+            # Custom OpenAI-compatible gateways (e.g. DashScope) reject the
+            # "developer" role that Pipecat uses for system_instruction by default.
+            # Pipecat 1.13 keeps this as a class attribute; constructor kwargs are
+            # ignored, so assign on the instance after construction.
+            openai_kwargs: dict[str, Any] = dict(model_config.extra or {})
+            supports_developer_role = openai_kwargs.pop(
+                "supports_developer_role",
+                False if model_config.base_url else None,
             )
+            service = OpenAILLMService(
+                api_key=model_config.api_key,
+                base_url=model_config.base_url,
+                settings=OpenAILLMService.Settings(
+                    model=model_config.model,
+                    temperature=model_config.temperature,
+                    max_completion_tokens=model_config.max_tokens,
+                    extra=extra_settings,
+                ),
+                **openai_kwargs,
+            )
+            if supports_developer_role is not None:
+                service.supports_developer_role = supports_developer_role
+            return PipecatModel(service)
 
         if model_config.provider == "ollama":
             return PipecatModel(

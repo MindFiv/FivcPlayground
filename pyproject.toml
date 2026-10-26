@@ -7,7 +7,7 @@ name = "fivcplayground"
 dynamic = ["version"]
 description = "Personal Simple Generic Agents"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     { name = "Charlie ZHANG", email = "sunnypig2002@gmail.com" }
@@ -48,8 +48,14 @@ adk = [
 ]
 
 # Pipecat real-time voice and pipeline backend
+# local requires PortAudio (macOS: brew install portaudio) for PyAudio
 pipecat = [
-    "pipecat-ai[mcp]>=1.13.0,<2; python_version>='3.11'",
+    "pipecat-ai[mcp,local,silero]>=1.13.0,<2",
+]
+
+# DashScope speech (STT/TTS) backend
+dashscope = [
+    "dashscope>=1.24.0",
 ]
 
 # All backends and embedding support
@@ -57,7 +63,8 @@ all = [
     "chromadb>=1.1.0",
     "google-adk",
     "litellm>=1.104.0",
-    "pipecat-ai[mcp]>=1.13.0,<2; python_version>='3.11'",
+    "pipecat-ai[mcp,local,silero]>=1.13.0,<2",
+    "dashscope>=1.24.0",
     "strands-agents>=1.57.0",
     "strands-agents[openai]>=1.57.0",
     "strands-agents[ollama]>=1.57.0",
@@ -112,10 +119,13 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
+    "-m",
+    "not e2e",
 #    "-p", "no:warnings", # Disable warnings plugin
 ]
 
 # Markers for test categorization
 markers = [
     "asyncio: marks tests as async (deselect with '-m \"not asyncio\"')",
+    "e2e: live end-to-end tests (deselected by default; run with '-m e2e')",
 ]

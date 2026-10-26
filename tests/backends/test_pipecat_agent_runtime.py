@@ -1,7 +1,7 @@
 """Transport lifecycle and run-session tests for the Pipecat agent adapter."""
 
 from io import StringIO
-from unittest.mock import AsyncMock, Mock, create_autospec, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fivcplayground.agents import (
@@ -12,16 +12,22 @@ from fivcplayground.agents import (
 )
 from fivcplayground.backends.pipecat.agents import (
     PipecatAgentRunnable,
+    STTService,
+    TTSService,
     _PipecatRunSession,
 )
 from fivcplayground.backends.pipecat.transports import StdioTransport
+from fivcplayground.speeches import (
+    SpeechRecognizeOption,
+    SpeechRecognizer,
+    SpeechSynthesisOption,
+    SpeechSynthesizer,
+)
 from pipecat.pipeline.worker import PipelineParams
 from pipecat.processors.aggregators.llm_response_universal import (
     LLMAssistantAggregator,
     LLMUserAggregator,
 )
-from pipecat.services.stt_service import STTService
-from pipecat.services.tts_service import TTSService
 
 
 def _passthrough_event_handler(name):
@@ -51,6 +57,46 @@ def _mock_llm():
     return llm
 
 
+class _StubRecognizer(SpeechRecognizer):
+    @property
+    def id(self) -> str:
+        return "stub-recognizer"
+
+    def get_option(self) -> SpeechRecognizeOption:
+        return SpeechRecognizeOption(format="wav", sample_rate=16000)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        return None
+
+    async def stream_async(self, audio):
+        if False:
+            yield  # pragma: no cover
+
+
+class _StubSynthesizer(SpeechSynthesizer):
+    @property
+    def id(self) -> str:
+        return "stub-synthesizer"
+
+    def get_option(self) -> SpeechSynthesisOption:
+        return SpeechSynthesisOption(
+            voice="stub-voice", format="pcm", sample_rate=24000
+        )
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        return None
+
+    async def stream_async(self, text):
+        if False:
+            yield  # pragma: no cover
+
+
 class TestPipecatAgentRunnable:
     def make_agent(self):
         return PipecatAgentRunnable(
@@ -74,8 +120,8 @@ class TestPipecatAgentRunnable:
     @pytest.mark.asyncio
     async def test_none_transport_uses_stdio_and_ignores_stt_tts(self):
         agent = self.make_agent()
-        stt = create_autospec(STTService, instance=True)
-        tts = create_autospec(TTSService, instance=True)
+        stt = _StubRecognizer()
+        tts = _StubSynthesizer()
 
         with (
             patch(
@@ -94,8 +140,8 @@ class TestPipecatAgentRunnable:
 
         assert isinstance(result, AgentRunContent)
         processors = worker_cls.call_args.args[0].processors[1:-1]
-        assert stt not in processors
-        assert tts not in processors
+        assert not any(isinstance(p, STTService) for p in processors)
+        assert not any(isinstance(p, TTSService) for p in processors)
         assert type(processors[0]).__name__ == "_StdioInputProcessor"
         assert isinstance(processors[1], LLMUserAggregator)
         assert processors[2] is agent._agent_model
@@ -106,8 +152,8 @@ class TestPipecatAgentRunnable:
     async def test_runs_transport_pipeline_until_runner_completes(self):
         agent = self.make_agent()
         transport = _mock_transport()
-        stt = create_autospec(STTService, instance=True)
-        tts = create_autospec(TTSService, instance=True)
+        stt = _StubRecognizer()
+        tts = _StubSynthesizer()
 
         with (
             patch(
@@ -134,12 +180,46 @@ class TestPipecatAgentRunnable:
         assert worker_kwargs["idle_timeout_secs"] == 120
         processors = worker_args[0].processors[1:-1]
         assert processors[0] is transport.input.return_value
-        assert processors[1] is stt
+        assert isinstance(processors[1], STTService)
+        assert processors[1].recognizer is stt
         assert isinstance(processors[2], LLMUserAggregator)
         assert processors[3] is agent._agent_model
-        assert processors[4] is tts
+        assert isinstance(processors[4], TTSService)
+        assert processors[4].synthesizer is tts
         assert processors[5] is transport.output.return_value
         assert isinstance(processors[6], LLMAssistantAggregator)
+
+    @pytest.mark.asyncio
+    async def test_non_stdio_passes_vad_to_user_aggregator(self):
+        agent = self.make_agent()
+        transport = _mock_transport()
+        vad = Mock(name="vad")
+
+        with (
+            patch(
+                "fivcplayground.backends.pipecat.agents.PipelineWorker"
+            ) as worker_cls,
+            patch("fivcplayground.backends.pipecat.agents.WorkerRunner") as runner_cls,
+            patch(
+                "fivcplayground.backends.pipecat.agents.LLMContextAggregatorPair"
+            ) as pair_cls,
+        ):
+            runner = runner_cls.return_value
+            runner.add_workers = AsyncMock()
+            runner.run = AsyncMock()
+            runner.cancel = AsyncMock()
+            user_agg = Mock(name="user-agg")
+            user_agg.event_handler = _passthrough_event_handler
+            assistant_agg = Mock(name="assistant-agg")
+            assistant_agg.event_handler = _passthrough_event_handler
+            pair_cls.return_value = (user_agg, assistant_agg)
+
+            await agent.run_async(transport=transport, vad=vad)
+
+        pair_cls.assert_called_once()
+        kwargs = pair_cls.call_args.kwargs
+        assert kwargs["user_params"].vad_analyzer is vad
+        worker_cls.assert_called_once()
 
 
 class TestPipecatRunSession:

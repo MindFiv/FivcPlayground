@@ -15,7 +15,7 @@ FivcPlayground provides a flexible multi-agent system that can:
 ## 🚀 Quickstart
 
 ### Prerequisites
-- Python 3.10 or higher
+- Python 3.11 or higher
 - API keys for LLM providers (OpenAI, Ollama, etc.)
 
 ### Installation

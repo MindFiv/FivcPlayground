@@ -46,6 +46,33 @@ class TestPipecatModelBackend:
         assert kwargs["base_url"] == "https://example.test/v1"
         assert kwargs["organization"] == "org-1"
         assert kwargs["default_headers"] == {"X-Environment": "dev"}
+        # Constructor kwargs are ignored by Pipecat 1.13; set on the instance.
+        assert "supports_developer_role" not in kwargs
+        assert service.return_value.supports_developer_role is False
+
+    def test_openai_default_base_url_keeps_developer_role(self):
+        from fivcplayground.backends.pipecat.models import PipecatModelBackend
+
+        model_config = ModelConfig(
+            id="openai-default",
+            provider="openai",
+            model="gpt-4o-mini",
+            api_key="key",
+        )
+
+        from pipecat.services.openai.llm import OpenAILLMService
+
+        with patch(
+            "fivcplayground.backends.pipecat.models.OpenAILLMService"
+        ) as service:
+            service.Settings = OpenAILLMService.Settings
+            # Mimic class default so we can detect whether create_model mutates it.
+            service.return_value.supports_developer_role = True
+            PipecatModelBackend().create_model(model_config)
+
+        kwargs = service.call_args.kwargs
+        assert "supports_developer_role" not in kwargs
+        assert service.return_value.supports_developer_role is True
 
     def test_ollama_canonical_and_extra_constructor_arguments(self):
         from fivcplayground.backends.pipecat.models import PipecatModelBackend

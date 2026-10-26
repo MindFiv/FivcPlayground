@@ -21,11 +21,23 @@ from fivcplayground.agents import (
     AgentRunToolSpan,
     AgentRunSkillSpan,
 )
+from fivcplayground.backends.pipecat.metrics import LatencyProbe, VoiceLatencyTracker
 from fivcplayground.backends.pipecat.transports import StdioTransport
 from fivcplayground.models import ModelBackend, ModelConfigRepository
 from fivcplayground.skills import SkillRetriever
+from fivcplayground.speeches import SpeechRecognizer, SpeechSynthesizer
 from fivcplayground.tools import ToolRetriever
 from pipecat.adapters.schemas.function_schema import FunctionSchema
+from pipecat.audio.vad.vad_analyzer import VADAnalyzer
+from pipecat.frames.frames import (
+    ErrorFrame,
+    InputAudioRawFrame,
+    TranscriptionFrame,
+    TTSAudioRawFrame,
+    UserAudioRawFrame,
+    VADUserStartedSpeakingFrame,
+    VADUserStoppedSpeakingFrame,
+)
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.worker import PipelineParams, PipelineWorker
 from pipecat.processors.aggregators.llm_context import LLMContext
@@ -33,14 +45,267 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
     LLMUserAggregatorParams,
 )
+from pipecat.processors.frame_processor import FrameDirection
 from pipecat.services.llm_service import FunctionCallParams
-from pipecat.services.stt_service import STTService
-from pipecat.services.tts_service import TTSService
+from pipecat.services.settings import STTSettings, TTSSettings
+from pipecat.services.stt_service import SegmentedSTTService
+from pipecat.services.tts_service import (
+    TTSService as PipecatTTSService,
+    TextAggregationMode,
+)
 from pipecat.transports.base_transport import BaseTransport
 from pipecat.turns.user_start import TranscriptionUserTurnStartStrategy
 from pipecat.turns.user_stop import ExternalUserTurnStopStrategy
 from pipecat.turns.user_turn_strategies import UserTurnStrategies
+from pipecat.utils.time import time_now_iso8601
+from pipecat.utils.tracing.service_decorators import traced_stt, traced_tts
 from pipecat.workers.runner import WorkerRunner
+
+DEFAULT_STT_TTFS_P99_LATENCY = 1.0
+DEFAULT_STT_TRAILING_SILENCE_SECS = 0.1
+
+
+class STTService(SegmentedSTTService):
+    """Wrap a ``SpeechRecognizer`` for use in a Pipecat pipeline.
+
+    When the recognizer exposes ``begin_utterance`` / ``push_audio`` /
+    ``end_utterance``, audio is streamed to ASR while the user is speaking so
+    the websocket handshake overlaps with speech instead of starting after VAD
+    stop.
+    """
+
+    def __init__(self, recognizer: SpeechRecognizer, **kwargs) -> None:
+        option = recognizer.get_option()
+        self._live = kwargs.pop(
+            "live",
+            all(
+                callable(getattr(recognizer, name, None))
+                for name in ("begin_utterance", "push_audio", "end_utterance")
+            ),
+        )
+        self._latency_tracker: VoiceLatencyTracker | None = kwargs.pop(
+            "latency_tracker", None
+        )
+        super().__init__(
+            sample_rate=kwargs.pop("sample_rate", option.sample_rate),
+            trailing_silence_secs=kwargs.pop(
+                "trailing_silence_secs", DEFAULT_STT_TRAILING_SILENCE_SECS
+            ),
+            ttfs_p99_latency=kwargs.pop(
+                "ttfs_p99_latency", DEFAULT_STT_TTFS_P99_LATENCY
+            ),
+            settings=STTSettings(
+                model=kwargs.pop("model", recognizer.id),
+                language=option.language,
+            ),
+            **kwargs,
+        )
+        self._recognizer = recognizer
+        self._recognizer_entered = False
+        self._live_utterance = False
+
+    def _mark_stt_first_audio(self) -> None:
+        if self._latency_tracker is not None:
+            self._latency_tracker.mark_stt_first_audio()
+
+    def _mark_stt_first_result(self) -> None:
+        if self._latency_tracker is not None:
+            self._latency_tracker.mark_stt_first_result()
+
+    @property
+    def recognizer(self) -> SpeechRecognizer:
+        return self._recognizer
+
+    @property
+    def wants_wav_segments(self) -> bool:
+        return self._recognizer.get_option().format == "wav"
+
+    async def start(self, frame):
+        await super().start(frame)
+        if not self._recognizer_entered:
+            await self._recognizer.__aenter__()
+            self._recognizer_entered = True
+
+    async def cleanup(self):
+        if self._live_utterance and hasattr(self._recognizer, "cancel_utterance"):
+            await self._recognizer.cancel_utterance()
+            self._live_utterance = False
+        if self._recognizer_entered:
+            await self._recognizer.__aexit__(None, None, None)
+            self._recognizer_entered = False
+        await super().cleanup()
+
+    @traced_stt
+    async def _handle_transcription(self, transcript: str, is_final: bool):
+        return None
+
+    async def process_audio_frame(
+        self, frame: InputAudioRawFrame, direction: FrameDirection
+    ):
+        if isinstance(frame, UserAudioRawFrame):
+            self._user_id = frame.user_id
+        else:
+            self._user_id = ""
+
+        if self._live_utterance:
+            if frame.audio:
+                self._mark_stt_first_audio()
+            await self._recognizer.push_audio(frame.audio)
+            return
+
+        if frame.audio:
+            self._mark_stt_first_audio()
+        await super().process_audio_frame(frame, direction)
+
+    async def _handle_user_started_speaking(self, frame: VADUserStartedSpeakingFrame):
+        self._user_speaking = True
+        if not self._live:
+            return
+        try:
+            await self._recognizer.begin_utterance()
+            self._live_utterance = True
+            # Flush VAD pre-roll already buffered by SegmentedSTTService.
+            if self._audio_buffer:
+                self._mark_stt_first_audio()
+                await self._recognizer.push_audio(bytes(self._audio_buffer))
+                self._audio_buffer.clear()
+        except Exception as e:
+            self._live_utterance = False
+            await self.push_error_frame(
+                ErrorFrame(error=f"STT begin_utterance failed: {e}")
+            )
+
+    async def _handle_user_stopped_speaking(self, frame: VADUserStoppedSpeakingFrame):
+        if not self._live or not self._live_utterance:
+            await super()._handle_user_stopped_speaking(frame)
+            return
+
+        self._user_speaking = False
+        self._live_utterance = False
+        if not self.is_usable:
+            if hasattr(self._recognizer, "cancel_utterance"):
+                await self._recognizer.cancel_utterance()
+            self._audio_buffer.clear()
+            return
+
+        trailing = self._trailing_silence()
+        if trailing:
+            await self._recognizer.push_audio(trailing)
+        self._audio_buffer.clear()
+        await self.process_generator(self._finalize_live_stt())
+
+    async def _finalize_live_stt(self):
+        try:
+            await self.start_processing_metrics()
+            async for event in self._recognizer.end_utterance():
+                if event.type == "error":
+                    yield ErrorFrame(error=event.message or "Speech recognition error")
+                    continue
+                if event.type != "final":
+                    continue
+                text = (event.text or "").strip()
+                if not text:
+                    continue
+                await self._handle_transcription(text, True)
+                self._mark_stt_first_result()
+                yield TranscriptionFrame(text, self._user_id, time_now_iso8601())
+            await self.stop_processing_metrics()
+        except Exception as e:
+            yield ErrorFrame(error=f"STT error: {e}")
+
+    async def run_stt(self, audio: bytes):
+        try:
+            if audio:
+                self._mark_stt_first_audio()
+            await self.start_processing_metrics()
+            async for event in self._recognizer.stream_async(audio):
+                if event.type == "error":
+                    yield ErrorFrame(error=event.message or "Speech recognition error")
+                    continue
+                if event.type != "final":
+                    continue
+                text = (event.text or "").strip()
+                if not text:
+                    continue
+                await self._handle_transcription(text, True)
+                self._mark_stt_first_result()
+                yield TranscriptionFrame(text, self._user_id, time_now_iso8601())
+            await self.stop_processing_metrics()
+        except Exception as e:
+            yield ErrorFrame(error=f"STT error: {e}")
+
+
+class TTSService(PipecatTTSService):
+    """Wrap a ``SpeechSynthesizer`` for use in a Pipecat pipeline."""
+
+    def __init__(self, synthesizer: SpeechSynthesizer, **kwargs) -> None:
+        option = synthesizer.get_option()
+        self._latency_tracker: VoiceLatencyTracker | None = kwargs.pop(
+            "latency_tracker", None
+        )
+        super().__init__(
+            sample_rate=kwargs.pop("sample_rate", option.sample_rate),
+            text_aggregation_mode=kwargs.pop(
+                "text_aggregation_mode", TextAggregationMode.SENTENCE
+            ),
+            push_start_frame=True,
+            push_stop_frames=True,
+            settings=TTSSettings(
+                model=kwargs.pop("model", synthesizer.id),
+                voice=option.voice,
+                language=None,
+            ),
+            **kwargs,
+        )
+        self._synthesizer = synthesizer
+        self._synthesizer_entered = False
+
+    @property
+    def synthesizer(self) -> SpeechSynthesizer:
+        return self._synthesizer
+
+    def can_generate_metrics(self) -> bool:
+        return True
+
+    @property
+    def _effective_sample_rate(self) -> int:
+        return (
+            self.sample_rate
+            or self._init_sample_rate
+            or self._synthesizer.get_option().sample_rate
+        )
+
+    async def start(self, frame):
+        await super().start(frame)
+        if not self._synthesizer_entered:
+            await self._synthesizer.__aenter__()
+            self._synthesizer_entered = True
+
+    async def cleanup(self):
+        if self._synthesizer_entered:
+            await self._synthesizer.__aexit__(None, None, None)
+            self._synthesizer_entered = False
+        await super().cleanup()
+
+    @traced_tts
+    async def run_tts(self, text: str, context_id: str):
+        try:
+            if self._latency_tracker is not None:
+                self._latency_tracker.mark_tts_first_input()
+            await self.start_processing_metrics()
+            async for audio in self._synthesizer.stream_async(text):
+                if audio:
+                    if self._latency_tracker is not None:
+                        self._latency_tracker.mark_tts_first_output()
+                    yield TTSAudioRawFrame(
+                        audio=audio,
+                        sample_rate=self._effective_sample_rate,
+                        num_channels=1,
+                        context_id=context_id,
+                    )
+            await self.stop_processing_metrics()
+        except Exception as e:
+            yield ErrorFrame(error=f"TTS error: {e}")
 
 
 async def _list_messages(
@@ -135,8 +400,9 @@ class PipecatAgentRunnable(AgentRunnable):
     async def run_async(
         self,
         transport: BaseTransport | None = None,
-        stt: STTService | None = None,
-        tts: TTSService | None = None,
+        stt: SpeechRecognizer | None = None,
+        tts: SpeechSynthesizer | None = None,
+        vad: VADAnalyzer | None = None,
         agent_run_repository: AgentRunRepository | None = None,
         agent_run_session_id: str | None = None,
         agent_run_id: str | None = None,
@@ -148,11 +414,36 @@ class PipecatAgentRunnable(AgentRunnable):
         context: dict[str, Any] | None = None,
         **kwargs,
     ) -> BaseModel:
-        """Run a transport-backed pipeline until the session ends."""
+        """Run a transport-backed pipeline until the session ends.
+
+        For non-stdio (e.g. local mic) voice pipelines, pass ``vad`` so the
+        user aggregator can emit VAD frames for segmented STT. ``stt`` /
+        ``tts`` are speech abstractions wrapped into Pipecat services.
+        """
         if transport is None:
             transport = StdioTransport()
             stt = None
             tts = None
+        trailing_silence = kwargs.pop(
+            "stt_trailing_silence_secs", DEFAULT_STT_TRAILING_SILENCE_SECS
+        )
+        latency_tracker: VoiceLatencyTracker | None = kwargs.pop(
+            "latency_tracker", None
+        )
+        stt_service = (
+            STTService(
+                stt,
+                trailing_silence_secs=trailing_silence,
+                latency_tracker=latency_tracker,
+            )
+            if stt is not None
+            else None
+        )
+        tts_service = (
+            TTSService(tts, latency_tracker=latency_tracker)
+            if tts is not None
+            else None
+        )
         async with self._lock:
             async with (
                 AgentRunToolSpan(
@@ -238,16 +529,27 @@ class PipecatAgentRunnable(AgentRunnable):
                             )
                         ),
                     )
+                elif vad is not None:
+                    user_agg, assistant_agg = LLMContextAggregatorPair(
+                        llm_context,
+                        user_params=LLMUserAggregatorParams(
+                            vad_analyzer=vad,
+                        ),
+                    )
                 else:
                     user_agg, assistant_agg = LLMContextAggregatorPair(llm_context)
 
                 processors: list[Any] = [transport.input()]
-                if stt is not None:
-                    processors.append(stt)
+                if stt_service is not None:
+                    processors.append(stt_service)
                 processors.append(user_agg)
+                if latency_tracker is not None:
+                    processors.append(LatencyProbe(latency_tracker, role="llm_in"))
                 processors.append(self._agent_model)
-                if tts is not None:
-                    processors.append(tts)
+                if latency_tracker is not None:
+                    processors.append(LatencyProbe(latency_tracker, role="llm_out"))
+                if tts_service is not None:
+                    processors.append(tts_service)
                 processors.extend([transport.output(), assistant_agg])
 
                 extra = self._agent_config.extra or {}
