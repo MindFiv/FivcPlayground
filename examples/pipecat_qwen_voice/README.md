@@ -14,7 +14,7 @@ Full-duplex voice session using FivcPlayground’s Pipecat backend with:
 # macOS system dependency for PyAudio
 brew install portaudio
 
-uv sync --extra pipecat --extra dashscope --extra dev
+uv sync --extra pipecat-local --extra dashscope --extra dev
 export DASHSCOPE_API_KEY=sk-...
 # Optional (workspace WebSocket endpoint; reduces cross-region RTT):
 # export DASHSCOPE_BASE_WEBSOCKET_API_URL=wss://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference

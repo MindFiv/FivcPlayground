@@ -4,7 +4,7 @@
 Prerequisites:
   - Python 3.11+
   - ``brew install portaudio`` (macOS)
-  - ``uv sync --extra pipecat --extra dashscope --extra dev``
+  - ``uv sync --extra pipecat-local --extra dashscope --extra dev``
   - ``DASHSCOPE_API_KEY`` set (and optionally ``DASHSCOPE_BASE_WEBSOCKET_API_URL``)
 
 Speak into the mic; the assistant replies through the speakers. Idle timeout

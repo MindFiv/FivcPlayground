@@ -30,13 +30,16 @@ uv sync --extra strands
 # With Google ADK agent backend
 uv sync --extra adk
 
-# With Pipecat backend
+# With Pipecat backend (server-safe; no PyAudio)
 uv sync --extra pipecat
+
+# With local mic/speaker transport (needs PortAudio / PyAudio)
+uv sync --extra pipecat-local
 
 # With DashScope speech backend
 uv sync --extra dashscope
 
-# With everything (all backends + embeddings)
+# With everything (all backends + embeddings; excludes pipecat-local)
 uv sync --extra all
 
 # With development dependencies
@@ -73,13 +76,16 @@ pip install -e ".[strands]"
 # With Google ADK agent backend
 pip install -e ".[adk]"
 
-# With Pipecat backend
+# With Pipecat backend (server-safe; no PyAudio)
 pip install -e ".[pipecat]"
+
+# With local mic/speaker transport (needs PortAudio / PyAudio)
+pip install -e ".[pipecat-local]"
 
 # With DashScope speech backend
 pip install -e ".[dashscope]"
 
-# With everything (all backends + embeddings)
+# With everything (all backends + embeddings; excludes pipecat-local)
 pip install -e ".[all]"
 
 # With development dependencies
@@ -112,9 +118,15 @@ pip install -e ".[pipecat,dashscope,chroma,dev]"
 ### Pipecat Agent Backend (`[pipecat]`)
 | Package | Version | Purpose |
 |---------|---------|---------|
-| pipecat-ai[mcp,local,silero] | >=1.13.0,<2 | Pipeline worker, MCP, local mic/speaker (PyAudio), Silero VAD |
+| pipecat-ai[mcp,silero] | >=1.13.0,<2 | Pipeline worker, MCP, Silero VAD (no PyAudio) |
 
-Local audio also needs the system PortAudio library (macOS: `brew install portaudio`).
+### Pipecat Local Audio (`[pipecat-local]`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| fivcplayground[pipecat] | - | Pulls in the server-safe Pipecat extra |
+| pipecat-ai[local] | >=1.13.0,<2 | Local mic/speaker via PyAudio |
+
+Needs the system PortAudio library (macOS: `brew install portaudio`). Use this only for local voice demos / e2e audio tests—not for server deploys.
 
 ### DashScope Speech Backend (`[dashscope]`)
 | Package | Version | Purpose |
@@ -134,7 +146,7 @@ Local audio also needs the system PortAudio library (macOS: `brew install portau
 ### Convenience Groups
 | Group | Contents | Purpose |
 |-------|----------|---------|
-| `[all]` | ChromaDB, Google ADK, Pipecat, DashScope, Strands, all model providers | Complete installation with everything |
+| `[all]` | ChromaDB, Google ADK, Pipecat (no local/PyAudio), DashScope, Strands, all model providers | Complete installation without local audio |
 | `[dev]` | Testing and development tools | Development and testing |
 
 ### Development Dependencies (`[dev]`)
@@ -167,13 +179,14 @@ FivcPlayground supports multiple agent frameworks and embedding backends. Instal
 #### Pipecat Backend
 - Uses `pipecat-ai` pipeline workers and services
 - Supports text runs and transport-backed real-time pipelines
-- Install with: `pip install ".[pipecat]"`
+- Install with: `pip install ".[pipecat]"` (server-safe; no PyAudio)
+- For local mic/speaker transports, install `[pipecat-local]` instead
 
 #### DashScope Speech Backend
 - Uses the DashScope SDK for Qwen Audio STT/TTS
 - Implements `SpeechRecognizer` / `SpeechSynthesizer` in `backends.dashscope`
 - Install with: `pip install ".[dashscope]"`
-- For local Qwen voice demos, also install `[pipecat]`
+- For local Qwen voice demos, also install `[pipecat-local]`
 
 ### Embedding Backends
 

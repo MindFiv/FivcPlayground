@@ -47,10 +47,16 @@ adk = [
     "litellm>=1.104.0"
 ]
 
-# Pipecat real-time voice and pipeline backend
-# local requires PortAudio (macOS: brew install portaudio) for PyAudio
+# Pipecat real-time voice and pipeline backend (server-safe; no PyAudio)
 pipecat = [
-    "pipecat-ai[mcp,local,silero]>=1.13.0,<2",
+    "pipecat-ai[mcp,silero]>=1.13.0,<2",
+]
+
+# Local mic/speaker transport via pipecat-ai[local] (needs PortAudio / PyAudio)
+# macOS: brew install portaudio
+pipecat-local = [
+    "fivcplayground[pipecat]",
+    "pipecat-ai[local]>=1.13.0,<2",
 ]
 
 # DashScope speech (STT/TTS) backend
@@ -58,12 +64,12 @@ dashscope = [
     "dashscope>=1.24.0",
 ]
 
-# All backends and embedding support
+# All backends and embedding support (excludes pipecat-local / PyAudio)
 all = [
     "chromadb>=1.1.0",
     "google-adk",
     "litellm>=1.104.0",
-    "pipecat-ai[mcp,local,silero]>=1.13.0,<2",
+    "pipecat-ai[mcp,silero]>=1.13.0,<2",
     "dashscope>=1.24.0",
     "strands-agents>=1.57.0",
     "strands-agents[openai]>=1.57.0",

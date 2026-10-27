@@ -8,7 +8,8 @@ FivcPlayground has explicit model, tool, and agent backend implementations. **St
 |---------|-------|----------|
 | Strands | `strands` | Default text agents and native tool orchestration |
 | Google ADK | `adk` | Alternative text agents in Google's ADK runtime |
-| Pipecat | `pipecat` | Transport-backed voice/realtime pipelines; CLI text via stdio |
+| Pipecat | `pipecat` | Transport-backed voice/realtime pipelines; CLI text via stdio (no PyAudio) |
+| Pipecat local audio | `pipecat-local` | Local mic/speaker (`LocalAudioTransport` / PyAudio); includes `pipecat` |
 | DashScope | `dashscope` | Qwen Audio STT/TTS (`SpeechRecognizer` / `SpeechSynthesizer`) |
 
 ## Select A Backend
@@ -61,7 +62,7 @@ End-to-end local microphone/speaker demo with Alibaba Cloud Qwen Audio:
 - Example: [`examples/pipecat_qwen_voice/`](../examples/pipecat_qwen_voice/) (`run_local.py` + README)
 - STT/TTS: `backends.dashscope` (`DashScopeSpeechRecognizer` / `DashScopeSpeechSynthesizer`); Pipecat only adapts them into the pipeline
 - Models: `qwen-audio-3.1-asr-flash-streaming` / `qwen-audio-3.1-tts-flash` (voice `longanhuan_v3.1`)
-- Requires `DASHSCOPE_API_KEY`, PortAudio (`brew install portaudio` on macOS), and `uv sync --extra pipecat --extra dashscope`
+- Requires `DASHSCOPE_API_KEY`, PortAudio (`brew install portaudio` on macOS), and `uv sync --extra pipecat-local --extra dashscope`
 
 ```bash
 uv run python examples/pipecat_qwen_voice/run_local.py
