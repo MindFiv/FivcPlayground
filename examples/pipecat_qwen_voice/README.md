@@ -52,12 +52,29 @@ Speak a short phrase; wait for the spoken reply. The session ends after
 Tip: for speaker echo / self-barge-in issues, prefer headphones while
 testing, or lower speaker volume.
 
-## Opt-in e2e test
+## Opt-in e2e test (cascade stack)
 
 Default `make test` / pytest excludes `e2e`. To run the live local-audio test
-(you must speak one turn into the mic):
+for the cascade STT/LLM/TTS stack (you must speak one turn into the mic):
 
 ```bash
 DASHSCOPE_API_KEY=... PIPECAT_LOCAL_AUDIO_E2E=1 \
   uv run pytest -m e2e tests/backends/test_pipecat_qwen_voice_local_e2e.py -v
 ```
+
+## Qwen-Omni realtime
+
+Speech-to-speech on one WebSocket (`qwen3.8-omni-flash-realtime`). No separate
+STT, TTS, or local VAD — server-side VAD owns turns.
+
+```bash
+export DASHSCOPE_API_KEY=sk-...
+export DASHSCOPE_REALTIME_BASE_URL=wss://llm-xxxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime
+# Optional:
+# export PIPECAT_QWEN_OMNI_MODEL=qwen3.8-omni-flash-realtime
+# export PIPECAT_QWEN_OMNI_VOICE=Tina
+
+uv run python examples/pipecat_qwen_voice/run_omni_realtime.py
+```
+
+Use headphones. Server-side VAD treats speaker echo as the user talking.

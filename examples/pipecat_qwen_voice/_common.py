@@ -33,6 +33,8 @@ DASHSCOPE_COMPAT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_LLM_MODEL = "deepseek-v4.1-flash"
 DEFAULT_IDLE_TIMEOUT_SECS = 120
 DEFAULT_VAD_STOP_SECS = 0.2
+DEFAULT_REALTIME_MODEL = "qwen3.8-omni-flash-realtime"
+DEFAULT_REALTIME_VOICE = "Tina"
 BUILTIN_TOOL_IDS = ["auxiliary", "filesystem", "shell"]
 
 
@@ -231,4 +233,66 @@ def build_voice_stack(
         "vad": build_vad(),
         "stt": build_stt(api_key),
         "tts": build_tts(api_key),
+    }
+
+
+def require_realtime_base_url() -> str:
+    """Return the full realtime WebSocket URL from the environment."""
+    base_url = os.environ.get("DASHSCOPE_REALTIME_BASE_URL", "").strip()
+    if not base_url:
+        raise RuntimeError(
+            "Set DASHSCOPE_REALTIME_BASE_URL to a full wss://.../api-ws/v1/realtime URL."
+        )
+    return base_url
+
+
+def build_realtime_agent(
+    *,
+    idle_timeout_secs: int = DEFAULT_IDLE_TIMEOUT_SECS,
+    system_prompt: str | None = None,
+) -> PipecatAgentRunnable:
+    api_key = require_dashscope_api_key()
+    extra: dict[str, Any] = {
+        "voice": os.environ.get("PIPECAT_QWEN_OMNI_VOICE", DEFAULT_REALTIME_VOICE),
+    }
+    model = PipecatModelBackend().create_model(
+        ModelConfig(
+            id="qwen-omni-realtime",
+            provider="qwen_realtime",
+            model=os.environ.get("PIPECAT_QWEN_OMNI_MODEL", DEFAULT_REALTIME_MODEL),
+            api_key=api_key,
+            base_url=require_realtime_base_url(),
+            extra=extra,
+        )
+    )
+    prompt = system_prompt or (
+        "You are a helpful voice assistant. Use tools when they help answer "
+        "(clock, calculator, filesystem, shell). Keep spoken replies short "
+        "(one or two sentences)."
+    )
+    return PipecatAgentRunnable(
+        AgentConfig(
+            id="qwen-omni-realtime",
+            system_prompt=prompt,
+            extra={
+                "idle_timeout_secs": idle_timeout_secs,
+                "pipeline_params": {"enable_metrics": True},
+            },
+        ),
+        model.get_underlying(),
+    )
+
+
+def build_realtime_stack(
+    *,
+    idle_timeout_secs: int = DEFAULT_IDLE_TIMEOUT_SECS,
+) -> dict[str, Any]:
+    """Assemble a local mic/speaker transport and a realtime speech-to-speech agent.
+
+    The realtime model owns recognition, reply audio, and server-side turn
+    detection, so this stack has no separate STT, TTS, or local VAD.
+    """
+    return {
+        "agent": build_realtime_agent(idle_timeout_secs=idle_timeout_secs),
+        "transport": build_local_transport(),
     }
