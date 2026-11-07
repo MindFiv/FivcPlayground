@@ -500,7 +500,9 @@ class SqliteAgentRunRepository(AgentRunRepository):
         )
         self.connection.commit()
 
-    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+    async def list_agent_runs_async(
+        self, session_id: str, latest: bool = False
+    ) -> List[AgentRun]:
         """List all agent runtimes for a specific session with embedded tool calls."""
         cursor = self.connection.cursor()
         cursor.execute(

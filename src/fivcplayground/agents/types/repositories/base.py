@@ -81,5 +81,12 @@ class AgentRunRepository(ABC):
         """Delete an agent runtime and all its tool calls."""
 
     @abstractmethod
-    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
-        """List all agent runtimes for a specific session."""
+    async def list_agent_runs_async(
+        self, session_id: str, latest: bool = False
+    ) -> List[AgentRun]:
+        """List agent runtimes for a specific session, oldest first.
+
+        Implementations that cap how many runs they return should keep the
+        most recent ones when ``latest`` is True (used when replaying history
+        into an agent). Implementations that return every run may ignore it.
+        """
