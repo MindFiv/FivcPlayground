@@ -450,7 +450,9 @@ class FileAgentRunRepository(AgentRunRepository):
         if run_file.exists():
             run_file.unlink()
 
-    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+    async def list_agent_runs_async(
+        self, session_id: str, latest: bool = False
+    ) -> List[AgentRun]:
         """List all agent runtimes for a specific session."""
         runtimes = []
 
