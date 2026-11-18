@@ -108,7 +108,11 @@ class FileToolConfigRepository(ToolConfigRepository):
         with open(tools_file, "w", encoding="utf-8") as f:
             yaml.dump(tools_data, f, default_flow_style=False, allow_unicode=True)
 
-    async def update_tool_config_async(self, tool_config: ToolConfig) -> None:
+    async def update_tool_config_async(
+        self,
+        tool_config: ToolConfig,
+        **kwargs,
+    ) -> None:
         """
         Create or update a tool configuration.
 
@@ -136,7 +140,11 @@ class FileToolConfigRepository(ToolConfigRepository):
         # Save all tools back to file
         self._save_tools_data(tools_data)
 
-    async def get_tool_config_async(self, tool_id: str) -> ToolConfig | None:
+    async def get_tool_config_async(
+        self,
+        tool_id: str,
+        **kwargs,
+    ) -> ToolConfig | None:
         """
         Retrieve a tool configuration by ID.
 
@@ -183,7 +191,11 @@ class FileToolConfigRepository(ToolConfigRepository):
 
         return tools
 
-    async def delete_tool_config_async(self, tool_id: str) -> None:
+    async def delete_tool_config_async(
+        self,
+        tool_id: str,
+        **kwargs,
+    ) -> None:
         """
         Delete a tool configuration.
 

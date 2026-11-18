@@ -112,7 +112,9 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
             yaml.dump(embeddings_data, f, default_flow_style=False, allow_unicode=True)
 
     async def update_embedding_config_async(
-        self, embedding_config: EmbeddingConfig
+        self,
+        embedding_config: EmbeddingConfig,
+        **kwargs,
     ) -> None:
         """
         Create or update an embedding configuration.
@@ -142,7 +144,9 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
         self._save_embeddings_data(embeddings_data)
 
     async def get_embedding_config_async(
-        self, embedding_id: str
+        self,
+        embedding_id: str,
+        **kwargs,
     ) -> EmbeddingConfig | None:
         """
         Retrieve an embedding configuration by ID.
@@ -190,7 +194,11 @@ class FileEmbeddingConfigRepository(EmbeddingConfigRepository):
 
         return embeddings
 
-    async def delete_embedding_config_async(self, embedding_id: str) -> None:
+    async def delete_embedding_config_async(
+        self,
+        embedding_id: str,
+        **kwargs,
+    ) -> None:
         """
         Delete an embedding configuration.
 

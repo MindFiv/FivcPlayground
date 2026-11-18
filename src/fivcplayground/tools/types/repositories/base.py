@@ -13,11 +13,19 @@ class ToolConfigRepository(ABC):
     """
 
     @abstractmethod
-    async def update_tool_config_async(self, tool_config: ToolConfig) -> None:
+    async def update_tool_config_async(
+        self,
+        tool_config: ToolConfig,
+        **kwargs,
+    ) -> None:
         """Create or update a tool configuration."""
 
     @abstractmethod
-    async def get_tool_config_async(self, tool_id: str) -> ToolConfig | None:
+    async def get_tool_config_async(
+        self,
+        tool_id: str,
+        **kwargs,
+    ) -> ToolConfig | None:
         """Retrieve a tool by ID."""
 
     @abstractmethod
@@ -25,5 +33,9 @@ class ToolConfigRepository(ABC):
         """List all tools in the repository."""
 
     @abstractmethod
-    async def delete_tool_config_async(self, tool_id: str) -> None:
+    async def delete_tool_config_async(
+        self,
+        tool_id: str,
+        **kwargs,
+    ) -> None:
         """Delete a tool configuration."""

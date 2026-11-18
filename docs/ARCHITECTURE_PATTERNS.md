@@ -13,13 +13,22 @@ FivcPlayground uses a **fivcglue interface-based architecture** pattern for flex
 # Abstract interface with async methods
 class AgentConfigRepository(ABC):
     @abstractmethod
-    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
+    async def get_agent_config_async(
+        self,
+        agent_id: str,
+        **kwargs,
+    ) -> AgentConfig | None:
         """Retrieve an agent configuration by ID."""
         pass
 
+
 # Concrete implementation
 class FileAgentConfigRepository(AgentConfigRepository):
-    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
+    async def get_agent_config_async(
+        self,
+        agent_id: str,
+        **kwargs,
+    ) -> AgentConfig | None:
         # File-based implementation
         pass
 ```
@@ -38,6 +47,8 @@ class FileAgentConfigRepository(AgentConfigRepository):
 - Agent run history
 
 **Note**: All repository methods use async/await pattern. Deprecated synchronous methods are still available for backward compatibility but should be migrated to async versions.
+
+**Implement-specific kwargs**: Trailing `**kwargs` on repository methods let callers pass options that only some backends understand. Implementations should consume only parameters they document (prefer explicit named params before `**kwargs`) and silently ignore the rest. Do not assume a kwarg works across every backend.
 
 ### 2. Factory Pattern
 
