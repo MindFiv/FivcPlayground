@@ -323,7 +323,9 @@ async def _list_messages(
             return json.dumps(content.structured, ensure_ascii=False)
         return ""
 
-    runs = await agent_run_repository.list_agent_runs_async(agent_run_session_id)
+    runs = await agent_run_repository.list_agent_runs_async(
+        agent_run_session_id, latest=True
+    )
     for run in runs:
         if run.query:
             messages.append({"role": "user", "content": content_text(run.query)})

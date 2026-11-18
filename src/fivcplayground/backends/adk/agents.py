@@ -83,7 +83,7 @@ async def _list_events(
     agent_events = []
     if agent_run_repository and agent_run_session_id:
         agent_runs = await agent_run_repository.list_agent_runs_async(
-            agent_run_session_id
+            agent_run_session_id, latest=True
         )
         for m in agent_runs:
             if not m.is_completed:
