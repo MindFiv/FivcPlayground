@@ -17,19 +17,34 @@ class AgentConfigRepository(ABC):
     """
 
     @abstractmethod
-    async def update_agent_config_async(self, agent_config: AgentConfig) -> None:
+    async def update_agent_config_async(
+            self,
+            agent_config: AgentConfig,
+            **kwargs,
+    ) -> None:
         """Create or update an agent configuration."""
 
     @abstractmethod
-    async def get_agent_config_async(self, agent_id: str) -> AgentConfig | None:
+    async def get_agent_config_async(
+            self,
+            agent_id: str,
+            **kwargs,
+    ) -> AgentConfig | None:
         """Retrieve an agent configuration by ID."""
 
     @abstractmethod
-    async def list_agent_configs_async(self) -> List[AgentConfig]:
+    async def list_agent_configs_async(
+            self,
+            **kwargs,
+    ) -> List[AgentConfig]:
         """List all agent configurations in the repository."""
 
     @abstractmethod
-    async def delete_agent_config_async(self, agent_id: str) -> None:
+    async def delete_agent_config_async(
+            self,
+            agent_id: str,
+            **kwargs,
+    ) -> None:
         """Delete an agent configuration."""
 
 
@@ -47,39 +62,67 @@ class AgentRunRepository(ABC):
     """
 
     @abstractmethod
-    async def update_agent_run_session_async(self, session: AgentRunSession) -> None:
+    async def update_agent_run_session_async(
+            self,
+            session: AgentRunSession,
+            **kwargs,
+    ) -> None:
         """Create or update an agent's metadata."""
 
     @abstractmethod
     async def get_agent_run_session_async(
-        self, session_id: str
+            self,
+            session_id: str,
+            **kwargs,
     ) -> AgentRunSession | None:
         """Retrieve an agent's metadata by session ID."""
 
     @abstractmethod
-    async def list_agent_run_sessions_async(self) -> List[AgentRunSession]:
+    async def list_agent_run_sessions_async(
+            self,
+            **kwargs,
+    ) -> List[AgentRunSession]:
         """List all agents in the repository."""
 
     @abstractmethod
-    async def delete_agent_run_session_async(self, session_id: str) -> None:
+    async def delete_agent_run_session_async(
+            self,
+            session_id: str,
+            **kwargs,
+    ) -> None:
         """Delete an agent's metadata and all its runtimes."""
 
     @abstractmethod
     async def update_agent_run_async(
-        self, session_id: str, agent_run: AgentRun
+            self,
+            session_id: str,
+            agent_run: AgentRun,
+            **kwargs,
     ) -> None:
         """Create or update an agent runtime."""
 
     @abstractmethod
     async def get_agent_run_async(
-        self, session_id: str, run_id: str
+            self,
+            session_id: str,
+            run_id: str,
+            **kwargs,
     ) -> AgentRun | None:
         """Retrieve an agent runtime by session ID and run ID."""
 
     @abstractmethod
-    async def delete_agent_run_async(self, session_id: str, run_id: str) -> None:
+    async def delete_agent_run_async(
+            self,
+            session_id: str,
+            run_id: str,
+            **kwargs,
+    ) -> None:
         """Delete an agent runtime and all its tool calls."""
 
     @abstractmethod
-    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+    async def list_agent_runs_async(
+            self,
+            session_id: str,
+            **kwargs,
+    ) -> List[AgentRun]:
         """List all agent runtimes for a specific session."""

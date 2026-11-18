@@ -150,7 +150,11 @@ class FileAgentConfigRepository(AgentConfigRepository):
         with open(agents_file, "w", encoding="utf-8") as f:
             yaml.dump(agents_data, f, default_flow_style=False, allow_unicode=True)
 
-    async def update_agent_config_async(self, agent_config: AgentConfig) -> None:
+    async def update_agent_config_async(
+        self,
+        agent_config: AgentConfig,
+        **kwargs,
+    ) -> None:
         """
         Create or update an agent configuration.
 
@@ -172,7 +176,11 @@ class FileAgentConfigRepository(AgentConfigRepository):
         agents_data[agent_id] = agent_data
         self._save_agents_data(agents_data)
 
-    async def get_agent_config_async(self, agent_id: str) -> Optional[AgentConfig]:
+    async def get_agent_config_async(
+        self,
+        agent_id: str,
+        **kwargs,
+    ) -> Optional[AgentConfig]:
         """
         Retrieve an agent configuration by ID.
 
@@ -196,7 +204,7 @@ class FileAgentConfigRepository(AgentConfigRepository):
             print(f"Error loading agent config {agent_id}: {e}")
             return None
 
-    async def list_agent_configs_async(self) -> List[AgentConfig]:
+    async def list_agent_configs_async(self, **kwargs) -> List[AgentConfig]:
         """
         List all agent configurations in the repository.
 
@@ -218,7 +226,11 @@ class FileAgentConfigRepository(AgentConfigRepository):
 
         return configs
 
-    async def delete_agent_config_async(self, agent_id: str) -> None:
+    async def delete_agent_config_async(
+        self,
+        agent_id: str,
+        **kwargs,
+    ) -> None:
         """
         Delete an agent configuration.
 
@@ -324,7 +336,11 @@ class FileAgentRunRepository(AgentRunRepository):
         """
         return self._get_session_dir(session_id) / f"run_{agent_run_id}.json"
 
-    async def update_agent_run_session_async(self, agent: AgentRunSession) -> None:
+    async def update_agent_run_session_async(
+        self,
+        agent: AgentRunSession,
+        **kwargs,
+    ) -> None:
         """Create or update an agent's metadata."""
         session_dir = self._get_session_dir(agent.id)
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -338,7 +354,9 @@ class FileAgentRunRepository(AgentRunRepository):
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
     async def get_agent_run_session_async(
-        self, session_id: str
+        self,
+        session_id: str,
+        **kwargs,
     ) -> Optional[AgentRunSession]:
         """Retrieve an agent session's metadata by session ID."""
         if not self.base_path.exists():
@@ -361,7 +379,7 @@ class FileAgentRunRepository(AgentRunRepository):
             print(f"Error loading session from {session_file}: {e}")
             return None
 
-    async def list_agent_run_sessions_async(self) -> List[AgentRunSession]:
+    async def list_agent_run_sessions_async(self, **kwargs) -> List[AgentRunSession]:
         """List all agents in the repository."""
         agents = []
 
@@ -391,7 +409,11 @@ class FileAgentRunRepository(AgentRunRepository):
 
         return agents
 
-    async def delete_agent_run_session_async(self, session_id: str) -> None:
+    async def delete_agent_run_session_async(
+        self,
+        session_id: str,
+        **kwargs,
+    ) -> None:
         """Delete an agent session and all its associated runtimes."""
         if not self.base_path.exists():
             return
@@ -401,7 +423,10 @@ class FileAgentRunRepository(AgentRunRepository):
             shutil.rmtree(session_dir)
 
     async def update_agent_run_async(
-        self, session_id: str, agent_run: AgentRun
+        self,
+        session_id: str,
+        agent_run: AgentRun,
+        **kwargs,
     ) -> None:
         """Create or update an agent runtime.
 
@@ -423,7 +448,10 @@ class FileAgentRunRepository(AgentRunRepository):
             json.dump(agent_data, f, indent=2, ensure_ascii=False)
 
     async def get_agent_run_async(
-        self, session_id: str, run_id: str
+        self,
+        session_id: str,
+        run_id: str,
+        **kwargs,
     ) -> Optional[AgentRun]:
         """Retrieve an agent runtime by session ID and run ID."""
         run_file = self._get_run_file(session_id, run_id)
@@ -443,14 +471,23 @@ class FileAgentRunRepository(AgentRunRepository):
             print(f"Error loading session {session_id} run {run_id}: {e}")
             return None
 
-    async def delete_agent_run_async(self, session_id: str, run_id: str) -> None:
+    async def delete_agent_run_async(
+        self,
+        session_id: str,
+        run_id: str,
+        **kwargs,
+    ) -> None:
         """Delete an agent runtime and all its embedded tool calls."""
         run_file = self._get_run_file(session_id, run_id)
 
         if run_file.exists():
             run_file.unlink()
 
-    async def list_agent_runs_async(self, session_id: str) -> List[AgentRun]:
+    async def list_agent_runs_async(
+        self,
+        session_id: str,
+        **kwargs,
+    ) -> List[AgentRun]:
         """List all agent runtimes for a specific session."""
         runtimes = []
 
