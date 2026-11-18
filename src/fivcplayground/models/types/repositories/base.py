@@ -13,11 +13,19 @@ class ModelConfigRepository(ABC):
     """
 
     @abstractmethod
-    async def update_model_config_async(self, model_config: ModelConfig) -> None:
+    async def update_model_config_async(
+        self,
+        model_config: ModelConfig,
+        **kwargs,
+    ) -> None:
         """Create or update a model configuration."""
 
     @abstractmethod
-    async def get_model_config_async(self, model_id: str) -> ModelConfig | None:
+    async def get_model_config_async(
+        self,
+        model_id: str,
+        **kwargs,
+    ) -> ModelConfig | None:
         """Retrieve a model configuration by ID."""
 
     @abstractmethod
@@ -25,5 +33,9 @@ class ModelConfigRepository(ABC):
         """List all model configurations in the repository."""
 
     @abstractmethod
-    async def delete_model_config_async(self, model_id: str) -> None:
+    async def delete_model_config_async(
+        self,
+        model_id: str,
+        **kwargs,
+    ) -> None:
         """Delete a model configuration."""

@@ -13,13 +13,17 @@ class EmbeddingConfigRepository(ABC):
 
     @abstractmethod
     async def update_embedding_config_async(
-        self, embedding_config: EmbeddingConfig
+        self,
+        embedding_config: EmbeddingConfig,
+        **kwargs,
     ) -> None:
         """Create or update an embedding configuration."""
 
     @abstractmethod
     async def get_embedding_config_async(
-        self, embedding_id: str
+        self,
+        embedding_id: str,
+        **kwargs,
     ) -> EmbeddingConfig | None:
         """Retrieve an embedding configuration by ID."""
 
@@ -28,5 +32,9 @@ class EmbeddingConfigRepository(ABC):
         """List all embedding configurations in the repository."""
 
     @abstractmethod
-    async def delete_embedding_config_async(self, embedding_id: str) -> None:
+    async def delete_embedding_config_async(
+        self,
+        embedding_id: str,
+        **kwargs,
+    ) -> None:
         """Delete an embedding configuration."""
