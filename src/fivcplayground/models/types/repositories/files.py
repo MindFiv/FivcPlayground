@@ -113,7 +113,11 @@ class FileModelConfigRepository(ModelConfigRepository):
         with open(models_file, "w", encoding="utf-8") as f:
             yaml.dump(models_data, f, default_flow_style=False, allow_unicode=True)
 
-    async def update_model_config_async(self, model_config: ModelConfig) -> None:
+    async def update_model_config_async(
+        self,
+        model_config: ModelConfig,
+        **kwargs,
+    ) -> None:
         """
         Create or update a model configuration.
 
@@ -141,7 +145,11 @@ class FileModelConfigRepository(ModelConfigRepository):
         # Save all models back to file
         self._save_models_data(models_data)
 
-    async def get_model_config_async(self, model_id: str) -> ModelConfig | None:
+    async def get_model_config_async(
+        self,
+        model_id: str,
+        **kwargs,
+    ) -> ModelConfig | None:
         """
         Retrieve a model configuration by ID.
 
@@ -188,7 +196,11 @@ class FileModelConfigRepository(ModelConfigRepository):
 
         return models
 
-    async def delete_model_config_async(self, model_id: str) -> None:
+    async def delete_model_config_async(
+        self,
+        model_id: str,
+        **kwargs,
+    ) -> None:
         """
         Delete a model configuration.
 

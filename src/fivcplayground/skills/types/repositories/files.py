@@ -40,14 +40,22 @@ class FileSkillConfigRepository(SkillConfigRepository):
         with open(self.skills_file, "w", encoding="utf-8") as f:
             yaml.dump(skills_data, f, default_flow_style=False, allow_unicode=True)
 
-    async def update_skill_config_async(self, skill_config: SkillConfig) -> None:
+    async def update_skill_config_async(
+        self,
+        skill_config: SkillConfig,
+        **kwargs,
+    ) -> None:
         skill_id = skill_config.id
         skills_data = self._load_skills_data()
         skill_data = skill_config.model_dump(mode="json")
         skills_data[skill_id] = skill_data
         self._save_skills_data(skills_data)
 
-    async def get_skill_config_async(self, skill_id: str) -> Optional[SkillConfig]:
+    async def get_skill_config_async(
+        self,
+        skill_id: str,
+        **kwargs,
+    ) -> Optional[SkillConfig]:
         skills_data = self._load_skills_data()
         if skill_id not in skills_data:
             return None
@@ -59,7 +67,7 @@ class FileSkillConfigRepository(SkillConfigRepository):
             print(f"Error loading skill config {skill_id}: {e}")
             return None
 
-    async def list_skill_configs_async(self) -> List[SkillConfig]:
+    async def list_skill_configs_async(self, **kwargs) -> List[SkillConfig]:
         skills_data = self._load_skills_data()
         configs = []
         for skill_id in sorted(skills_data.keys()):
@@ -72,7 +80,11 @@ class FileSkillConfigRepository(SkillConfigRepository):
                 print(f"Error loading skill config {skill_id}: {e}")
         return configs
 
-    async def delete_skill_config_async(self, skill_id: str) -> None:
+    async def delete_skill_config_async(
+        self,
+        skill_id: str,
+        **kwargs,
+    ) -> None:
         skills_data = self._load_skills_data()
         if skill_id in skills_data:
             del skills_data[skill_id]
